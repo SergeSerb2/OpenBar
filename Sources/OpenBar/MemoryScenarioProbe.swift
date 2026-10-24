@@ -235,7 +235,8 @@ enum MemoryScenarioProbe {
                 "items=\(self.items) customViewItems=\(self.customViewItems) views=\(self.views)",
                 "hostingViews=\(self.hostingViews) hostingArea=\(mb(self.hostingPixels))",
                 "effectViews=\(self.effectViews) effectArea=\(mb(self.effectPixels))",
-                "layers=\(self.layers) layersWithContents=\(self.layersWithContents) contentArea=\(mb(self.contentPixels))",
+                "layers=\(self.layers) layersWithContents=\(self.layersWithContents)",
+                "contentArea=\(mb(self.contentPixels))",
                 "largest layers with contents:",
             ]
             for (name, pixels) in self.largestLayers.sorted(by: { $0.1 > $1.1 }).prefix(15) {
