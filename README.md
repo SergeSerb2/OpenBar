@@ -3,7 +3,7 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-1d1d1f?style=flat-square)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5246e0?style=flat-square)](LICENSE)
 
-<img src="docs/social.png?v=b7b10875c3af3e8a" alt="OpenBar — every AI coding limit in your menu bar. 109 providers." width="100%" />
+<img src="docs/social.png?v=7fb58633ec1b8418" alt="OpenBar — every AI coding limit in your menu bar. 109 providers." width="100%" />
 
 OpenBar is a lightweight fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps
 CodexBar's features — usage limits, reset countdowns, credits, local cost scans, and 109 providers — and focuses on

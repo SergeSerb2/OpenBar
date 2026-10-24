@@ -11,6 +11,6 @@
   </defs>
   <rect x="0" y="0" width="1024" height="1024" rx="229" fill="url(#iris)"/>
   <rect x="0" y="0" width="1024" height="1024" rx="229" fill="url(#sheen)"/>
-  <path d="M 761.0 501.2 A 262 262 0 1 1 522.8 263.0" fill="none" stroke="#FFFFFF" stroke-width="128" stroke-linecap="round"/>
-  <circle cx="685.3" cy="338.7" r="64" fill="#FFFFFF"/>
+  <path d="M 760.6 551.4 A 262 262 0 1 1 472.6 263.4" fill="none" stroke="#FFFFFF" stroke-width="128" stroke-linecap="round"/>
+  <circle cx="685.3" cy="338.7" r="88" fill="#FFFFFF"/>
 </svg>
