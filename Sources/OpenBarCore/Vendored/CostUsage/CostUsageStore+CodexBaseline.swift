@@ -65,6 +65,7 @@ extension CostUsageStore {
     }
 
     func loadCodexScan(calendar: Calendar) -> CostUsageStoreLoad {
+        defer { self.scheduleCodexIdleEviction() }
         self.retainedCodexBaseline = nil
         _ = self.removeLegacyCodexArtifactIfPresent()
         let receipt = CodexBaselineReceipt(store: self)
@@ -95,6 +96,7 @@ extension CostUsageStore {
     private func releaseCodexBaseline(id: UUID) {
         if self.retainedCodexBaseline?.id == id {
             self.retainedCodexBaseline = nil
+            self.scheduleCodexIdleEviction()
             #if DEBUG
             let observer = self.codexBaselineReleaseObserverForTesting
             self.codexBaselineReleaseObserverForTesting = nil
@@ -116,6 +118,32 @@ extension CostUsageStore {
         guard self.retainedCodexBaseline?.id == receipt.id else { return nil }
         defer { self.retainedCodexBaseline = nil }
         return self.retainedCodexBaseline?.baseline
+    }
+
+    func scheduleCodexIdleEviction() {
+        self.codexIdleEvictionTask?.cancel()
+        self.codexIdleEvictionTask = nil
+        // An outstanding scan receipt keeps its baseline until save or release.
+        guard self.retainedCodexBaseline == nil,
+              self.retainedCodexScan != nil || self.retainedCodexRead != nil
+        else { return }
+        self.codexIdleEvictionTask = Task { [weak self] in
+            do {
+                // Reuse decoded rows within catch-up bursts, then release them between refreshes.
+                try await Task.sleep(for: .seconds(90))
+            } catch {
+                return
+            }
+            await self?.evictIdleCodexState()
+        }
+    }
+
+    private func evictIdleCodexState() {
+        guard !Task.isCancelled, self.retainedCodexBaseline == nil else { return }
+        self.codexIdleEvictionTask = nil
+        self.retainedCodexScan = nil
+        self.retainedCodexRead = nil
+        CostUsageScanExecutor.scheduleMemoryRelief()
     }
 
     func readCodexBaseline(loadTokenSnapshots: Bool = false) -> CodexDecodedBaseline? {

@@ -7,6 +7,7 @@ extension CostUsageStore {
     /// Loads the persisted Codex cache. `token_snapshots` is the largest table in the store,
     /// so callers that only price rows and read daily aggregates opt out of materializing it.
     func loadCodexCache(calendar: Calendar, loadTokenSnapshots: Bool = true) -> CostUsageCache {
+        defer { self.scheduleCodexIdleEviction() }
         self.retainedCodexBaseline = nil
         _ = self.removeLegacyCodexArtifactIfPresent()
         let recorder = self.scopedReadWorkRecorderForTesting
@@ -73,6 +74,7 @@ extension CostUsageStore {
     }
 
     func loadCodexReadView(calendar: Calendar, purpose: CostUsageStoreReadPurpose) -> CostUsageStoreReadView {
+        defer { self.scheduleCodexIdleEviction() }
         self.retainedCodexBaseline = nil
         _ = self.removeLegacyCodexArtifactIfPresent()
         return self.withDatabase(default: CostUsageStoreReadView(
@@ -172,6 +174,7 @@ extension CostUsageStore {
         skipIdenticalContent: Bool = false,
         receipt: CodexBaselineReceipt? = nil) -> CostUsageStoreBudgetResult
     {
+        defer { self.scheduleCodexIdleEviction() }
         guard let baseline = self.takeCodexBaseline(receipt), self.codexBaselineIsCurrent(baseline) else {
             return Self.rescanRequired()
         }

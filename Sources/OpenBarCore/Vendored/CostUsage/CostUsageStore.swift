@@ -224,6 +224,7 @@ actor CostUsageStore {
     var retainedCodexBaseline: RetainedCodexBaseline?
     var retainedCodexRead: RetainedCodexRead?
     var retainedCodexScan: CodexDecodedBaseline?
+    var codexIdleEvictionTask: Task<Void, Never>?
     #if DEBUG
     var codexBaselineReleaseObserverForTesting: (@Sendable () -> Void)?
     #endif
