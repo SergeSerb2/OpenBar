@@ -213,6 +213,7 @@ extension UsageStore {
     }
 
     func accountInfo(for provider: UsageProvider) -> AccountInfo {
+        // Provider-specific by design: only Codex exposes local account identity; other providers stay siloed.
         guard provider == .codex else { return AccountInfo(email: nil, plan: nil) }
         let now = Date()
         let configRevision = self.settings.configRevision

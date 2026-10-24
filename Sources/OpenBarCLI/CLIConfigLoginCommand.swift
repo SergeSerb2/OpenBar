@@ -91,6 +91,7 @@ extension OpenBarCLI {
         config.setProviderConfig(provider)
         try store.update { latest in
             try Task.checkCancellation()
+            // Provider-specific by design: this transaction finishes the Copilot device login.
             guard latest.providerConfig(for: .copilot)?.sanitizedEnterpriseHost == host else {
                 throw CLIArgumentError("Config changed during login. Please try again.")
             }
