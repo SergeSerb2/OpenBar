@@ -203,7 +203,9 @@ extension UsageStore {
                     piSessionProcessContexts: piSessionProcessContexts,
                     bypassScannerDebounce: true,
                     calendar: self.settings.costUsageBucketCalendar,
-                    reportContext: reportContext)
+                    reportContext: reportContext,
+                    // Only the spend dashboard projects the native portion of an inclusive Pi read.
+                    includeNativeProjection: reportContext == .spendDashboard)
             }
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
@@ -321,7 +323,8 @@ extension UsageStore {
             publicationRevision: self.tokenSnapshotPublicationRevision(for: provider),
             providerConfigRevision: self.settings.providerConfigRevision(for: provider),
             scopeSignature: self.tokenSnapshotScopeSignature(for: provider),
-            accounting: accounting)
+            // Regular publications never project the native portion; keep only its scope.
+            accounting: accounting?.withoutNativeProjection)
         self.warmQuotaProjection(for: snapshot)
     }
 
@@ -423,7 +426,8 @@ extension UsageStore {
                     historyDays: historyDays,
                     includePiSessions: includePiSessions,
                     calendar: self.settings.costUsageBucketCalendar,
-                    environment: self.environmentBase)
+                    environment: self.environmentBase,
+                    includeNativeProjection: false)
                     .map {
                         (
                             snapshot: $0.snapshot,

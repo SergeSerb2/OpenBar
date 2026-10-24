@@ -8,15 +8,23 @@ import Foundation
 package enum PiSnapshotAccounting: Sendable, Equatable, Codable {
     case nativeOnly
     case includesPi(scope: String, native: CostUsageTokenSnapshot)
+    /// Inclusive, like `includesPi`, for readers that never project the native portion. Only the
+    /// spend dashboard projects it, so other publications skip holding a second snapshot.
+    case includesPiWithoutNative(scope: String)
     case piOnly(scope: String)
 
     package var scope: String? {
         switch self {
         case .nativeOnly:
             nil
-        case let .includesPi(scope, _), let .piOnly(scope):
+        case let .includesPi(scope, _), let .includesPiWithoutNative(scope), let .piOnly(scope):
             scope
         }
+    }
+
+    package var withoutNativeProjection: Self {
+        guard case let .includesPi(scope, _) = self else { return self }
+        return .includesPiWithoutNative(scope: scope)
     }
 }
 

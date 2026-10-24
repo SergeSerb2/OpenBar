@@ -131,7 +131,8 @@ public struct CostUsageFetcher: Sendable {
         includePiSessions: Bool = true,
         calendar: Calendar? = nil,
         requireCompleteHistory: Bool = false,
-        environment: [String: String] = ProcessInfo.processInfo.environment) async -> CachedCodexTokenSnapshotResult?
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        includeNativeProjection: Bool = true) async -> CachedCodexTokenSnapshotResult?
     {
         await Self.loadCachedCodexTokenSnapshotResult(
             now: now,
@@ -141,7 +142,8 @@ public struct CostUsageFetcher: Sendable {
             includePiSessions: includePiSessions,
             requireCompleteHistory: requireCompleteHistory,
             scannerOptions: self.scannerOptions(calendar: calendar),
-            environment: environment)
+            environment: environment,
+            includeNativeProjection: includeNativeProjection)
     }
 
     package func loadCachedCodexTokenSnapshotForScopedHome(
@@ -256,7 +258,8 @@ public struct CostUsageFetcher: Sendable {
         piSessionProcessContexts: [PiSessionProcessContext] = [],
         bypassScannerDebounce: Bool,
         calendar: Calendar? = nil,
-        reportContext: CostUsageReportContext = .regular) async throws -> CostUsageTokenResult
+        reportContext: CostUsageReportContext = .regular,
+        includeNativeProjection: Bool = true) async throws -> CostUsageTokenResult
     {
         var options = self.scannerOptions(calendar: calendar)
         // Provider-specific by design: explicit account roots never include ambient or swap history.
@@ -286,7 +289,8 @@ public struct CostUsageFetcher: Sendable {
             piWorkingDirectories: piWorkingDirectories,
             piSessionProcessContexts: piSessionProcessContexts,
             scannerOptions: options,
-            reportContext: reportContext)
+            reportContext: reportContext,
+            includeNativeProjection: includeNativeProjection)
     }
 
     @available(*, deprecated, message: "Codex token-cost scans are uncapped; this limit is ignored.")
@@ -519,7 +523,8 @@ public struct CostUsageFetcher: Sendable {
             .Options? = nil,
         modelsDevClient: ModelsDevClient = ModelsDevClient(),
         retryUnknownPricing: Bool = true,
-        reportContext: CostUsageReportContext? = nil) async throws -> CostUsageTokenResult
+        reportContext: CostUsageReportContext? = nil,
+        includeNativeProjection: Bool = true) async throws -> CostUsageTokenResult
     {
         if CostUsageWorker.canRoute(options: overrideScannerOptions), overridePiScannerOptions == nil,
            provider != .cursor, provider != .bedrock
@@ -542,6 +547,7 @@ public struct CostUsageFetcher: Sendable {
             workerRequest.piSessionProcessContexts = piSessionProcessContexts
             workerRequest.retryUnknownPricing = retryUnknownPricing
             workerRequest.reportContext = reportContext
+            workerRequest.includeNativeProjection = includeNativeProjection
             do {
                 if case let .value(value) = try await CostUsageWorker.run(
                     workerRequest, as: CostUsageTokenResult.self) { return value }
@@ -757,7 +763,8 @@ public struct CostUsageFetcher: Sendable {
                         piScannerOptions: piOptionsOnly,
                         modelsDevClient: modelsDevClient,
                         retryUnknownPricing: false,
-                        reportContext: reportContext)
+                        reportContext: reportContext,
+                        includeNativeProjection: includeNativeProjection)
                 }
             }
             let snapshot = Self.tokenSnapshot(
@@ -865,7 +872,8 @@ public struct CostUsageFetcher: Sendable {
                 piScannerOptions: piOptions,
                 modelsDevClient: modelsDevClient,
                 retryUnknownPricing: false,
-                reportContext: reportContext)
+                reportContext: reportContext,
+                includeNativeProjection: includeNativeProjection)
         }
 
         let snapshot = Self.tokenSnapshot(
@@ -882,7 +890,9 @@ public struct CostUsageFetcher: Sendable {
             detailsAreComplete: scanResult.inclusive.detailsAreComplete,
             updatedAt: scanResult.inclusive.staleSnapshotUpdatedAt)
         // Provider-specific by design: native projections exist for the two transcript families.
-        let accounting: PiSnapshotAccounting? = if let scope = scanResult.piScope {
+        let accounting: PiSnapshotAccounting? = if let scope = scanResult.piScope, !includeNativeProjection {
+            .includesPiWithoutNative(scope: scope)
+        } else if let scope = scanResult.piScope {
             .includesPi(scope: scope, native: Self.tokenSnapshot(
                 from: scanResult.native.daily,
                 now: now,
@@ -1468,7 +1478,8 @@ public struct CostUsageFetcher: Sendable {
         requireCompleteHistory: Bool = false,
         scannerOptions overrideScannerOptions: CostUsageScanner.Options? = nil,
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        piScannerOptions: PiSessionCostScanner.Options? = nil) async
+        piScannerOptions: PiSessionCostScanner.Options? = nil,
+        includeNativeProjection: Bool = true) async
         -> CachedCodexTokenSnapshotResult?
     {
         if CostUsageWorker.canRoute(options: overrideScannerOptions), piScannerOptions == nil {
@@ -1482,6 +1493,7 @@ public struct CostUsageFetcher: Sendable {
             workerRequest.includeProjectAndSessionBreakdowns = includeProjectAndSessionBreakdowns
             workerRequest.requireCompleteHistory = requireCompleteHistory
             workerRequest.environment = environment
+            workerRequest.includeNativeProjection = includeNativeProjection
             do {
                 if case let .value(value) = try await CostUsageWorker.run(
                     workerRequest, as: CachedCodexTokenSnapshotResult?.self) { return value }
@@ -1589,18 +1601,20 @@ public struct CostUsageFetcher: Sendable {
 
             let nativeDetailsAreComplete = includeProjectAndSessionBreakdowns && nativeHistoryCoverageIsEstablished
                 && (cache.days.isEmpty || cache.projectMetadataVersion == CostUsageScanner.codexProjectMetadataVersion)
-            let nativeSnapshot: CostUsageTokenSnapshot? = reports.isEmpty ? nil : Self.tokenSnapshot(
-                from: CostUsageDailyReport.merged(reports, calendar: options.calendar),
-                now: now,
-                historyDays: clampedHistoryDays,
-                calendar: options.calendar,
-                historyCoverageIsEstablished: nativeHistoryCoverageIsEstablished
-                    || staleSnapshotUpdatedAt != nil,
-                costProvenance: .listPriceEstimate,
-                projects: Self.mergedProjectBreakdowns(projects),
-                sessions: sessions,
-                detailsAreComplete: nativeDetailsAreComplete,
-                updatedAt: scanTimes.min())
+            let hasNativeReports = !reports.isEmpty
+            let nativeSnapshot: CostUsageTokenSnapshot? = !hasNativeReports || !includeNativeProjection ? nil
+                : Self.tokenSnapshot(
+                    from: CostUsageDailyReport.merged(reports, calendar: options.calendar),
+                    now: now,
+                    historyDays: clampedHistoryDays,
+                    calendar: options.calendar,
+                    historyCoverageIsEstablished: nativeHistoryCoverageIsEstablished
+                        || staleSnapshotUpdatedAt != nil,
+                    costProvenance: .listPriceEstimate,
+                    projects: Self.mergedProjectBreakdowns(projects),
+                    sessions: sessions,
+                    detailsAreComplete: nativeDetailsAreComplete,
+                    updatedAt: scanTimes.min())
             var accounting: PiSnapshotAccounting = .nativeOnly
 
             if piHistoryRequested {
@@ -1624,7 +1638,8 @@ public struct CostUsageFetcher: Sendable {
                 piHistoryIsComplete = piResult?.isComplete == true && piResult?.scopeFingerprint != nil
                 guard !requireCompleteHistory || piHistoryIsComplete else { return nil }
                 if let piResult, let scope = piResult.scopeFingerprint {
-                    accounting = nativeSnapshot.map { .includesPi(scope: scope, native: $0) } ?? .piOnly(scope: scope)
+                    accounting = nativeSnapshot.map { .includesPi(scope: scope, native: $0) }
+                        ?? (hasNativeReports ? .includesPiWithoutNative(scope: scope) : .piOnly(scope: scope))
                     reports.append(piResult.report)
                     if let piLastScanAt = piResult.lastScanAt {
                         scanTimes.append(piLastScanAt)

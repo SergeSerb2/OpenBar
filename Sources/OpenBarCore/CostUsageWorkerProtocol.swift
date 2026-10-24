@@ -80,6 +80,7 @@ struct CostUsageWorkerRequest: Codable, Sendable {
     var reportContext: CostUsageReportContext?
     var allowScopedCodexHome = false
     var includeProjectAndSessionBreakdowns = true
+    var includeNativeProjection = true
     var requireCompleteHistory = false
     var statusHistoryDays: Int?
     var maximumPasses = 8

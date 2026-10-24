@@ -259,7 +259,8 @@ extension UsageStore {
                 includePiSessions: context.includePiSessions,
                 calendar: self.settings.costUsageBucketCalendar,
                 requireCompleteHistory: true,
-                environment: context.environment)
+                environment: context.environment,
+                includeNativeProjection: false)
                 .map { ($0.snapshot, $0.lastRefreshAt, $0.staleSnapshotUpdatedAt, $0.accounting) }
         }
         try Task.checkCancellation()

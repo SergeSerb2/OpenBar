@@ -60,7 +60,8 @@ extension CostUsageWorker {
                 piSessionProcessContexts: request.piSessionProcessContexts,
                 scannerOptions: options,
                 retryUnknownPricing: request.retryUnknownPricing,
-                reportContext: request.reportContext))
+                reportContext: request.reportContext,
+                includeNativeProjection: request.includeNativeProjection))
         case .cachedSnapshot:
             return try await self.encoded(CostUsageFetcher.loadCachedCodexTokenSnapshotResult(
                 now: request.now,
@@ -71,7 +72,8 @@ extension CostUsageWorker {
                 includeProjectAndSessionBreakdowns: request.includeProjectAndSessionBreakdowns,
                 requireCompleteHistory: request.requireCompleteHistory,
                 scannerOptions: options,
-                environment: request.environment))
+                environment: request.environment,
+                includeNativeProjection: request.includeNativeProjection))
         case .cachedActivity:
             return try await self.encoded(CostUsageFetcher.loadCachedCodexTokenActivity(
                 now: request.now,

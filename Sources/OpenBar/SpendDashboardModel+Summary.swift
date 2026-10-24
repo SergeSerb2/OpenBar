@@ -22,6 +22,7 @@ extension SpendDashboardModel.ProviderInput {
             updatedAt: self.snapshot.updatedAt)
         snapshot.reportingPeriod = self.snapshot.reportingPeriod
         // Activity values carry their own coverage bounds, and accounting decides Pi inclusion; both stay.
+        // The native projection is read only from store publications, so the summary drops it.
         return Self(
             id: self.id,
             provider: self.provider,
@@ -30,6 +31,6 @@ extension SpendDashboardModel.ProviderInput {
             snapshot: snapshot,
             tokenActivityCache: self.tokenActivityCache,
             sourceKind: self.sourceKind,
-            accounting: self.accounting)
+            accounting: self.accounting?.withoutNativeProjection)
     }
 }
