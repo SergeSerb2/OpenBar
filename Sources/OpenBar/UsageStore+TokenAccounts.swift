@@ -603,7 +603,8 @@ extension UsageStore {
         await self.recordFetchedTokenAccountPlanUtilizationHistory(
             provider: provider,
             samples: historySamples,
-            selectedAccount: selectedAccount)
+            selectedAccount: selectedAccount,
+            generation: generation)
     }
 
     private nonisolated static func codexUsageOutcomeMatchesVisibleAccount(
@@ -1191,7 +1192,8 @@ extension UsageStore {
     func recordFetchedTokenAccountPlanUtilizationHistory(
         provider: UsageProvider,
         samples: [(account: ProviderTokenAccount, snapshot: UsageSnapshot)],
-        selectedAccount: ProviderTokenAccount?) async
+        selectedAccount: ProviderTokenAccount?,
+        generation: UInt64? = nil) async
     {
         for sample in samples where sample.account.id != selectedAccount?.id {
             await self.recordPlanUtilizationHistorySample(
@@ -1199,7 +1201,8 @@ extension UsageStore {
                 snapshot: sample.snapshot,
                 account: sample.account,
                 shouldUpdatePreferredAccountKey: false,
-                shouldAdoptUnscopedHistory: false)
+                shouldAdoptUnscopedHistory: false,
+                refreshGeneration: generation)
         }
     }
 
