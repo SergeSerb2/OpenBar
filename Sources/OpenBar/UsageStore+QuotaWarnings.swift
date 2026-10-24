@@ -180,6 +180,7 @@ extension UsageStore {
             }
         }
         let previousState = self.quotaWarningState[key]
+        if let previousState, accountContext.observedAt <= previousState.observedAt { return }
         if let previousState, previousState.source != source {
             self.quotaWarningState[key] = QuotaWarningState(
                 lastRemaining: currentRemaining,
@@ -188,6 +189,25 @@ extension UsageStore {
             return
         }
         var state = previousState ?? QuotaWarningState(source: source)
+        if let reset = rateWindow.resetsAt,
+           reset.timeIntervalSinceReferenceDate.isFinite,
+           reset > accountContext.observedAt
+        {
+            if let previousReset = state.resetsAt {
+                if accountContext.observedAt >= previousReset,
+                   Date() >= previousReset,
+                   reset > Date(),
+                   reset > previousReset,
+                   !Self.areEquivalentPlanUtilizationResetBoundaries(previousReset, reset)
+                {
+                    state.firedThresholds = []
+                    state.lastRemaining = nil
+                    state.resetsAt = reset
+                }
+            } else {
+                state.resetsAt = reset
+            }
+        }
         let cleared = QuotaWarningNotificationLogic.thresholdsToClear(
             currentRemaining: currentRemaining,
             alreadyFired: state.firedThresholds)
@@ -214,7 +234,6 @@ extension UsageStore {
         }
 
         state.observedAt = accountContext.observedAt
-        state.resetsAt = rateWindow.resetsAt
         state.lastRemaining = currentRemaining
         self.quotaWarningState[key] = state
     }
