@@ -108,6 +108,8 @@ final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigat
         }
         let normalizedEmail = Self.normalizeEmail(accountEmail)
         if self.window == nil || normalizedEmail != self.accountEmail || cacheScope != self.cacheScope {
+            // Another account's window must not stay open next to the new one.
+            self.close()
             self.accountEmail = normalizedEmail
             self.cacheScope = cacheScope
             self.buildWindow()
@@ -172,7 +174,7 @@ final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigat
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard self.pendingAutoStart else { return }
+        guard self.pendingAutoStart, webView === self.webView else { return }
         self.pendingAutoStart = false
         let currentURL = webView.url?.absoluteString ?? "unknown"
         Self.appendDebugLog("didFinish url=\(currentURL)")
@@ -259,7 +261,7 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
 
 extension OpenAICreditsPurchaseWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
-        guard let window = self.window else { return }
+        guard let window = self.window, notification.object as? NSWindow === window else { return }
         let webView = self.webView
         self.pendingAutoStart = false
         self.webView = nil
