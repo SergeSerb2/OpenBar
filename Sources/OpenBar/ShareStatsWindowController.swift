@@ -107,17 +107,15 @@ private struct ShareStatsPreviewView: View {
     @State private var statusMessage: String?
     @State private var imageCopyFeedback: ShareStatsImageCopyFeedback = .idle
     @State private var imageCopyResetTask: Task<Void, Never>?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 20) {
+            // The exported image has square corners; the preview shows it as is, with a hairline edge.
             ShareStatsScaledPreview(payload: self.payload)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    Rectangle()
+                        .strokeBorder(OpenBarTheme.Colors.cardStroke, lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
 
             HStack(spacing: 12) {
                 Button {
@@ -126,7 +124,6 @@ private struct ShareStatsPreviewView: View {
                     Label(
                         self.imageCopyFeedback.title,
                         systemImage: self.imageCopyFeedback.systemImage)
-                        .contentTransition(self.reduceMotion ? .identity : .symbolEffect(.replace))
                 }
                 .keyboardShortcut(.defaultAction)
                 .accessibilityLabel(self.imageCopyFeedback.title)
@@ -149,7 +146,7 @@ private struct ShareStatsPreviewView: View {
                 Spacer()
 
                 Text(self.statusMessage ?? L("Nothing is uploaded. This image is created on your Mac."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel(self
                         .statusMessage ?? L("Nothing is uploaded. This image is created on your Mac."))
@@ -170,13 +167,7 @@ private struct ShareStatsPreviewView: View {
             self.imageCopyResetTask = self.makeCopyFeedbackResetTask()
             return
         }
-        if !self.reduceMotion {
-            withAnimation(.easeOut(duration: 0.12)) {
-                self.imageCopyFeedback = .copied
-            }
-        } else {
-            self.imageCopyFeedback = .copied
-        }
+        self.imageCopyFeedback = .copied
         self.statusMessage = self.imageCopyFeedback.title
         self.imageCopyResetTask = self.makeCopyFeedbackResetTask()
     }
@@ -188,13 +179,7 @@ private struct ShareStatsPreviewView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(0.9))
             guard !Task.isCancelled else { return }
-            if !self.reduceMotion {
-                withAnimation(.easeOut(duration: 0.12)) {
-                    self.imageCopyFeedback = .idle
-                }
-            } else {
-                self.imageCopyFeedback = .idle
-            }
+            self.imageCopyFeedback = .idle
         }
     }
 }
