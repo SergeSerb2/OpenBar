@@ -54,6 +54,9 @@ openbar usage --provider gemini --source web --json
 - Required fields: `access_token`, `refresh_token` (optional), `id_token`, `expiry_date`.
 - If access token is expired, we refresh via Google OAuth using client ID/secret extracted
   from the Gemini CLI install (see below).
+- A refresh is written back only while the file still matches the credential generation that started it.
+  If Gemini CLI changes the file meanwhile, OpenBar keeps the response in memory and leaves the new file intact.
+  The access token and identity always come from the same refresh, without rereading another account's ID token.
 
 ## OAuth client ID/secret extraction
 - Resolution order:
