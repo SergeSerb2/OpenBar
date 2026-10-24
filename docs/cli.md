@@ -151,7 +151,7 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   - Provider failures remain row-level errors alongside healthy rows; a valid partial snapshot exits `0`.
   - Stdout contains only the snapshot document. Diagnostics and optional `--json-output` logs go to stderr.
   - `--pretty` formats the document. `--timeout <seconds>` accepts `0...86400`, defaults to `30`, and uses `0` to disable the command deadline.
-  - `--output <path>` atomically writes the snapshot to a file (`0644`) instead of stdout — staged in the destination directory, fsync'd, then renamed over the target so readers never observe a partial document. The parent directory must already exist (it is not created), and stdout stays silent on success.
+  - `--output <path>` atomically writes the snapshot to a private file (`0600`, preserving narrower existing owner permissions) instead of stdout — staged in the destination directory, fsync'd, then renamed over the target so readers never observe a partial document. The parent directory must already exist (it is not created), and stdout stays silent on success.
   - Starts no HTTP server and requires no dashboard bearer token. See `docs/dashboard-api.md` for the shared payload contract.
 - `openbar serve` starts a foreground HTTP server for usage and cost JSON, a token-gated dashboard snapshot, and a built-in web UI at `/`.
   - On Linux, exited Codex and Grok RPC children release their output pipes after each refresh, preventing descriptor accumulation during long-running server sessions. Child-tree cleanup also reads empty procfs child lists without retaining Foundation read buffers.

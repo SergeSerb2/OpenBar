@@ -206,7 +206,7 @@ extension OpenBarCLI {
           --identity redacted hides email local parts.
           Stdout contains only the JSON document; diagnostics are written to stderr.
           --timeout accepts 0...86400 seconds and defaults to 30; 0 disables the deadline.
-          --output atomically writes the snapshot to a file (0644) instead of stdout;
+          --output atomically writes the snapshot to a private file (0600) instead of stdout;
           the parent directory must already exist (it is not created), and nothing is
           printed to stdout on success.
 

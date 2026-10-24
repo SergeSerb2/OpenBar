@@ -167,7 +167,7 @@ final class CLIEntryTests: XCTestCase {
         XCTAssertEqual(object["schemaVersion"] as? Int, 1)
 
         let attributes = try FileManager.default.attributesOfItem(atPath: snapshotURL.path)
-        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.uint16Value, 0o644)
+        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.uint16Value, 0o600)
 
         // The staged temp file must not survive a successful publish.
         let leftovers = try FileManager.default.contentsOfDirectory(atPath: root.path)
@@ -209,7 +209,7 @@ final class CLIEntryTests: XCTestCase {
 
         XCTAssertEqual(try Data(contentsOf: target), Data("new".utf8))
         let attributes = try FileManager.default.attributesOfItem(atPath: target.path)
-        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.uint16Value, 0o644)
+        XCTAssertEqual((attributes[.posixPermissions] as? NSNumber)?.uint16Value, 0o600)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: root.path), ["snapshot.json"])
     }
 
