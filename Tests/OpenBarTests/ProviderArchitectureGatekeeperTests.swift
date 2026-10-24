@@ -3557,8 +3557,15 @@ struct ProviderArchitectureGatekeeperTests {
             ],
             reason: "This exact shared provider integration dispatches a capability owned by the provider descriptor or adapter."),
         AllowedProviderConstruct(
+            path: "Sources/OpenBarCore/Sync/SyncModels.swift",
+            anchor: "result.region = firstPartyProvider == .stepfun ? nil : self.region",
+            expectedProviderIDs: ["stepfun"],
+            expectedReferenceCount: 1,
+            expectedReferenceFingerprint: ["stepfun@0"],
+            reason: "Legacy StepFun sync payloads carried a credential in the plaintext region field; never import it."),
+        AllowedProviderConstruct(
             path: "Sources/OpenBarCore/Providers/ProviderCredentialAdapter.swift",
-            anchor: "} else if provider == .stepfun, self.config?.sanitizedRegion != nil {",
+            anchor: "} else if provider == .stepfun,",
             expectedProviderIDs: ["stepfun"],
             expectedReferenceCount: 1,
             expectedReferenceFingerprint: ["stepfun@0"],

@@ -3,6 +3,7 @@ import Foundation
 public enum StepFunProviderDescriptor {
     public static let descriptor: ProviderDescriptor = Self.makeDescriptor()
     private static let credentials = ProviderCredentialAdapter(
+        usesSecretKey: true,
         tokenResolver: { kind, environment, _ in
             guard kind == .primary, let token = StepFunSettingsReader.token(environment: environment) else {
                 return nil
@@ -29,7 +30,8 @@ public enum StepFunProviderDescriptor {
         var config = try store.load() ?? .makeDefault()
         var providerConfig = config.providerConfig(for: UsageProvider.stepfun.instanceID)
             ?? ProviderConfig(id: UsageProvider.stepfun.instanceID)
-        providerConfig.region = trimmed
+        providerConfig.secretKey = trimmed
+        providerConfig.region = nil
         config.setProviderConfig(providerConfig)
         try store.save(config)
     }
@@ -58,7 +60,7 @@ public enum StepFunProviderDescriptor {
                         manualCookieHeader: settings.manualToken)
                 },
                 credentialSettings: { context in
-                    let header = context.config?.sanitizedRegion ?? context.config?.sanitizedCookieHeader
+                    let header = context.config?.sanitizedSecretKey ?? context.config?.sanitizedRegion
                     let settings = context.cookieSettings(for: .stepfun, configuredHeader: header)
                     return StepFunProviderSettings(
                         cookieSource: settings.cookieSource,
@@ -112,7 +114,14 @@ public enum StepFunProviderDescriptor {
             cli: ProviderCLIConfig(
                 name: "stepfun",
                 aliases: ["step-fun", "sf"],
-                versionDetector: nil))
+                versionDetector: nil),
+            configNormalizer: { config in
+                guard config.region != nil else { return }
+                if config.sanitizedSecretKey == nil {
+                    config.secretKey = config.sanitizedRegion
+                }
+                config.region = nil
+            })
     }
 }
 

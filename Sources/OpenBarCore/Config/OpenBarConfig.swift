@@ -385,6 +385,9 @@ public struct ProviderConfig: Codable, Sendable, Identifiable {
 
     public func sanitizedForDump() -> ProviderConfig {
         var copy = self
+        if let provider = copy.id.firstPartyProvider {
+            ProviderDescriptorRegistry.descriptor(for: provider).normalizeConfig(&copy)
+        }
         if copy.apiKey != nil {
             copy.apiKey = "[REDACTED]"
         }

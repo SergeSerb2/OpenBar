@@ -51,6 +51,10 @@ public struct ProviderIntentPayload: Codable, Sendable {
     public var deepseekProfileScope: String?
 
     public init(config: ProviderConfig, schemaVersion: Int = OpenBarSyncSchema.currentVersion) {
+        var config = config
+        if let provider = config.id.firstPartyProvider {
+            ProviderDescriptorRegistry.descriptor(for: provider).normalizeConfig(&config)
+        }
         self.schemaVersion = schemaVersion
         self.provider = config.id
         self.enabled = config.enabled
@@ -82,6 +86,7 @@ public struct ProviderIntentPayload: Codable, Sendable {
         precondition(local.id == self.provider)
         guard let firstPartyProvider = self.provider.firstPartyProvider else { return local }
         var result = local
+        ProviderDescriptorRegistry.descriptor(for: firstPartyProvider).normalizeConfig(&result)
         if self.enabled == true {
             if canEnable(firstPartyProvider, local) {
                 result.enabled = true
@@ -91,7 +96,8 @@ public struct ProviderIntentPayload: Codable, Sendable {
             result.enabled = self.enabled
         }
         result.extrasEnabled = self.extrasEnabled
-        result.region = self.region
+        // Older StepFun senders put a session token in this plaintext field. Never import it.
+        result.region = firstPartyProvider == .stepfun ? nil : self.region
         result.workspaceID = self.workspaceID
         result.enterpriseHost = self.enterpriseHost
         result.claudeSwapEnabled = self.claudeSwapEnabled
@@ -152,6 +158,10 @@ public struct ProviderIntentPayload: Codable, Sendable {
         previouslyUploadedFields: Set<String> = []) throws -> [String: String]
     {
         guard includeSecrets else { return [:] }
+        var config = config
+        if let provider = config.id.firstPartyProvider {
+            ProviderDescriptorRegistry.descriptor(for: provider).normalizeConfig(&config)
+        }
         var fields: [String: String] = [:]
         func set(_ field: ProviderIntentSecretField, value: String?) {
             if let value {

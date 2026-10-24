@@ -37,11 +37,34 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     }
 
     public func load() throws -> OpenBarConfig? {
+        try self.load(migratingLegacySecrets: true)
+    }
+
+    private func load(migratingLegacySecrets: Bool) throws -> OpenBarConfig? {
         guard self.fileManager.fileExists(atPath: self.fileURL.path) else { return nil }
         let data = try Data(contentsOf: self.fileURL)
         guard !data.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0A || $0 == 0x0D }) else { return nil }
         do {
-            return try OpenBarConfig.decode(from: data).normalized()
+            let decoded = try OpenBarConfig.decode(from: data)
+            let normalized = decoded.normalized()
+            // Provider normalizers may move a legacy credential out of the public region field.
+            let movedLegacySecret = decoded.providers.contains { original in
+                guard original.region != nil,
+                      let current = normalized.providerConfig(for: original.id), current.region == nil,
+                      let provider = original.id.firstPartyProvider
+                else { return false }
+                return ProviderDescriptorRegistry.descriptor(for: provider).credentials?.usesSecretKey == true
+            }
+            guard migratingLegacySecrets, movedLegacySecret else { return normalized }
+            var migrated: OpenBarConfig?
+            try self.withWriteLock {
+                // Read again under the write lock so migration cannot replace a newer credential.
+                migrated = try self.load(migratingLegacySecrets: false)
+                if let migrated {
+                    try CredentialFileWriter.writePrivate(self.encodedData(for: migrated), to: self.fileURL)
+                }
+            }
+            return migrated
         } catch {
             throw OpenBarConfigStoreError.decodeFailed(error.localizedDescription)
         }
@@ -86,7 +109,7 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     /// Skip contention rather than delaying an interactive writer or publishing a stale credential.
     package func updateIfAvailable(_ update: (inout OpenBarConfig) throws -> Bool) throws {
         try self.withWriteLock(wait: false) {
-            guard var config = try self.load(), try update(&config) else { return }
+            guard var config = try self.load(migratingLegacySecrets: false), try update(&config) else { return }
             try CredentialFileWriter.writePrivate(self.encodedData(for: config), to: self.fileURL)
         }
     }
