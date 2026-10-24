@@ -45,7 +45,7 @@
 - Run `./Scripts/compile_and_run.sh` only when UI/runtime behavior needs bundle-level validation; it builds, tests, packages, relaunches, and verifies the app stays running.
 - Widget/Tahoe UI issues: use Parallels macOS VM plus screenshots/clicks for autonomous verification.
 - Release workflow: wait for completion and verify the complete artifact/feed/tap handoff; do not publish locally.
-- Sparkle release key: CI `SPARKLE_PRIVATE_KEY` must match the existing AGCY public key in `.github/release.json`; never substitute another app’s key.
+- Sparkle release key: CI `SPARKLE_PRIVATE_KEY` must match OpenBar's public key in `.github/release.json` (`1A7c…`); never substitute another app’s key.
 - Swift concurrency: treat sibling `async let` tasks as a review red flag when one child is required and another is optional/best-effort. Prefer sequential awaits or a drained `withThrowingTaskGroup` that surfaces required failures and explicitly contains optional failures; crash stacks mentioning `swift_task_dealloc` or `asyncLet_finish_after_task_completion` should trigger an audit of nearby `async let` usage.
 - Prefer modern SwiftUI/Observation macros: use `@Observable` models with `@State` ownership and `@Bindable` in views; avoid `ObservableObject`, `@ObservedObject`, and `@StateObject`.
 - Favor modern macOS 15+ APIs over legacy/deprecated counterparts when refactoring (Observation, new display link APIs, updated menu item styling, etc.).

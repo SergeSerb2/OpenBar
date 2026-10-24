@@ -11,7 +11,7 @@ read_when:
 - Framework: Sparkle 2.9.6 via SwiftPM.
 - Updater: `SPUStandardUpdaterController` owned by `AppDelegate` in `OpenbarApp.swift`.
 - Feed: `SUFeedURL` in Info.plist points to GitHub Releases appcast (`appcast.xml`).
-- Key: `SUPublicEDKey` set to `AGCY8w5vHirVfGGDGc8Szc5iuOqupZSh9pMj/Qs67XI=`. Keep the Ed25519 private key safe; use it when generating the appcast.
+- Key: `SUPublicEDKey` set to `1A7c8WQSsxQEasJupaax383NSHR3KewGkAGubaqn7YY=`. Keep the Ed25519 private key safe; use it when generating the appcast.
 - UI: auto-check toggle (About) enables auto-downloads; menu shows “Check for Updates…” when no update is staged, or “Update ready, restart now?” once an update is downloaded. These actions and About → Check for Updates open Sparkle's update UI, including its install confirmation for a staged update.
 - LSUIElement: works; updater window will show when checking. App is non-sandboxed.
 - Channels: stable vs beta are served from the same appcast. Prerelease items contain a `<sparkle:channel>beta</sparkle:channel>` element; About → Update Channel controls `allowedChannels`.

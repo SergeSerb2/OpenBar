@@ -7,7 +7,7 @@
     "arm64",
     "x86_64"
   ],
-  "sparkle_public_key": "AGCY8w5vHirVfGGDGc8Szc5iuOqupZSh9pMj/Qs67XI=",
+  "sparkle_public_key": "1A7c8WQSsxQEasJupaax383NSHR3KewGkAGubaqn7YY=",
   "app_archive": "OpenBar-macos-universal-{version}.zip",
   "dsym_archive": "OpenBar-macos-universal-{version}.dSYM.zip",
   "assets": [
