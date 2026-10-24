@@ -666,28 +666,17 @@ let openAIDashboardScrapeScript = """
       const href = window.location ? String(window.location.href || '') : '';
       const workspacePicker = bodyText.includes('Select a workspace');
       const title = document.title ? String(document.title || '') : '';
-      const cloudflareInterstitial =
-        title.toLowerCase().includes('just a moment') ||
-        bodyText.toLowerCase().includes('checking your browser') ||
-        bodyText.toLowerCase().includes('cloudflare');
       const authSelector = [
         'input[type="email"]',
         'input[type="password"]',
         'input[name="username"]'
       ].join(', ');
       const hasAuthInputs = !!document.querySelector(authSelector);
-      const lower = bodyText.toLowerCase();
-      const loginCTA =
-        lower.includes('sign in') ||
-        lower.includes('log in') ||
-        lower.includes('continue with google') ||
-        lower.includes('continue with apple') ||
-        lower.includes('continue with microsoft');
-      const loginRequired =
-        href.includes('/auth/') ||
-        href.includes('/login') ||
-        (hasAuthInputs && loginCTA) ||
-        (!hasAuthInputs && loginCTA && href.includes('chatgpt.com'));
+      // Match whole control labels: page text such as "Changelog" next to "In" must not read as "log in".
+      const loginLabels = ['sign in', 'log in', 'continue with google', 'continue with apple',
+        'continue with microsoft'];
+      const loginCTA = Array.from(document.querySelectorAll('button,a,[role="button"]'))
+        .some(el => loginLabels.includes(String(el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase()));
       const scrollY = (typeof window.scrollY === 'number') ? window.scrollY : 0;
       const scrollHeight = document.documentElement ? (document.documentElement.scrollHeight || 0) : 0;
       const viewportHeight = (typeof window.innerHeight === 'number') ? window.innerHeight : 0;
@@ -842,6 +831,18 @@ let openAIDashboardScrapeScript = """
           }
         } catch {}
       }
+
+      // A signed-in session from page data outranks the text heuristics; emails found in body text below do not.
+      const signedIn = String(authStatus || '').toLowerCase() === 'logged_in' || Boolean(signedInEmail);
+      const cloudflareInterstitial =
+        title.toLowerCase().includes('just a moment') ||
+        (!signedIn && bodyText.toLowerCase().includes('checking your browser')) ||
+        !!document.querySelector('#challenge-running,#challenge-stage,.cf-chl-widget');
+      const loginRequired =
+        href.includes('/auth/') ||
+        href.includes('/login') ||
+        (!signedIn && hasAuthInputs && loginCTA) ||
+        (!signedIn && !hasAuthInputs && loginCTA && href.includes('chatgpt.com'));
 
       if (!signedInEmail) {
         try {
