@@ -63,6 +63,7 @@ struct CostUsageWorkerRequest: Codable, Sendable {
     var scanner: ScannerOptions
     var processEnvironment = ProcessInfo.processInfo.environment
     var environment = ProcessInfo.processInfo.environment
+    // Provider-specific by design: only token requests read this; the other operations are Codex catch-up steps.
     var provider: UsageProvider = .codex
     var antigravityAdditionalProfileHomes: [String] = []
     var now = Date()

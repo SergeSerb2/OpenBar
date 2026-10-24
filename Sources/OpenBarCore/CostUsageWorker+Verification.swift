@@ -7,6 +7,7 @@ extension CostUsageWorker {
         calendar: Calendar,
         cancel: Bool = false) async throws -> String
     {
+        // Provider-specific by design: only the Codex, Claude, and Pi local log scanners run in the helper.
         guard self.executable != nil, provider == .codex || provider == .claude || provider == .pi else {
             throw WorkerError.protocolFailure
         }
@@ -54,6 +55,7 @@ extension CostUsageWorker {
                 + "quotaSlices=\(remote.snapshot.quotaSlices.count) "
                 + "sessions=\(remote.snapshot.sessions.count) projects=\(remote.snapshot.projects.count)",
         ]
+        // Provider-specific by design: cached snapshot, activity, and catch-up status exist only for Codex.
         if provider == .codex {
             request.operation = .cachedSnapshot
             let cached = await self.$isWorker.withValue(true) {
@@ -100,6 +102,7 @@ extension CostUsageWorker {
                 allowPricingRefresh: false,
                 bypassScannerDebounce: true,
                 scannerOptions: options)
+            // Provider-specific by design: only Codex scans are budgeted, so only Codex repeats until caught up.
             guard provider == .codex else { return result }
             let status = await CostUsageFetcher(scannerOptions: options).codexScanCatchUpStatus(now: now)
             if !status.pending { return result }

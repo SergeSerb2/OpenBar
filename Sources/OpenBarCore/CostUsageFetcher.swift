@@ -521,6 +521,7 @@ public struct CostUsageFetcher: Sendable {
         retryUnknownPricing: Bool = true,
         reportContext: CostUsageReportContext? = nil) async throws -> CostUsageTokenResult
     {
+        // Provider-specific by design: Cursor and Bedrock read remote billing, not local logs, so they stay in-process.
         if CostUsageWorker.canRoute(options: overrideScannerOptions), overridePiScannerOptions == nil,
            provider != .cursor, provider != .bedrock
         {
