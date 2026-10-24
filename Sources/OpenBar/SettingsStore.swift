@@ -290,6 +290,7 @@ final class SettingsStore {
     @ObservationIgnored weak var providerOrderUndoManager: UndoManager?
     var providerEnablement: [ProviderInstanceID: Bool] = [:]
     @ObservationIgnored var providerEnablementRevisions: [ProviderInstanceID: UInt64] = [:]
+    @ObservationIgnored var providerDetectionGeneration: UInt64 = 0
     @ObservationIgnored var providerConfigRevisions: [ProviderInstanceID: UInt64] = [:]
     @ObservationIgnored var onProviderFetchIdentityChange: ((ProviderInstanceID) -> Void)?
     @ObservationIgnored var providerConfigFingerprints: [ProviderInstanceID: Data] = [:]
@@ -1119,6 +1120,8 @@ extension SettingsStore {
     }
 
     func setProviderEnabled(provider: UsageProvider, metadata _: ProviderMetadata, enabled: Bool) {
+        // An explicit choice also retires detected defaults when the value did not change.
+        self.providerEnablementRevisions[provider.instanceID, default: 0] &+= 1
         OpenBarLog.logger(LogCategories.settings).debug(
             "Provider toggle updated",
             metadata: ["provider": provider.rawValue, "enabled": "\(enabled)"])
