@@ -191,7 +191,7 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable, Codable {
     /// Whether this read produced the complete project and session projection, including a confirmed empty result.
     public let detailsAreComplete: Bool
     public let projects: [CostUsageProjectBreakdown]
-    public let sessions: [CostUsageSessionBreakdown]
+    public internal(set) var sessions: [CostUsageSessionBreakdown]
     /// Hour-aligned buckets for spend charts and legacy quota history.
     public let hourly: [CostUsageHourlyEntry]
     /// Exact event-time slices for quota-window projection. Empty for legacy/coarse providers.
@@ -269,6 +269,15 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable, Codable {
         self.hourly = hourly
         self.quotaSlices = quotaSlices
         self.updatedAt = updatedAt
+    }
+
+    /// The same value, with each session source that a decoded snapshot repeats stored once.
+    package func sharingDecodedSessionSources() -> Self {
+        guard !self.sessions.isEmpty else { return self }
+        var result = self
+        var databaseURLs: [URL: URL] = [:]
+        result.sessions = self.sessions.map { $0.sharingDecodedSources(databaseURLs: &databaseURLs) }
+        return result
     }
 
     /// Coverage is established *and* the read of that coverage ran to completion. Surfaces that

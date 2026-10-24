@@ -319,7 +319,8 @@ extension UsageStore {
         accounting: PiSnapshotAccounting? = nil)
     {
         self.tokenSnapshotPublications[provider.instanceID] = TokenSnapshotPublication(
-            snapshot: snapshot?.reporting(self.settings.costReportingPeriod),
+            // Snapshots arrive decoded from the cost helper; store each repeated session source once.
+            snapshot: snapshot?.sharingDecodedSessionSources().reporting(self.settings.costReportingPeriod),
             publicationRevision: self.tokenSnapshotPublicationRevision(for: provider),
             providerConfigRevision: self.settings.providerConfigRevision(for: provider),
             scopeSignature: self.tokenSnapshotScopeSignature(for: provider),
