@@ -367,6 +367,7 @@ public enum OpenAIDashboardParser {
     private static func parseResetDate(from line: String, now: Date) -> Date? {
         var raw = line.trimmingCharacters(in: .whitespacesAndNewlines)
         raw = raw.replacingOccurrences(of: #"(?i)^resets?:?\s*"#, with: "", options: .regularExpression)
+        raw = raw.replacingOccurrences(of: #"(?i)^at\s+"#, with: "", options: .regularExpression)
         raw = raw.replacingOccurrences(of: " at ", with: " ", options: .caseInsensitive)
         raw = raw.replacingOccurrences(of: " on ", with: " ", options: .caseInsensitive)
         raw = raw.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
@@ -426,10 +427,22 @@ public enum OpenAIDashboardParser {
             "yyyy-MM-dd h:mm a",
             "yyyy-MM-dd",
         ]
+        // "Resets at 9:00 PM" means the next 9:00 PM.
+        let timeOnlyFormats = ["h:mma", "h:mm a", "HH:mm"]
 
-        for format in formats {
+        for format in formats + timeOnlyFormats {
             formatter.dateFormat = format
-            if let date = formatter.date(from: candidate) {
+            if var date = formatter.date(from: candidate) {
+                if timeOnlyFormats.contains(format) {
+                    return date < now ? calendar.date(byAdding: .day, value: 1, to: date) : date
+                }
+                // Dates without a year take the current one; a reset well in the past belongs to next year.
+                if !format.contains("y"),
+                   now.timeIntervalSince(date) > 24 * 60 * 60,
+                   let nextYear = calendar.date(byAdding: .year, value: 1, to: date)
+                {
+                    date = nextYear
+                }
                 if usedRelativeDay, date < now {
                     if lower.contains("today"),
                        let bumped = calendar.date(byAdding: .day, value: 1, to: date)
