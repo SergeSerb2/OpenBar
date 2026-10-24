@@ -202,9 +202,19 @@ defineProvider({
         try {
           history = await failover(async (host) => {
             const records = [];
+            const seen = new Set();
+            let complete = false;
             for (let page = 0; page < 20; page++) {
               const path = `credits/history?app_id=demo_app&limit=50&page=${page}&sort_by=time&sort_order=desc&start_time=${encodeURIComponent(start.toISOString())}&end_time=${encodeURIComponent(now.toISOString())}`;
-              const data = await request(host, path, minted.token);
+              let data;
+              try {
+                data = await request(host, path, minted.token);
+              } catch (error) {
+                if (error.transportClass === "cancelled") throw error;
+                if (error.failureKind === "authentication-expired") throw error;
+                if (records.length) return { records, complete: false };
+                throw error;
+              }
               if (data.records != null && !Array.isArray(data.records)) return invalid("invalid history records");
               const rows = _nullishCoalesce(data.records, () => []).map((row) =>
                 _nullishCoalesce(object(row), () => invalid("invalid history record")),
@@ -218,19 +228,37 @@ defineProvider({
                   if (row[field] != null && typeof row[field] !== "boolean") return invalid(`invalid history ${field}`);
                 }
               }
-              records.push(...rows);
-              const total = _nullishCoalesce(numeric(data.total), () => records.length);
-              if (
-                !rows.length ||
-                (page + 1) * 50 >= total ||
+              let added = 0;
+              for (const row of rows) {
+                const key =
+                  _optionalChain([
+                    text,
+                    "call",
+                    (_8) => _8(row.session_id),
+                    "optionalAccess",
+                    (_9) => _9.trim,
+                    "call",
+                    (_10) => _10(),
+                  ]) || JSON.stringify(row);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                records.push(row);
+                added++;
+              }
+              const total = numeric(data.total);
+              const reachedStart =
+                rows.length > 0 &&
                 rows.every((row) => {
                   const date = text(row.time);
                   return date !== undefined && new Date(date).getTime() < start.getTime();
-                })
-              )
+                });
+              if (reachedStart || (total === undefined ? rows.length < 50 : records.length >= total)) {
+                complete = true;
                 break;
+              }
+              if (!added) break;
             }
-            return records;
+            return { records, complete };
           });
         } catch (error) {
           if (error.transportClass === "cancelled") throw error;
@@ -244,7 +272,7 @@ defineProvider({
           since.setDate(since.getDate() - 29);
           since.setHours(0, 0, 0, 0);
           const totals = {};
-          for (const record of history) {
+          for (const record of history.records) {
             const cost = numeric(record.cost),
               timestamp = text(record.time);
             if (record.is_deleted === true || cost === undefined || cost < 0 || !timestamp) continue;
@@ -258,9 +286,16 @@ defineProvider({
             .map((label) => ({ label, value: totals[label] }));
           const format = (value) => ctx.format.number(value, { maximumFractionDigits: 2 });
           const rows = [
-            { label: "Today", value: format(_nullishCoalesce(totals[day(now)], () => 0)) },
-            { label: "30d credits", value: format(points.reduce((sum, point) => sum + point.value, 0)) },
+            {
+              label: history.complete ? "Today" : "Today (partial)",
+              value: format(_nullishCoalesce(totals[day(now)], () => 0)),
+            },
+            {
+              label: history.complete ? "30d credits" : "30d credits (partial)",
+              value: format(points.reduce((sum, point) => sum + point.value, 0)),
+            },
           ];
+          if (!history.complete) rows.push({ label: "History", value: "Incomplete" });
           if (!unlimited && cycleStart && cycleEnd && cycleEnd > cycleStart) {
             const duration = Math.trunc((cycleEnd - cycleStart) / 60000) * 60000;
             const remaining = cycleEnd - now.getTime();
@@ -286,7 +321,14 @@ defineProvider({
           details.push({
             title: "Credit history",
             rows,
-            chart: points.length ? { kind: "bars", title: "Daily credits", unit: "credits", points } : undefined,
+            chart: points.length
+              ? {
+                  kind: "bars",
+                  title: history.complete ? "Daily credits" : "Daily credits (partial)",
+                  unit: "credits",
+                  points,
+                }
+              : undefined,
           });
         }
         return {
