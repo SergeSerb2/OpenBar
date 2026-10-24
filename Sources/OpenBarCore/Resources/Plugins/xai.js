@@ -117,10 +117,14 @@ defineProvider({
             ...(liveRemaining === undefined
               ? []
               : [{ label: "Live remaining (est.)", value: `$${liveRemaining.toFixed(2)}` }]),
-            {
-              label: partial ? "Last 30 days (partial)" : "Last 30 days",
-              value: `$${daily.reduce((sum, point) => sum + point.value, 0).toFixed(2)}`,
-            },
+            ...(historyAvailable
+              ? [
+                  {
+                    label: partial ? "Last 30 days (partial)" : "Last 30 days",
+                    value: `$${daily.reduce((sum, point) => sum + point.value, 0).toFixed(2)}`,
+                  },
+                ]
+              : []),
           ],
           // Emit an empty chart on successful history so spend mapping can tell
           // "zero days" from "analytics unavailable".

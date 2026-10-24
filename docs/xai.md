@@ -102,3 +102,6 @@ openbar --provider xai
 
 - [Management API guide](https://docs.x.ai/developers/management-api-guide)
 - [Billing REST reference](https://docs.x.ai/developers/rest-api-reference/management/billing)
+
+The Last 30 days spend row is shown only when analytics succeeds. A successful empty history is a measured zero;
+unavailable analytics omits the spend row and chart.
