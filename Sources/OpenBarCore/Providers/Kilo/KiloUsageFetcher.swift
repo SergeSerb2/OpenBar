@@ -241,7 +241,7 @@ public struct KiloUsageFetcher: Sendable {
             throw mapped
         }
 
-        guard response.statusCode == 200 else {
+        guard response.statusCode == 200 || response.statusCode == 207 else {
             throw KiloUsageError.apiError(response.statusCode)
         }
 
