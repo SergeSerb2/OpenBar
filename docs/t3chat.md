@@ -117,3 +117,6 @@ data, while `openbar cost --provider t3chat` is unsupported.
 - `Sources/OpenBarCore/Resources/Plugins/t3chat.js` — tRPC request, response decoding, and window mapping
 - `Sources/OpenBar/Providers/Shared/PluginCookieProviderImplementation.swift` — settings pickers and bindings
 - `Sources/OpenBar/Providers/T3Chat/T3ChatSettingsStore.swift` — cookie source and header persistence
+
+A quota lane is shown only when its usage percentage is present and valid. Missing lanes stay unavailable;
+customer data with no measurable lane fails parsing instead of showing unused quota.

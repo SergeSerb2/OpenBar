@@ -43,8 +43,10 @@ enum CookiePluginFixtures {
             let usage = try await self.runtime("t3chat", data: Data(text.utf8), engine: engine)
                 .fetchUsage(now: now, cookieResolver: { _, _ in "session=fixture" })
             let expected = reference.toUsageSnapshot()
-            #expect(usage.primary == expected.primary)
-            #expect(usage.secondary == expected.secondary)
+            #expect(usage.primary == (reference.customerData.usageFourHourPercentage == nil ? nil : expected.primary))
+            #expect(usage.secondary == (
+                (reference.customerData.usageMonthPercentage ?? reference.customerData.usagePeriodPercentage) == nil
+                    ? nil : expected.secondary))
             #expect(usage.identity?.loginMethod == expected.identity?.loginMethod)
         }
         return reference
