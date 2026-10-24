@@ -20,7 +20,7 @@ extension CostUsageWorker {
                 version: request.version,
                 generation: request.generation,
                 result: result,
-                pricingJobs: jobs.withLock { $0 })
+                pricingJobs: jobs.withLock { $0 }.filter(\.needsRefresh))
             let encoder = PropertyListEncoder()
             encoder.outputFormat = .binary
             let data = try encoder.encode(response)

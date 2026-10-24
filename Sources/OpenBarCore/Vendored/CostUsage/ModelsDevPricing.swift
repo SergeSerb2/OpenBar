@@ -597,6 +597,12 @@ enum ModelsDevCache {
         return Self.result(for: outcome, now: now)
     }
 
+    /// Drops the memoized decoded catalog. The app reads the catalog only for pricing jobs the cost helper
+    /// hands back, so it should not stay resident between them; a later `load` decodes it again.
+    static func releaseDecodedCatalog(cacheRoot: URL? = nil) {
+        Self.memo.invalidate(path: self.cacheFileURL(cacheRoot: cacheRoot).path)
+    }
+
     private static func readOutcome(at url: URL, metadata: FileMetadata) -> ModelsDevCacheMemo.Outcome {
         guard let data = try? Data(contentsOf: url) else {
             return .failure(.unreadable)
@@ -769,14 +775,13 @@ enum ModelsDevPricingPipeline {
     {
         guard !modelIDs.isEmpty else { return .unavailable }
         let load = ModelsDevCache.load(now: now, cacheRoot: cacheRoot)
-        let unknownModelIDs = modelIDs.filter {
-            load.artifact?.catalog.pricing(providerID: providerID, modelID: $0, exactModelID: exactModelIDs) == nil
-        }
-        guard !unknownModelIDs.isEmpty else { return .pricingAvailable }
-        if let fetchedAt = load.artifact?.fetchedAt,
-           now.timeIntervalSince(fetchedAt) < modelsDevCatalogRetryInterval
-        {
-            return .unavailable
+        let unknownModelIDs = self.unknownModelIDs(
+            modelIDs,
+            providerID: providerID,
+            exactModelIDs: exactModelIDs,
+            catalog: load.artifact?.catalog)
+        if let outcome = self.settledOutcome(unknownModelIDs: unknownModelIDs, load: load, now: now) {
+            return outcome
         }
 
         let cachePath = ModelsDevCache.cacheFileURL(cacheRoot: cacheRoot).standardizedFileURL.path
@@ -792,6 +797,59 @@ enum ModelsDevPricingPipeline {
             refreshedCatalog?.pricing(providerID: providerID, modelID: $0, exactModelID: exactModelIDs) != nil
         }
         return pricingBecameAvailable ? .pricingAvailable : .unavailable
+    }
+
+    /// The catalog-only checks `refreshForUnknownModelsIfNeeded` runs before it may fetch: their outcome
+    /// when they settle the request, `nil` when it would go on to fetch.
+    static func unknownModelOutcomeWithoutFetching(
+        providerID: String,
+        modelIDs: Set<String>,
+        exactModelIDs: Bool = false,
+        now: Date,
+        cacheRoot: URL?) -> ModelsDevUnknownModelRefreshOutcome?
+    {
+        guard !modelIDs.isEmpty else { return .unavailable }
+        let load = ModelsDevCache.load(now: now, cacheRoot: cacheRoot)
+        return self.settledOutcome(
+            unknownModelIDs: self.unknownModelIDs(
+                modelIDs,
+                providerID: providerID,
+                exactModelIDs: exactModelIDs,
+                catalog: load.artifact?.catalog),
+            load: load,
+            now: now)
+    }
+
+    /// Every refresh entry point is a no-op while another refresh runs or a recent attempt is cooling down,
+    /// so a queued pricing job can skip the catalog reads that would only rediscover that.
+    static func mayStartRefresh(now: Date, cacheRoot: URL?) async -> Bool {
+        let cachePath = ModelsDevCache.cacheFileURL(cacheRoot: cacheRoot).standardizedFileURL.path
+        return await self.refreshCoordinator.mayStartRefresh(cachePath: cachePath, now: now)
+    }
+
+    private static func unknownModelIDs(
+        _ modelIDs: Set<String>,
+        providerID: String,
+        exactModelIDs: Bool,
+        catalog: ModelsDevCatalog?) -> Set<String>
+    {
+        modelIDs.filter {
+            catalog?.pricing(providerID: providerID, modelID: $0, exactModelID: exactModelIDs) == nil
+        }
+    }
+
+    private static func settledOutcome(
+        unknownModelIDs: Set<String>,
+        load: ModelsDevCacheLoadResult,
+        now: Date) -> ModelsDevUnknownModelRefreshOutcome?
+    {
+        guard !unknownModelIDs.isEmpty else { return .pricingAvailable }
+        if let fetchedAt = load.artifact?.fetchedAt,
+           now.timeIntervalSince(fetchedAt) < modelsDevCatalogRetryInterval
+        {
+            return .unavailable
+        }
+        return nil
     }
 
     private static func performRefresh(
@@ -828,6 +886,13 @@ private actor ModelsDevRefreshCoordinator {
 
     private var inFlightByCachePath: [String: InFlightRefresh] = [:]
     private var lastCatalogAttemptByCachePath: [String: Date] = [:]
+
+    func mayStartRefresh(cachePath: String, now: Date) -> Bool {
+        guard self.inFlightByCachePath[cachePath] == nil else { return false }
+        guard let lastAttempt = self.lastCatalogAttemptByCachePath[cachePath] ?? Self.persistedAttempt(cachePath)
+        else { return true }
+        return now.timeIntervalSince(lastAttempt) >= modelsDevCatalogRetryInterval
+    }
 
     func refresh(
         cachePath: String,
