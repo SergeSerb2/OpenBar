@@ -754,10 +754,13 @@ struct CursorUsageEventsFetcher: Sendable {
         model: String,
         modelsDevCatalog: ModelsDevCatalog) -> Double?
     {
-        guard usage.cost == .omitted else { return nil }
+        guard usage.cost == .omitted,
+              let inputTokens = ProviderUsageCounter.sum([
+                  usage.inputTokens, usage.cacheReadTokens, usage.cacheWriteTokens,
+              ]) else { return nil }
         if let usd = CostUsagePricing.codexCostUSD(
             model: model,
-            inputTokens: usage.inputTokens + usage.cacheReadTokens + usage.cacheWriteTokens,
+            inputTokens: inputTokens,
             cachedInputTokens: usage.cacheReadTokens,
             outputTokens: usage.outputTokens,
             cacheWriteInputTokens: usage.cacheWriteTokens,

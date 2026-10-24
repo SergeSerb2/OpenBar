@@ -435,7 +435,7 @@ public struct MiniMaxUsageFetcher: Sendable {
             page += 1
         }
 
-        return MiniMaxBillingHistoryParser.aggregate(records: records, now: now)
+        return try MiniMaxBillingHistoryParser.aggregate(records: records, now: now)
     }
 
     private static func billingHistoryResponse(

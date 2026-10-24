@@ -37,7 +37,7 @@ public struct BedrockUsageSnapshot: Codable, Sendable {
 
     public var totalTokens: Int? {
         guard let input = self.inputTokens, let output = self.outputTokens else { return nil }
-        return input + output
+        return ProviderUsageCounter.sum([input, output])
     }
 }
 

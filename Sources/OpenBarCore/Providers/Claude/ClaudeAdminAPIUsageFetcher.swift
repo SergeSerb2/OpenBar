@@ -59,7 +59,7 @@ public enum ClaudeAdminAPIUsageFetcher {
             range: range,
             transport: transport)
 
-        return Self.makeSnapshot(
+        return try Self.makeSnapshot(
             costs: costs,
             messages: messages,
             now: now,
@@ -76,7 +76,7 @@ public enum ClaudeAdminAPIUsageFetcher {
     {
         let costs = try Self.decodeCosts(costs)
         let messages = try Self.decodeMessages(messages)
-        return Self.makeSnapshot(
+        return try Self.makeSnapshot(
             costs: costs,
             messages: messages,
             now: now,
@@ -164,8 +164,23 @@ public enum ClaudeAdminAPIUsageFetcher {
         messages: MessagesUsageResponse,
         now: Date,
         calendar: Calendar,
-        workspaceSpendEnabled: Bool) -> ClaudeAdminAPIUsageSnapshot
+        workspaceSpendEnabled: Bool) throws -> ClaudeAdminAPIUsageSnapshot
     {
+        // Every later day/model total is a subset of these nonnegative counters.
+        var tokens = 0
+        for bucket in messages.data {
+            for result in bucket.results {
+                for value in [
+                    result.uncachedInputTokens ?? 0,
+                    result.cacheCreation?.ephemeral1HInputTokens ?? 0,
+                    result.cacheCreation?.ephemeral5MInputTokens ?? 0,
+                    result.cacheReadInputTokens ?? 0,
+                    result.outputTokens ?? 0,
+                ] {
+                    tokens = try ProviderUsageCounter.add(tokens, value)
+                }
+            }
+        }
         var accumulators: [String: DailyAccumulator] = [:]
 
         for bucket in costs.data {
