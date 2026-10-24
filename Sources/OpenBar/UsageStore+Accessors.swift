@@ -213,6 +213,7 @@ extension UsageStore {
     }
 
     func accountInfo(for provider: UsageProvider) -> AccountInfo {
+        guard provider == .codex else { return AccountInfo(email: nil, plan: nil) }
         let now = Date()
         let configRevision = self.settings.configRevision
         if let cached = self.accountInfoCache[provider.instanceID],
@@ -221,19 +222,14 @@ extension UsageStore {
             return cached.account
         }
 
-        let account: AccountInfo
         // Provider-specific by design: Codex account info must be loaded through its selected filesystem scope.
-        if provider == .codex {
-            let env = ProviderRegistry.makeEnvironment(
-                base: self.environmentBase,
-                provider: .codex,
-                settings: self.settings,
-                tokenOverride: nil)
-            let fetcher = ProviderRegistry.makeFetcher(base: self.codexFetcher, provider: .codex, env: env)
-            account = fetcher.loadAccountInfo()
-        } else {
-            account = self.codexFetcher.loadAccountInfo()
-        }
+        let env = ProviderRegistry.makeEnvironment(
+            base: self.environmentBase,
+            provider: .codex,
+            settings: self.settings,
+            tokenOverride: nil)
+        let fetcher = ProviderRegistry.makeFetcher(base: self.codexFetcher, provider: .codex, env: env)
+        let account = fetcher.loadAccountInfo()
         self.accountInfoCache[provider.instanceID] = AccountInfoCacheEntry(
             account: account,
             configRevision: configRevision,
