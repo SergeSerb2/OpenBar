@@ -103,7 +103,7 @@ public struct OpenAIDashboardBrowserCookieImporter {
         let deadline: Date?
     }
 
-    private static let cookieDomains = ["chatgpt.com", "openai.com"]
+    private nonisolated static let cookieDomains = ["chatgpt.com", "openai.com"]
     private nonisolated static let cookieClient = BrowserCookieClient()
     private static let cookieImportOrder: BrowserCookieImportOrder =
         ProviderDefaults.metadata[.codex]?.browserCookieOrder ?? Browser.defaultImportOrder
@@ -366,6 +366,7 @@ public struct OpenAIDashboardBrowserCookieImporter {
             for source in sources {
                 _ = try Self.remainingTimeout(until: deadline)
                 let cookies = BrowserCookieClient.makeHTTPCookies(source.records, origin: query.origin)
+                    .filter { Self.isOpenAIWebCookieDomain($0.domain) }
                 guard !cookies.isEmpty else {
                     log("\(source.label) produced 0 HTTPCookies.")
                     continue
@@ -431,6 +432,7 @@ public struct OpenAIDashboardBrowserCookieImporter {
             for source in sources {
                 _ = try Self.remainingTimeout(until: deadline)
                 let cookies = BrowserCookieClient.makeHTTPCookies(source.records, origin: query.origin)
+                    .filter { Self.isOpenAIWebCookieDomain($0.domain) }
                 guard !cookies.isEmpty else {
                     log("\(source.label) produced 0 HTTPCookies.")
                     continue
@@ -684,7 +686,7 @@ public struct OpenAIDashboardBrowserCookieImporter {
         deadline: Date?,
         logger: (String) -> Void) async throws -> String?
     {
-        let chatgptCookies = cookies.filter { $0.domain.lowercased().contains("chatgpt.com") }
+        let chatgptCookies = cookies.filter { Self.cookieDomain($0.domain, matches: "chatgpt.com") }
         guard !chatgptCookies.isEmpty else { return nil }
 
         let cookieHeader = chatgptCookies
@@ -876,7 +878,10 @@ public struct OpenAIDashboardBrowserCookieImporter {
         deadline: Date?,
         logger: @escaping (String) -> Void) async
     {
-        let header = self.cookieHeader(from: candidate.cookies)
+        // The cached header is replayed onto chatgpt.com, so sibling-domain values must not override its cookies.
+        let header = self.cookieHeader(from: candidate.cookies.filter {
+            Self.cookieDomain($0.domain, matches: "chatgpt.com")
+        })
         guard !header.isEmpty else { return }
         do {
             _ = try await Self.runBoundedCookieCacheOperation(deadline: deadline) {
@@ -890,6 +895,18 @@ public struct OpenAIDashboardBrowserCookieImporter {
         } catch {
             logger("Cookie cache write did not finish before the web deadline.")
         }
+    }
+
+    /// True for `base` or one of its subdomains. The browser query matches by substring, which also returns hosts
+    /// such as `chatgpt.com.example.net` or `notopenai.com`.
+    nonisolated static func cookieDomain(_ domain: String, matches base: String) -> Bool {
+        var host = domain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if host.hasPrefix(".") { host.removeFirst() }
+        return host == base || host.hasSuffix("." + base)
+    }
+
+    nonisolated static func isOpenAIWebCookieDomain(_ domain: String) -> Bool {
+        self.cookieDomains.contains { self.cookieDomain(domain, matches: $0) }
     }
 
     private func cookieHeader(from cookies: [HTTPCookie]) -> String {

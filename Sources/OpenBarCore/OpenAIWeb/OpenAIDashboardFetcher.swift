@@ -741,7 +741,7 @@ public struct OpenAIDashboardFetcher {
         }
 
         return cookies
-            .filter { $0.domain.lowercased().contains("chatgpt.com") }
+            .filter { OpenAIDashboardBrowserCookieImporter.cookieDomain($0.domain, matches: "chatgpt.com") }
             .map { "\($0.name)=\($0.value)" }
             .joined(separator: "; ")
     }

@@ -259,7 +259,9 @@ and stable account numbers distinguish rows while usable workspace labels remain
   1) Safari: `~/Library/Cookies/Cookies.binarycookies`
   2) Chrome/Chromium forks: `~/Library/Application Support/Google/Chrome/*/Cookies`
   3) Firefox: `~/Library/Application Support/Firefox/Profiles/*/cookies.sqlite`
-  - Domains loaded: `chatgpt.com`, `openai.com`.
+  - Domains loaded: `chatgpt.com`, `openai.com`, and their subdomains. Other hosts that only contain those names
+    (for example `chatgpt.com.example.net` or `notopenai.com`) are dropped.
+  - The cached cookie header holds only `chatgpt.com` cookies.
   - No cookie-name filter; we import all matching domain cookies.
 - Cached cookies: Keychain cache `com.serbinenko.openbar.cache` (account `cookie.codex`, source + timestamp).
   Reused before re-importing from browsers.
