@@ -89,8 +89,14 @@ extension CostUsageStore {
             unloadedTokenSnapshotPaths: compatible ? baseline.unloadedTokenSnapshotPaths : [])
     }
 
-    func releaseCodexBaseline(_ receipt: CodexBaselineReceipt) {
+    func releaseCodexBaseline(_ receipt: CodexBaselineReceipt, retainingScanState: Bool = true) {
         self.releaseCodexBaseline(id: receipt.id)
+        // Save may already have consumed this receipt. Never evict another outstanding scan's baseline.
+        guard !retainingScanState, self.retainedCodexBaseline == nil else { return }
+        self.codexIdleEvictionTask?.cancel()
+        self.codexIdleEvictionTask = nil
+        self.retainedCodexScan = nil
+        self.retainedCodexRead = nil
     }
 
     private func releaseCodexBaseline(id: UUID) {

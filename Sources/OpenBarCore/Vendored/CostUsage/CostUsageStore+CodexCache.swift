@@ -617,7 +617,8 @@ extension CostUsageStore {
                     try? decoder.decode(CostUsageJsonl.ResumeState.self, from: $0)
                 },
                 codexForkAccountingState: details.forkAccountingState,
-                codexRequestLedgerState: includesRequestLedgerState ? details.requestLedgerState : nil,
+                codexRequestLedgerState: includesRequestLedgerState
+                    ? Self.sharingCodexRequestStrings(details.requestLedgerState, rows: rows) : nil,
                 codexBufferedSubagentLines: Self.bufferedLines(buffers, kind: .subagent, decoder: decoder),
                 codexBufferedUnresolvedForkLines: Self.bufferedLines(buffers, kind: .unresolvedFork, decoder: decoder),
                 codexReadRetryBufferPresence: retryPresence.map { $0[file.path] ?? .init() },
@@ -626,6 +627,33 @@ extension CostUsageStore {
         }
         cache.days = Self.days(from: snapshot.dayAggregates)
         return cache
+    }
+
+    /// JSON decoding allocates independent copies of the same response IDs and mirror keys in
+    /// rows and ledger dictionaries. Share their exact bytes, with an index bounded to one file.
+    private static func sharingCodexRequestStrings(
+        _ ledger: CostUsageScanner.CodexRequestLedgerState?,
+        rows: [CostUsageScanner.CodexUsageRow]) -> CostUsageScanner.CodexRequestLedgerState?
+    {
+        guard var ledger, !rows.isEmpty,
+              !ledger.responseIDs.isEmpty || ledger.mirroredResponses?.isEmpty == false else { return ledger }
+        let strings = CostUsageRowStringPool()
+        for row in rows {
+            if let responseID = row.responseID { _ = strings.intern(responseID) }
+            for key in row.requestMirrorKeys ?? [] {
+                _ = strings.intern(key)
+            }
+        }
+        ledger.responseIDs = Set(ledger.responseIDs.map(strings.intern))
+        if let mirrors = ledger.mirroredResponses {
+            var shared: [String: String] = [:]
+            shared.reserveCapacity(mirrors.count)
+            for (key, responseID) in mirrors {
+                shared[strings.intern(key)] = strings.intern(responseID)
+            }
+            ledger.mirroredResponses = shared
+        }
+        return ledger
     }
 
     static func reconciledCodexCache(
@@ -1504,8 +1532,8 @@ struct CostUsageStoreLoad: @unchecked Sendable {
     var receipt: CostUsageStore.CodexBaselineReceipt
     var unloadedTokenSnapshotPaths: Set<String> = []
 
-    func release() {
-        self.store.syncReleaseCodexBaseline(self.receipt)
+    func release(retainingScanState: Bool = true) {
+        self.store.syncReleaseCodexBaseline(self.receipt, retainingScanState: retainingScanState)
     }
 }
 

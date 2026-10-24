@@ -240,12 +240,14 @@ extension CostUsageStore {
         }
         var result = sqlite3_step(statement)
         while result == SQLITE_ROW {
-            guard let path = self.columnText(statement, at: 0),
-                  let rowIndex = Int(exactly: sqlite3_column_int64(statement, 1)),
-                  let payload = self.columnData(statement, at: 2)
-            else { throw StoreError.invalidData }
-            recorder?.recordUsageRow(payloadBytes: payload.count)
-            visit(CostUsageStoreUsageRow(path: path, rowIndex: rowIndex, payload: payload))
+            try autoreleasepool {
+                guard let path = self.columnText(statement, at: 0),
+                      let rowIndex = Int(exactly: sqlite3_column_int64(statement, 1)),
+                      let payload = self.columnData(statement, at: 2)
+                else { throw StoreError.invalidData }
+                recorder?.recordUsageRow(payloadBytes: payload.count)
+                visit(CostUsageStoreUsageRow(path: path, rowIndex: rowIndex, payload: payload))
+            }
             result = sqlite3_step(statement)
         }
         guard result == SQLITE_DONE else { throw StoreError.sqlite(result) }

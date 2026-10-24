@@ -39,7 +39,8 @@ extension CostUsageWorker {
     }
 
     private static func execute(_ request: CostUsageWorkerRequest) async throws -> Data {
-        let options = request.scanner.options
+        var options = request.scanner.options
+        options.retainCodexScanState = request.operation == .advance
         let fetcher = CostUsageFetcher(scannerOptions: options)
         switch request.operation {
         case .tokens:

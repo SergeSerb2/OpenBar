@@ -56,6 +56,16 @@ extension CostUsageScanner {
 
     /// Reconcile both scan orders against responses that actually contributed a row.
     static func reconcileCodexRequestMirrors(cache: inout CostUsageCache, context: CodexFileScanContext) {
+        // Ledger-only caches have no legacy observations to reconcile. Avoid materializing every
+        // scoped mirror/response key when the lookup table cannot remove or update any row.
+        let hasLegacyCandidates = cache.files.values.contains { file in
+            file.hasCurrentCodexParser && (file.codexRows ?? []).contains { row in
+                row.responseID == nil && row.requestMirrorKeys?.isEmpty == false
+                    && CostUsageDayRange.isInRange(
+                        dayKey: row.day, since: context.range.scanSinceKey, until: context.range.scanUntilKey)
+            }
+        }
+        guard hasLegacyCandidates else { return }
         var aliases: [String: String] = [:]
         var owned: [String: (path: String, index: Int)] = [:]
         for (path, file) in cache.files where file.hasCurrentCodexParser {
