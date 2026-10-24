@@ -66,3 +66,6 @@ endpoints are rejected.
 
 If the gateway is not running, OpenBar reports that it could not be reached and suggests
 starting it with `wayfinder-router serve`.
+
+Prometheus decision-latency samples use the value after the metric and optional labels. Optional sample timestamps
+are ignored. Malformed or nonfinite latency samples remain unavailable.
