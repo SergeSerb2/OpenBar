@@ -34,7 +34,9 @@ final class CodexWorkspacesWindowController: NSWindowController {
 
     private let model: CodexWorkspacesInspectorModel
     private let configuration: @MainActor () -> CodexWorkspacesInspectorModel.Configuration
-    private let makeContent: @MainActor () -> NSViewController
+    private let makeRoot: @MainActor () -> AnyView
+    private let hosting: NSHostingController<AnyView>
+    private var rootReleased = false
 
     init(
         store: UsageStore,
@@ -49,15 +51,17 @@ final class CodexWorkspacesWindowController: NSWindowController {
             fetcher: store.costUsageFetcher)
         self.model = model
         self.configuration = configuration
-        self.makeContent = {
-            let hostingController = NSHostingController(rootView: CodexWorkspacesWindowShell(
+        let makeRoot: @MainActor () -> AnyView = {
+            AnyView(CodexWorkspacesWindowShell(
                 minimumSize: Self.minimumContentSize,
                 model: model,
                 store: store,
                 settings: settings).openBarLocalized())
-            hostingController.sizingOptions = .minSize
-            return hostingController
         }
+        self.makeRoot = makeRoot
+        let hosting = NSHostingController(rootView: makeRoot())
+        hosting.sizingOptions = .minSize
+        self.hosting = hosting
 
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: Self.defaultSize),
@@ -70,7 +74,7 @@ final class CodexWorkspacesWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
         window.isRestorable = false
         // Share the content minimum without adopting the empty state's intrinsic window size.
-        window.contentViewController = self.makeContent()
+        window.contentViewController = self.hosting
         window.contentMinSize = Self.minimumContentSize
         window.setContentSize(Self.defaultSize)
         window.center()
@@ -85,8 +89,9 @@ final class CodexWorkspacesWindowController: NSWindowController {
 
     func present() {
         self.model.updateConfiguration(self.configuration())
-        if self.window?.contentViewController == nil {
-            self.window?.contentViewController = self.makeContent()
+        if self.rootReleased {
+            self.hosting.rootView = self.makeRoot()
+            self.rootReleased = false
         }
         self.model.load()
         NSApp.activate()
@@ -114,8 +119,9 @@ extension CodexWorkspacesWindowController: NSWindowDelegate {
         // Tear down after AppKit finishes closing, unless the window was reopened meanwhile.
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window, !window.isVisible else { return }
-            window.contentViewController = nil
-            window.contentView = nil
+            // Swap the root out of the long-lived controller; recreating hosting controllers leaks graphs.
+            self.hosting.rootView = AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity))
+            self.rootReleased = true
             self.model.releaseSnapshot()
         }
     }

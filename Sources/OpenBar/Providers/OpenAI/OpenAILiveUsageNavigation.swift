@@ -23,7 +23,9 @@ final class OpenAILiveUsagePresenter {
 @MainActor
 final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegate {
     private let model: OpenAILiveUsageModel
-    private let makeContent: @MainActor () -> NSViewController
+    private let makeRoot: @MainActor () -> AnyView
+    private let hosting: NSHostingController<AnyView>
+    private var rootReleased = false
 
     init(settings: SettingsStore, openSettings: @escaping @MainActor () -> Void) {
         let model = OpenAILiveUsageModel(environment: {
@@ -38,12 +40,13 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
             settings.providerConfig(for: .openai)?.modelRateLimits(for: scope) ?? []
         })
         self.model = model
-        self.makeContent = {
-            let hosting = NSHostingController(rootView: OpenAILiveUsageView(
-                model: model, openSettings: openSettings).openBarLocalized())
-            hosting.sizingOptions = .minSize
-            return hosting
+        let makeRoot: @MainActor () -> AnyView = {
+            AnyView(OpenAILiveUsageView(model: model, openSettings: openSettings).openBarLocalized())
         }
+        self.makeRoot = makeRoot
+        let hosting = NSHostingController(rootView: makeRoot())
+        hosting.sizingOptions = .minSize
+        self.hosting = hosting
         let size = NSSize(width: 880, height: 640)
         let minimumSize = NSSize(width: 680, height: 500)
         let window = NSWindow(
@@ -56,7 +59,7 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
         window.tabbingMode = .disallowed
         window.isReleasedWhenClosed = false
         window.isRestorable = false
-        window.contentViewController = self.makeContent()
+        window.contentViewController = self.hosting
         window.contentMinSize = minimumSize
         window.setContentSize(size)
         window.center()
@@ -70,8 +73,9 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
     }
 
     func present() {
-        if self.window?.contentViewController == nil {
-            self.window?.contentViewController = self.makeContent()
+        if self.rootReleased {
+            self.hosting.rootView = self.makeRoot()
+            self.rootReleased = false
         }
         self.model.start()
         NSApp.activate()
@@ -85,8 +89,9 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
         // Tear down after AppKit finishes closing, unless the window was reopened meanwhile.
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window, !window.isVisible else { return }
-            window.contentViewController = nil
-            window.contentView = nil
+            // Swap the root out of the long-lived controller; recreating hosting controllers leaks graphs.
+            self.hosting.rootView = AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity))
+            self.rootReleased = true
             self.model.releaseSnapshot()
         }
     }
