@@ -71,21 +71,45 @@ enum MemoryScenarioProbe {
                         self.settingsWindow()?.performClose(nil)
                         self.after(10) {
                             self.record("settings-closed+10s")
-                            self.controller.refreshNow()
-                            self.after(45) {
-                                self.record("refresh+45s")
-                                self.cycleMenu(label: "menu2") { [self] in
-                                    self.after(30) {
-                                        self.record("menu2-closed+30s")
-                                        self.after(120) {
-                                            self.record("settled+150s")
-                                            self.record("done")
+                            self.repeatSettings(self.extraSettingsCycles, cycle: 2) { [self] in
+                                self.controller.refreshNow()
+                                self.after(45) {
+                                    self.record("refresh+45s")
+                                    self.cycleMenu(label: "menu2") { [self] in
+                                        self.after(30) {
+                                            self.record("menu2-closed+30s")
+                                            self.after(120) {
+                                                self.record("settled+150s")
+                                                self.record("done")
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
+            }
+        }
+
+        /// `OPENBAR_MEMORY_PROBE_SETTINGS_CYCLES` > 1 repeats Settings open/close to expose per-open growth.
+        private var extraSettingsCycles: Int {
+            let total = ProcessInfo.processInfo.environment["OPENBAR_MEMORY_PROBE_SETTINGS_CYCLES"].flatMap(Int.init)
+            return max(0, (total ?? 1) - 1)
+        }
+
+        private func repeatSettings(_ remaining: Int, cycle: Int, completion: @escaping @MainActor () -> Void) {
+            guard remaining > 0 else {
+                completion()
+                return
+            }
+            self.controller.settingsOpenHandler?(.usageSpend)
+            self.after(6) {
+                self.record("settings-cycle\(cycle)-open")
+                self.settingsWindow()?.performClose(nil)
+                self.after(8) {
+                    self.record("settings-cycle\(cycle)-closed+8s")
+                    self.repeatSettings(remaining - 1, cycle: cycle + 1, completion: completion)
                 }
             }
         }
@@ -195,7 +219,9 @@ enum MemoryScenarioProbe {
                 self.layersWithContents += 1
                 let pixels = Session.pixels(layer.bounds.size, scale: layer.contentsScale)
                 self.contentPixels += pixels
-                self.largestLayers.append(("\(type(of: layer)) \(Int(layer.bounds.width))x\(Int(layer.bounds.height))", pixels))
+                self.largestLayers.append((
+                    "\(type(of: layer)) \(Int(layer.bounds.width))x\(Int(layer.bounds.height))",
+                    pixels))
             }
             for sublayer in layer.sublayers ?? [] {
                 self.visit(sublayer)

@@ -28,6 +28,8 @@ final class SettingsWindowController: NSWindowController {
     private let logger = OpenBarLog.logger(LogCategories.app)
     private var retainedWindow: NSWindow?
     private var didCloseWindow: (@MainActor () -> Void)?
+    private var makeRootView: (@MainActor () -> AnyView)?
+    private var rootViewReleased = false
 
     init(
         selection: PreferencesSelection,
@@ -68,8 +70,8 @@ final class SettingsWindowController: NSWindowController {
         codexAccountPromotionCoordinator: CodexAccountPromotionCoordinator,
         runProviderLoginFlow: @escaping @MainActor (UsageProvider) async -> Void)
     {
-        self.init(selection: selection) {
-            let rootView = PreferencesView(
+        let makeRootView: @MainActor () -> AnyView = {
+            AnyView(PreferencesView(
                 settings: settings,
                 store: store,
                 cloudSyncState: cloudSyncState,
@@ -77,10 +79,11 @@ final class SettingsWindowController: NSWindowController {
                 selection: selection,
                 managedCodexAccountCoordinator: managedCodexAccountCoordinator,
                 codexAccountPromotionCoordinator: codexAccountPromotionCoordinator,
-                runProviderLoginFlow: runProviderLoginFlow)
-            // Type-erased so close can swap in an empty root: the view graph is released even if AppKit
-            // or SwiftUI keeps the controller shell alive in a pending dispatch block.
-            let hostingController = NSHostingController(rootView: AnyView(rootView))
+                runProviderLoginFlow: runProviderLoginFlow))
+        }
+        self.init(selection: selection) {
+            // Type-erased so close can swap the preferences tree out of the one long-lived window.
+            let hostingController = NSHostingController(rootView: makeRootView())
             let window = NSWindow(
                 contentRect: NSRect(
                     x: 0,
@@ -101,6 +104,7 @@ final class SettingsWindowController: NSWindowController {
             window.setFrameAutosaveName(SettingsWindowIdentity.frameAutosaveName)
             return window
         }
+        self.makeRootView = makeRootView
         self.didCloseWindow = { [weak store] in
             store?.sharedSpendDashboardControllerStorage?.setDetailsVisible(false)
             // Hand the closed window's freed allocator pages back to macOS.
@@ -126,6 +130,12 @@ final class SettingsWindowController: NSWindowController {
         let outcome: Outcome
         let window: NSWindow
         if let retainedWindow {
+            if self.rootViewReleased, let makeRootView,
+               let hosting = retainedWindow.contentViewController as? NSHostingController<AnyView>
+            {
+                hosting.rootView = makeRootView()
+                self.rootViewReleased = false
+            }
             window = retainedWindow
             outcome = .reused
         } else if let createdWindow = self.makeWindow() {
@@ -158,15 +168,15 @@ final class SettingsWindowController: NSWindowController {
 extension SettingsWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window === self.retainedWindow else { return }
-        self.retainedWindow = nil
-        self.window = nil
-        // Tear the hosting tree down after AppKit finishes closing, not inside its close callback.
+        // SwiftUI keeps a closed window's NavigationSplitView graph alive through internal cycles, so
+        // recreating the window would leak a graph per open. Keep one window and swap its root out
+        // instead, after AppKit finishes closing; reopening restores the root.
         DispatchQueue.main.async { [weak self, weak window] in
-            (window?.contentViewController as? NSHostingController<AnyView>)?.rootView = AnyView(EmptyView())
-            window?.contentViewController = nil
-            window?.contentView = nil
-            // A reopen in the same run-loop turn already made the new window's content visible again.
-            guard let self, self.retainedWindow == nil else { return }
+            guard let self, let window, !window.isVisible,
+                  let hosting = window.contentViewController as? NSHostingController<AnyView>
+            else { return }
+            hosting.rootView = AnyView(Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity))
+            self.rootViewReleased = true
             self.didCloseWindow?()
         }
     }
