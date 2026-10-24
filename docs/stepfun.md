@@ -75,3 +75,6 @@ authenticated via an Oasis-Token obtained through a username + password login fl
 - `Sources/OpenBar/Providers/StepFun/StepFunProviderImplementation.swift` (settings fields + activation logic)
 - `Sources/OpenBar/Providers/StepFun/StepFunSettingsStore.swift` (SettingsStore extension)
 - `Tests/OpenBarTests/StepFunUsageFetcherTests.swift`
+
+Numeric fields accept numbers and numeric strings. Unsupported present values, nonfinite or negative numbers,
+and remaining rates outside 0–1 fail parsing. A valid zero reset remains the no-reset sentinel for credit plans.

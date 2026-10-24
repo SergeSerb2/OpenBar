@@ -22,7 +22,12 @@ public struct StepFunFlexibleNumber: Decodable, Sendable {
             // The API returns some numeric fields as JSON strings (e.g. "400000000").
             self.value = parsed
         } else {
-            self.value = 0
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Expected a numeric value")
+        }
+        guard self.value.isFinite, self.value >= 0 else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Expected a finite nonnegative value")
         }
     }
 
@@ -43,7 +48,10 @@ public struct StepFunFlexibleTimestamp: Decodable, Sendable {
         } else if let intVal = try? container.decode(Int64.self) {
             self.value = intVal
         } else {
-            self.value = 0
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Expected an integer timestamp")
+        }
+        guard self.value >= 0 else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Expected a nonnegative timestamp")
         }
     }
 
@@ -698,6 +706,16 @@ public struct StepFunUsageFetcher: Sendable {
                 .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .first { !$0.isEmpty } ?? decoded.code.map(String.init) ?? "unknown"
             throw StepFunUsageError.apiError(msg)
+        }
+
+        let rates = [
+            decoded.fiveHourUsageLeftRate?.value,
+            decoded.weeklyUsageLeftRate?.value,
+            decoded.planCreditRateLimit?.subscriptionCreditLeftRate?.value,
+            decoded.planCreditRateLimit?.topupCreditLeftRate?.value,
+        ].compactMap(\.self)
+        guard rates.allSatisfy({ (0...1).contains($0) }) else {
+            throw StepFunUsageError.parseFailed("Usage remaining rates must be between zero and one")
         }
 
         // Credit-based plans (plan_family=2) don't populate the rate-window fields
