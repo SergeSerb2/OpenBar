@@ -269,11 +269,9 @@ public struct OpenAIDashboardFetcher {
                     verifiedEmail: verifiedSignedInEmail,
                     previous: previousSnapshot)
             }
-            if let previousSnapshot {
-                logLine("page scrape disabled; returning previous dashboard snapshot")
-                return previousSnapshot
-            }
-            throw FetchError.noDashboardData(body: "OpenAI dashboard APIs unavailable and page scrape disabled.")
+            // Page scrapes are rate-limited to save memory, so the API is the primary source. When it cannot
+            // supply verified usage, fall back to the page instead of serving a stale snapshot for hours.
+            logLine("usage api unavailable while page scrape is rate-limited; falling back to WebView")
         }
 
         do {

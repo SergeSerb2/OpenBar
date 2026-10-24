@@ -31,6 +31,11 @@ extension UsageStore {
     }
 
     private static let openAIWebRefreshMultiplier: TimeInterval = 5
+    /// Page-only dashboard fields (credit history, usage breakdown, code review) change slowly, while
+    /// hydrating chatgpt.com in an offscreen WebView costs 300–500 MB in the WebContent process per load.
+    /// Usage limits keep refreshing through the API preflight; the page itself is scraped at most this often
+    /// unless the user forces a refresh or there is no page history yet.
+    static let openAIDashboardPageScrapeMinimumInterval: TimeInterval = 6 * 60 * 60
     static let openAIWebDashboardFetchTimeout: TimeInterval = 25
     private static let openAIWebRetryFetchTimeout: TimeInterval = 8
 
@@ -1050,7 +1055,9 @@ extension UsageStore {
             lastPageScrapeAt: self.lastOpenAIDashboardPageScrapeAt,
             historyUpdatedAt: previousSnapshot?.updatedAt,
             now: Date(),
-            refreshInterval: self.openAIWebRefreshIntervalSeconds()))
+            refreshInterval: max(
+                self.openAIWebRefreshIntervalSeconds(),
+                Self.openAIDashboardPageScrapeMinimumInterval)))
         logger("dashboard page scrape=\(allowPageScrape ? "1" : "0")")
         let snapshot = try await OpenAIDashboardFetcher().loadLatestDashboard(
             accountEmail: accountEmail,

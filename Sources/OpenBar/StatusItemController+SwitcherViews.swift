@@ -22,6 +22,8 @@ final class ProviderSwitcherView: NSView {
     }
 
     private let segments: [Segment]
+    /// Segment count for `MemoryScenarioProbe`, which cycles every tab.
+    var segmentCountForProbe: Int { self.segments.count }
     private let onSelect: (ProviderSwitcherSelection) -> Void
     private let showsIcons: Bool
     private let weeklyRemainingProvider: (ProviderInstanceID) -> Double?

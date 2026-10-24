@@ -746,6 +746,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let concreteStatusController = statusController as? StatusItemController {
                 concreteStatusController.cloudSyncState = self.cloudSyncState
                 MenuSwitchFlickerProbe.startIfRequested(controller: concreteStatusController)
+                MemoryScenarioProbe.startIfRequested(controller: concreteStatusController)
             }
             return
         }
