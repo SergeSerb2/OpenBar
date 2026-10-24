@@ -515,18 +515,18 @@ public struct KiloUsageFetcher: Sendable {
                 return [0: dictionary]
             }
 
-            let indexedEntries = dictionary
-                .compactMap { key, value -> (Int, [String: Any])? in
-                    guard let index = Int(key),
-                          let entry = value as? [String: Any]
-                    else {
-                        return nil
-                    }
-                    return (index, entry)
+            var indexedEntries: [Int: [String: Any]] = [:]
+            for (key, value) in dictionary {
+                guard let index = Int(key) else { continue }
+                guard key == String(index), indexedEntries[index] == nil else {
+                    throw KiloUsageError.parseFailed("Noncanonical or duplicate tRPC batch index")
                 }
+                guard index >= 0, index < self.maxTopLevelEntries,
+                      let entry = value as? [String: Any] else { continue }
+                indexedEntries[index] = entry
+            }
             if !indexedEntries.isEmpty {
-                let limitedEntries = indexedEntries.filter { $0.0 >= 0 && $0.0 < self.maxTopLevelEntries }
-                return Dictionary(uniqueKeysWithValues: limitedEntries)
+                return indexedEntries
             }
         }
 
