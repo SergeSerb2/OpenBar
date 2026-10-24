@@ -1,4 +1,3 @@
-import Charts
 import OpenBarCore
 import SwiftUI
 
@@ -34,63 +33,29 @@ struct CreditsHistoryChartMenuView: View {
                     .foregroundStyle(.secondary)
                     .accessibilityLabel(L("No credits history data available."))
             } else {
-                Chart {
-                    ForEach(model.points) { point in
-                        BarMark(
-                            x: .value(L("Day"), point.date, unit: .day),
-                            y: .value(L("Credits used"), point.creditsUsed),
-                            width: .ratio(ChartBarHoverSelection.barWidthRatio))
-                            .foregroundStyle(Self.barColor)
-                    }
-                    if let peak = Self.peakPoint(model: model) {
-                        let capStart = max(peak.creditsUsed - Self.capHeight(maxValue: model.maxCreditsUsed), 0)
-                        BarMark(
-                            x: .value(L("Day"), peak.date, unit: .day),
-                            yStart: .value(L("Cap start"), capStart),
-                            yEnd: .value(L("Cap end"), peak.creditsUsed),
-                            width: .ratio(ChartBarHoverSelection.barWidthRatio))
-                            .foregroundStyle(Color(nsColor: .systemYellow))
-                    }
-                }
-                .chartYAxis(.hidden)
-                .chartXAxis {
-                    AxisMarks(values: model.axisDates) { value in
-                        AxisGridLine().foregroundStyle(Color.clear)
-                        AxisTick().foregroundStyle(Color.clear)
-                        if let date = value.as(Date.self) {
-                            AxisValueLabel(anchor: ChartAxisLabelLayout.barCenteredAnchor) {
-                                ChartAxisLabelLayout.dateLabel(
-                                    Text(date.formatted(.dateTime.month(.abbreviated).day())))
-                            }
-                        }
-                    }
-                }
-                .chartXScale(range: .plotDimension(padding: ChartAxisLabelLayout.dateLabelEdgePadding))
-                .chartLegend(.hidden)
-                .frame(height: 130)
-                .accessibilityLabel(L("Credits history chart"))
-                .accessibilityValue(
-                    model.points.isEmpty
-                        ? L("No data")
-                        : String(format: L("%d days of credits data"), model.points.count))
-                .chartOverlay { proxy in
-                    GeometryReader { geo in
-                        ZStack(alignment: .topLeading) {
-                            if let rect = self.selectionBandRect(model: model, proxy: proxy, geo: geo) {
-                                Rectangle()
-                                    .fill(Self.selectionBandColor)
-                                    .frame(width: rect.width, height: rect.height)
-                                    .position(x: rect.midX, y: rect.midY)
-                                    .allowsHitTesting(false)
-                            }
-                            MouseLocationReader { location in
-                                self.updateSelection(location: location, model: model, proxy: proxy, geo: geo)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                        }
-                    }
-                }
+                DailyBarChart(
+                    days: model.selectableDayDates.map { entry in
+                        let creditsUsed = model.pointsByDayKey[entry.dayKey]?.creditsUsed ?? 0
+                        return DailyBarChart.Day(
+                            date: entry.date,
+                            segments: [.init(value: creditsUsed, color: Self.barColor)],
+                            accessibilityValue: Self.creditsAccessibilityValue(creditsUsed))
+                    },
+                    axisDates: model.axisDates,
+                    peak: Self.peakPoint(model: model).map { (date: $0.date, value: $0.creditsUsed) },
+                    selectedIndex: self.selectedDayKey.flatMap { key in
+                        model.selectableDayDates.firstIndex { $0.dayKey == key }
+                    },
+                    plotPadding: ChartAxisLabelLayout.dateLabelEdgePadding,
+                    onHover: { index in
+                        self.selectedDayKey = index.map { model.selectableDayDates[$0].dayKey }
+                    })
+                    .frame(height: 130)
+                    .accessibilityLabel(L("Credits history chart"))
+                    .accessibilityValue(
+                        model.points.isEmpty
+                            ? L("No data")
+                            : String(format: L("%d days of credits data"), model.points.count))
 
                 let detail = self.detailLines(model: model)
                 VStack(alignment: .leading, spacing: 0) {
@@ -132,13 +97,12 @@ struct CreditsHistoryChartMenuView: View {
         let axisDates: [Date]
         let peakKey: String?
         let totalCreditsUsed: Double?
-        let maxCreditsUsed: Double
     }
 
     private static let barColor = Color(red: 73 / 255, green: 163 / 255, blue: 176 / 255)
-    private static let selectionBandColor = Color(nsColor: .labelColor).opacity(0.1)
-    private static func capHeight(maxValue: Double) -> Double {
-        maxValue * 0.05
+
+    private static func creditsAccessibilityValue(_ creditsUsed: Double) -> String {
+        "\(L("Credits used")): \(creditsUsed.formatted(.number.precision(.fractionLength(0...2))))"
     }
 
     private static func makeModel(from breakdown: [OpenAIDashboardDailyBreakdown]) -> Model {
@@ -161,7 +125,6 @@ struct CreditsHistoryChartMenuView: View {
 
         var totalCreditsUsed: Double = 0
         var peak: (key: String, creditsUsed: Double)?
-        var maxCreditsUsed: Double = 0
 
         for day in sorted {
             guard let date = self.dateFromDayKey(day.day) else { continue }
@@ -178,7 +141,6 @@ struct CreditsHistoryChartMenuView: View {
                 } else {
                     peak = (day.day, day.totalCreditsUsed)
                 }
-                maxCreditsUsed = max(maxCreditsUsed, day.totalCreditsUsed)
             }
         }
 
@@ -196,8 +158,7 @@ struct CreditsHistoryChartMenuView: View {
             selectableDayDates: selectableDayDates,
             axisDates: axisDates,
             peakKey: peak?.key,
-            totalCreditsUsed: totalCreditsUsed > 0 ? totalCreditsUsed : nil,
-            maxCreditsUsed: maxCreditsUsed)
+            totalCreditsUsed: totalCreditsUsed > 0 ? totalCreditsUsed : nil)
     }
 
     private static func dateFromDayKey(_ key: String) -> Date? {
@@ -223,52 +184,6 @@ struct CreditsHistoryChartMenuView: View {
     private static func peakPoint(model: Model) -> Point? {
         guard let key = model.peakKey else { return nil }
         return model.pointsByDayKey[key]
-    }
-
-    private func selectionBandRect(model: Model, proxy: ChartProxy, geo: GeometryProxy) -> CGRect? {
-        guard let key = self.selectedDayKey else { return nil }
-        guard let index = model.selectableDayDates.firstIndex(where: { $0.dayKey == key }) else { return nil }
-        guard let geometry = self.hoverGeometry(model: model, proxy: proxy, geo: geo) else { return nil }
-        return geometry.bars[index].frame
-    }
-
-    private func updateSelection(
-        location: CGPoint?,
-        model: Model,
-        proxy: ChartProxy,
-        geo: GeometryProxy)
-    {
-        guard let location else {
-            if self.selectedDayKey != nil { self.selectedDayKey = nil }
-            return
-        }
-
-        guard let geometry = self.hoverGeometry(model: model, proxy: proxy, geo: geo),
-              let selection = ChartBarHoverSelection.selection(
-                  at: location,
-                  plotFrame: geometry.plotFrame,
-                  bars: geometry.bars)
-        else { return }
-        let key = model.selectableDayDates[selection.index].dayKey
-
-        if self.selectedDayKey != key {
-            self.selectedDayKey = key
-        }
-    }
-
-    private func hoverGeometry(
-        model: Model,
-        proxy: ChartProxy,
-        geo: GeometryProxy) -> (plotFrame: CGRect, bars: [ChartBarHoverSelection.Bar])?
-    {
-        guard let plotAnchor = proxy.plotFrame else { return nil }
-        let plotFrame = geo[plotAnchor]
-        guard let bars = ChartBarHoverSelection.calendarDayBars(
-            dates: model.selectableDayDates.map(\.date),
-            plotFrame: plotFrame,
-            position: { proxy.position(forX: $0) })
-        else { return nil }
-        return (plotFrame, bars)
     }
 
     private func detailLines(model: Model) -> (primary: String, secondary: String?) {

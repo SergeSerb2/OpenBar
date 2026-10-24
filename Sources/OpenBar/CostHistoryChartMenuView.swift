@@ -1,5 +1,4 @@
 import AppKit
-import Charts
 import Observation
 import OpenBarCore
 import SwiftUI
@@ -156,93 +155,38 @@ struct CostHistoryChartMenuView: View {
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
 
-                Chart {
-                    ForEach(model.points) { point in
+                DailyBarChart(
+                    // Points and date keys are built together, so the indexes line up.
+                    days: model.points.map { point in
                         let hasValue = activeMetric == .cost ? point.costUSD != nil : point.totalTokens != nil
-                        if hasValue {
-                            BarMark(
-                                x: .value(L("Day"), point.date, unit: .day),
-                                y: .value(activeMetric.title, point.value),
-                                width: .ratio(ChartBarHoverSelection.barWidthRatio))
-                                .foregroundStyle(model.barColor)
-                        }
-                        if point.incompleteRequestCount > 0 {
-                            PointMark(
-                                x: .value(L("Day"), point.date, unit: .day),
-                                y: .value(activeMetric.title, point.value))
-                                .symbol(.diamond)
-                                .symbolSize(20)
-                                .foregroundStyle(Color.secondary)
-                                .accessibilityLabel(L("Incomplete"))
-                                .accessibilityValue(hasValue ? self
-                                    .yAxisString(point.value, metric: activeMetric) : "—")
-                        }
-                    }
-                    if let peak = Self.peakPoint(model: model) {
-                        let capStart = max(peak.value - Self.capHeight(maxValue: model.maxValue), 0)
-                        BarMark(
-                            x: .value(L("Day"), peak.date, unit: .day),
-                            yStart: .value(L("Cap start"), capStart),
-                            yEnd: .value(L("Cap end"), peak.value),
-                            width: .ratio(ChartBarHoverSelection.barWidthRatio))
-                            .foregroundStyle(Color(nsColor: .systemYellow))
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(
-                        position: .leading,
-                        values: Self.yAxisTickValues(maxValue: model.maxValue, metric: activeMetric))
-                    { value in
-                        AxisGridLine().foregroundStyle(Color.clear)
-                        AxisTick().foregroundStyle(Color.clear)
-                        AxisValueLabel(centered: false) {
-                            if let raw = value.as(Double.self) {
-                                Text(self.yAxisString(raw, metric: activeMetric))
-                                    .font(.caption2)
-                                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
-                                    .padding(.leading, 4)
-                            }
-                        }
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: model.axisDates) { value in
-                        AxisGridLine().foregroundStyle(Color.clear)
-                        AxisTick().foregroundStyle(Color.clear)
-                        if let date = value.as(Date.self) {
-                            AxisValueLabel(anchor: ChartAxisLabelLayout.barCenteredAnchor) {
-                                ChartAxisLabelLayout.dateLabel(
-                                    Text(date, format: .dateTime.month(.abbreviated).day()))
-                            }
-                        }
-                    }
-                }
-                .chartLegend(.hidden)
-                .frame(height: Self.chartHeight)
-                .accessibilityLabel(activeMetric == .tokens ? L("Token activity") : L("Cost history chart"))
-                .accessibilityValue(
-                    (activeMetric == .tokens
-                        ? accessibilityTokens.map { L("%@ tokens", UsageFormatter.tokenCountString($0)) } ?? "—"
-                        : String(format: L("%d days of cost data"), model.points.count))
-                        + UsageFormatter.incompleteUsageSuffix(incompleteCount))
-                .chartOverlay { proxy in
-                    GeometryReader { geo in
-                        ZStack(alignment: .topLeading) {
-                            if let rect = self.selectionBandRect(model: model, proxy: proxy, geo: geo) {
-                                Rectangle()
-                                    .fill(Self.selectionBandColor)
-                                    .frame(width: rect.width, height: rect.height)
-                                    .position(x: rect.midX, y: rect.midY)
-                                    .allowsHitTesting(false)
-                            }
-                            MouseLocationReader { location in
-                                self.updateSelection(location: location, model: model, proxy: proxy, geo: geo)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                        }
-                    }
-                }
+                        return DailyBarChart.Day(
+                            date: point.date,
+                            segments: hasValue ? [.init(value: point.value, color: model.barColor)] : [],
+                            incompleteMarkerValue: point.incompleteRequestCount > 0 ? point.value : nil,
+                            accessibilityValue: (hasValue ? self.yAxisString(point.value, metric: activeMetric) : "—")
+                                + UsageFormatter.incompleteUsageSuffix(point.incompleteRequestCount))
+                    },
+                    axisDates: model.axisDates,
+                    peak: Self.peakPoint(model: model).map { (date: $0.date, value: $0.value) },
+                    selectedIndex: self.navigation.selectedDateKey.flatMap { key in
+                        model.dateKeys.firstIndex { $0.key == key }
+                    },
+                    yAxis: DailyBarChart.YAxis(
+                        values: Self.yAxisTickValues(maxValue: model.maxValue, metric: activeMetric),
+                        label: { self.yAxisString($0, metric: activeMetric) }),
+                    onHover: { index in
+                        // Keep the last hovered day selected when the pointer leaves the chart so the adjacent
+                        // model-breakdown scroller remains interactive. The selection resets with the menu view.
+                        guard let index else { return }
+                        self.navigation.selectedDateKey = model.dateKeys[index].key
+                    })
+                    .frame(height: Self.chartHeight)
+                    .accessibilityLabel(activeMetric == .tokens ? L("Token activity") : L("Cost history chart"))
+                    .accessibilityValue(
+                        (activeMetric == .tokens
+                            ? accessibilityTokens.map { L("%@ tokens", UsageFormatter.tokenCountString($0)) } ?? "—"
+                            : String(format: L("%d days of cost data"), model.points.count))
+                            + UsageFormatter.incompleteUsageSuffix(incompleteCount))
 
                 if availableMetrics.count > 1 || showsHistoryRefreshing {
                     HStack {
@@ -452,7 +396,6 @@ struct CostHistoryChartMenuView: View {
         let detailRowHeight: CGFloat
     }
 
-    private static let selectionBandColor = Color(nsColor: .labelColor).opacity(0.1)
     static let maxVisibleDetailLines = 4
     private static let detailPrimaryLineHeight: CGFloat = 16
     private static let detailTitleLineHeight: CGFloat = 16
@@ -602,10 +545,6 @@ struct CostHistoryChartMenuView: View {
 
     private static func accentHeight(for row: DetailRow, rowHeight: CGFloat) -> CGFloat {
         row.subtitle == nil && row.modeSubtitle == nil ? 14 : rowHeight
-    }
-
-    private static func capHeight(maxValue: Double) -> Double {
-        maxValue * 0.05
     }
 
     /// Y-axis tick values for the cost chart: 0, mid, max when the range is at
@@ -868,51 +807,6 @@ struct CostHistoryChartMenuView: View {
 
     private static func defaultSelectedDateKey(model: Model) -> String? {
         model.dateKeys.last?.key
-    }
-
-    private func selectionBandRect(model: Model, proxy: ChartProxy, geo: GeometryProxy) -> CGRect? {
-        guard let key = self.navigation.selectedDateKey else { return nil }
-        guard let index = model.dateKeys.firstIndex(where: { $0.key == key }) else { return nil }
-        guard let geometry = self.hoverGeometry(model: model, proxy: proxy, geo: geo) else { return nil }
-        return geometry.bars[index].frame
-    }
-
-    private func updateSelection(
-        location: CGPoint?,
-        model: Model,
-        proxy: ChartProxy,
-        geo: GeometryProxy)
-    {
-        // Keep the last hovered day selected when the pointer leaves the chart so the adjacent
-        // model-breakdown scroller remains interactive. The selection resets with the menu view.
-        guard let location else { return }
-
-        guard let geometry = self.hoverGeometry(model: model, proxy: proxy, geo: geo),
-              let selection = ChartBarHoverSelection.selection(
-                  at: location,
-                  plotFrame: geometry.plotFrame,
-                  bars: geometry.bars)
-        else { return }
-        let key = model.dateKeys[selection.index].key
-
-        if self.navigation.selectedDateKey != key {
-            self.navigation.selectedDateKey = key
-        }
-    }
-
-    private func hoverGeometry(
-        model: Model,
-        proxy: ChartProxy,
-        geo: GeometryProxy) -> (plotFrame: CGRect, bars: [ChartBarHoverSelection.Bar])?
-    {
-        guard let plotAnchor = proxy.plotFrame else { return nil }
-        let plotFrame = geo[plotAnchor]
-        guard let bars = ChartBarHoverSelection.calendarDayBars(
-            dates: model.dateKeys.map(\.date),
-            plotFrame: plotFrame,
-            position: { proxy.position(forX: $0) })
-        else { return nil }
-        return (plotFrame, bars)
     }
 
     private func projectSummary(_ project: CostUsageProjectBreakdown) -> String {
