@@ -63,8 +63,14 @@ defineProvider({
     let historyComplete = false;
     try {
       let cursor = null;
+      const cursors = new Set();
+      const queryIDs = new Set();
       const cutoff = ctx.date.nowMillis() - 30 * 86400000;
       for (let page = 0; page < 5; page += 1) {
+        if (cursor) {
+          if (cursors.has(cursor)) break;
+          cursors.add(cursor);
+        }
         const query = cursor ? `?limit=100&starting_after=${encodeURIComponent(cursor)}` : "?limit=100";
         const response = await ctx.http.getJSON(`https://api.poe.com/usage/points_history${query}`);
         if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`);
@@ -79,6 +85,10 @@ defineProvider({
               : [];
         for (const row of rows) {
           if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+          const queryID =
+            typeof row.query_id === "string" || typeof row.query_id === "number" ? String(row.query_id).trim() : null;
+          if (queryID && queryIDs.has(queryID)) continue;
+          if (queryID) queryIDs.add(queryID);
           const date = entryDate(row.creation_time ?? row.timestamp ?? row.created_at);
           if (!date || date.getTime() < cutoff) continue;
           const points = Math.max(0, optionalNumber(row.cost_points ?? row.points ?? row.point_cost, "points") ?? 0);
@@ -87,6 +97,10 @@ defineProvider({
           const usageType =
             typeof row.usage_type === "string" && row.usage_type.trim() ? row.usage_type.trim() : "unknown";
           entries.push({ date, points, cost, model, usageType });
+        }
+        if (root.has_more === false) {
+          historyComplete = true;
+          break;
         }
         const next = typeof root.next_cursor === "string" && root.next_cursor.trim() ? root.next_cursor.trim() : null;
         cursor =
