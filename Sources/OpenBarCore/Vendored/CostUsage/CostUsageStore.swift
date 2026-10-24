@@ -122,6 +122,7 @@ actor CostUsageStore {
         parserHash: CodexParserHash.value)
     static let cacheGeneration = "sqlite:\(CostUsageStore.schemaVersion)"
     static let compatiblePredecessorParserHashes: Set<String> = [
+        "39ae725268e7ec95", // Reaping timed-out Git processes leaves accounting rows and checkpoints unchanged.
         "03d76ae62d1a55a1", // Bounded temporary buffers and helper cache lifetimes preserve rows and checkpoints.
         "3dfae5b17bbb8cdb", // Gating models.dev refresh jobs in the cost helper leaves rows and checkpoints unchanged.
         "54a95e8fe7bd6ee9", // Validating inspection checkpoints leaves persisted rows and scan progress unchanged.
