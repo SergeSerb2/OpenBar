@@ -136,10 +136,21 @@ enum OpenBarTheme {
 }
 
 extension View {
-    /// Soft layered card: one flat fill, no material, no shadow. Adds a hairline only with
-    /// Increase Contrast, so the default card costs a single shape layer.
-    func openBarCard(increasedContrast: Bool = false) -> some View {
-        self
+    /// Soft layered card: one flat fill, no material, no shadow. Adds the `cardStroke` hairline when the
+    /// environment reports Increase Contrast, so the default card costs a single shape layer. Pass
+    /// `increasedContrast` only to force a state (render-gallery fixtures).
+    func openBarCard(increasedContrast: Bool? = nil) -> some View {
+        self.modifier(OpenBarCardModifier(increasedContrastOverride: increasedContrast))
+    }
+}
+
+private struct OpenBarCardModifier: ViewModifier {
+    let increasedContrastOverride: Bool?
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    func body(content: Content) -> some View {
+        let increasedContrast = self.increasedContrastOverride ?? (self.contrast == .increased)
+        content
             .padding(.horizontal, OpenBarMenuMetrics.cardPaddingHorizontal)
             .padding(.vertical, OpenBarMenuMetrics.cardPaddingVertical)
             .background {
