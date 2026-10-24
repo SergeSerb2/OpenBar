@@ -105,7 +105,7 @@ struct CursorEnterpriseUsageTests {
 
         // Headline: $73.84 / $100 -> 73.84% (matches Cursor's own dashboard).
         // Allow a tiny tolerance for floating-point division (7384/10000 * 100).
-        #expect(abs(snapshot.planPercentUsed - 73.84) < 0.0001)
+        #expect(snapshot.planPercentUsed.map { abs($0 - 73.84) < 0.0001 } == true)
         #expect(snapshot.planUsedUSD == 73.84)
         #expect(snapshot.planLimitUSD == 100.0)
         #expect(snapshot.autoPercentUsed == nil)
@@ -140,8 +140,8 @@ struct CursorEnterpriseUsageTests {
                 userInfo: nil,
                 rawJSON: nil)
 
-        #expect(snapshot.planPercentUsed > 45.0)
-        #expect(snapshot.planPercentUsed < 45.5)
+        #expect(snapshot.planPercentUsed.map { $0 > 45.0 } == true)
+        #expect(snapshot.planPercentUsed.map { $0 < 45.5 } == true)
         #expect(snapshot.planUsedUSD == 127_251.35)
         #expect(snapshot.planLimitUSD == 281_220.0)
     }

@@ -224,7 +224,8 @@ change the existing prompt policy or switch to another credential source.
 - Mapping:
   - `five_hour` → session window.
   - `seven_day` → weekly window; also becomes the primary fallback when `five_hour` is absent or has no utilization.
-  - `seven_day_sonnet` / `seven_day_opus` → model-specific weekly window.
+  - `seven_day_sonnet` / `seven_day_opus` → model-specific weekly window, with that object's own reset date.
+    Web never substitutes the all-model weekly reset for a model-specific reset.
   - `limits[].weekly_scoped` → model-specific weekly windows; generic `All models` scopes stay in the main weekly row.
     OAuth and Web share per-entry parsing: malformed siblings or optional fields do not hide valid model rows. Boolean and string percentages are ignored.
   - The menu localizes scoped titles as a model name plus weekly duration; canonical snapshot and CLI titles remain unchanged.

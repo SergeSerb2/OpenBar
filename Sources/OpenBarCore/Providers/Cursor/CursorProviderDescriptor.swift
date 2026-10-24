@@ -194,9 +194,12 @@ struct CursorStatusFetchStrategy: ProviderFetchStrategy {
     }
 
     func fetch(_ context: ProviderFetchContext) async throws -> ProviderFetchResult {
-        let probe = CursorStatusProbe(browserDetection: context.browserDetection)
         let manual = context.settings?.cursor?.cookieSource == .manual
             ? CookieHeaderNormalizer.normalize(context.settings?.cursor?.manualCookieHeader) : nil
+        if context.settings?.cursor?.cookieSource == .manual, manual == nil {
+            throw CursorStatusProbeError.noSessionCookie
+        }
+        let probe = CursorStatusProbe(browserDetection: context.browserDetection)
         let logger: ((String) -> Void)? = context.verbose
             ? { message in OpenBarLog.logger(LogCategories.provider(.cursor)).verbose(message) }
             : nil

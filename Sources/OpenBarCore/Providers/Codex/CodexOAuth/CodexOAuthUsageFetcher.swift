@@ -655,23 +655,9 @@ public enum CodexOAuthUsageFetcher {
     }
 
     private static func parseChatGPTBaseURL(from contents: String) -> String? {
-        for rawLine in contents.split(whereSeparator: \.isNewline) {
-            let line = rawLine.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).first
-            let trimmed = line?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard !trimmed.isEmpty else { continue }
-            let parts = trimmed.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: true)
-            guard parts.count == 2 else { continue }
-            let key = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
-            guard key == "chatgpt_base_url" else { continue }
-            var value = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
-            if value.hasPrefix("\""), value.hasSuffix("\"") {
-                value = String(value.dropFirst().dropLast())
-            } else if value.hasPrefix("'"), value.hasSuffix("'") {
-                value = String(value.dropFirst().dropLast())
-            }
-            return value.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return nil
+        // Codex 0.134+ no longer supports the legacy root profile selector or profiles tables.
+        // Only a root setting may route bearer tokens; table entries and multiline string contents cannot.
+        CodexThreadMetadataReader.topLevelString("chatgpt_base_url", from: contents)
     }
 
     private static func loadConfigContents(env: [String: String]) -> String? {

@@ -60,7 +60,7 @@ struct CursorTeamSpendTests {
             #expect(snapshot.planPercentUsed == 0)
             #expect(snapshot.planLimitUSD == 20)
         } else {
-            #expect(abs(snapshot.planPercentUsed - 8.7466666667) < 0.00001)
+            #expect(snapshot.planPercentUsed.map { abs($0 - 8.7466666667) < 0.00001 } == true)
             #expect(snapshot.planUsedUSD == 13.12)
             #expect(snapshot.planLimitUSD == 150)
             #expect(snapshot.requestsLimit == nil)

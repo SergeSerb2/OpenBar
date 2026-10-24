@@ -18,8 +18,8 @@ extension CursorStatusProbe {
 
         // Convert cents to USD (plan percent derives from raw values to avoid percent unit mismatches).
         // Use plan.limit directly - breakdown.total represents total *used* credits, not the limit.
-        let planUsedRaw = Double(summary.individualUsage?.plan?.used ?? 0)
-        let planLimitRaw = Double(summary.individualUsage?.plan?.limit ?? 0)
+        let planUsedRaw = summary.individualUsage?.plan?.used.map(Double.init)
+        let planLimitRaw = summary.individualUsage?.plan?.limit.map(Double.init)
         func normPct(_ value: Double?) -> Double? {
             guard let v = value else { return nil }
             return UsagePercent(raw: v).displayClamped
@@ -41,7 +41,7 @@ extension CursorStatusProbe {
         let pooledLimitRaw = (summary.teamUsage?.pooled?.limit).map(Double.init)
 
         // Verified member budgets take precedence; otherwise retain summary percentages and cap fallbacks.
-        let planPercentUsed: Double = if let teamBudget {
+        let planPercentUsed: Double? = if let teamBudget {
             UsagePercent(used: teamBudget.usedUSD, limit: teamBudget.limitUSD).displayClamped
         } else if let totalPercentUsed = summary.individualUsage?.plan?.totalPercentUsed {
             UsagePercent(raw: totalPercentUsed).displayClamped
@@ -51,27 +51,27 @@ extension CursorStatusProbe {
             UsagePercent(raw: apiUsed).displayClamped
         } else if let autoUsed = autoPercent {
             UsagePercent(raw: autoUsed).displayClamped
-        } else if planLimitRaw > 0 {
-            UsagePercent(used: planUsedRaw, limit: planLimitRaw).displayClamped
+        } else if let used = planUsedRaw, let limit = planLimitRaw, limit > 0 {
+            UsagePercent(used: used, limit: limit).displayClamped
         } else if let used = overallUsedRaw, let limit = overallLimitRaw, limit > 0 {
             UsagePercent(used: used, limit: limit).displayClamped
         } else if let used = pooledUsedRaw, let limit = pooledLimitRaw, limit > 0 {
             UsagePercent(used: used, limit: limit).displayClamped
         } else {
-            0
+            nil
         }
 
         // USD figures: prefer the source the headline ultimately came from. When `plan` is missing but
         // `overall` or `pooled` carry the cents, surface those so the on-demand display and downstream
         // consumers see real dollar amounts instead of zeros.
-        let planUsed: Double
-        let planLimit: Double
+        let planUsed: Double?
+        let planLimit: Double?
         if let teamBudget {
             planUsed = teamBudget.usedUSD
             planLimit = teamBudget.limitUSD
-        } else if planLimitRaw > 0 || planUsedRaw > 0 {
-            planUsed = planUsedRaw / 100.0
-            planLimit = planLimitRaw / 100.0
+        } else if (planLimitRaw ?? 0) > 0 || (planUsedRaw ?? 0) > 0 {
+            planUsed = planUsedRaw.map { $0 / 100.0 }
+            planLimit = planLimitRaw.map { $0 / 100.0 }
         } else if let usedCents = overallUsedRaw, let limitCents = overallLimitRaw {
             planUsed = usedCents / 100.0
             planLimit = limitCents / 100.0
@@ -79,8 +79,8 @@ extension CursorStatusProbe {
             planUsed = usedCents / 100.0
             planLimit = limitCents / 100.0
         } else {
-            planUsed = 0
-            planLimit = 0
+            planUsed = planUsedRaw.map { $0 / 100.0 }
+            planLimit = planLimitRaw.map { $0 / 100.0 }
         }
 
         let onDemandUsed = Double(summary.individualUsage?.onDemand?.used ?? 0) / 100.0

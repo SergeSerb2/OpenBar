@@ -295,19 +295,16 @@ public struct GeminiStatusProbe: Sendable {
                 ])
             }
 
-            guard let refreshToken = creds.refreshToken, !refreshToken.isEmpty else {
-                Self.log.error("No refresh token available")
-                throw GeminiStatusProbeError.notLoggedIn
-            }
-            accessToken = try await Self.refreshAccessToken(
-                refreshToken: refreshToken,
+            let refreshed = try await Self.refreshAccessToken(
+                credentials: creds,
                 timeout: timeout,
                 homeDirectory: homeDirectory,
                 dataLoader: dataLoader,
                 recoveryContext: OAuthRecoveryContext(
                     oauthClientResolver: oauthClientResolver,
                     antigravityAvailability: antigravityAvailability))
-            idToken = (try? Self.loadCredentials(homeDirectory: homeDirectory).idToken) ?? idToken
+            accessToken = refreshed.accessToken
+            idToken = refreshed.idToken ?? idToken
         }
         guard let accessToken else {
             Self.log.error("No access token found")
@@ -504,6 +501,7 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private struct OAuthCredentials {
+        let data: Data
         let accessToken: String?
         let idToken: String?
         let refreshToken: String?
@@ -804,13 +802,17 @@ public struct GeminiStatusProbe: Sendable {
     }
 
     private static func refreshAccessToken(
-        refreshToken: String,
+        credentials: OAuthCredentials,
         timeout: TimeInterval,
         homeDirectory: String,
         dataLoader: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse),
         recoveryContext: OAuthRecoveryContext) async throws
-        -> String
+        -> (accessToken: String, idToken: String?)
     {
+        guard let refreshToken = credentials.refreshToken, !refreshToken.isEmpty else {
+            self.log.error("No refresh token available")
+            throw GeminiStatusProbeError.notLoggedIn
+        }
         guard let url = URL(string: tokenRefreshEndpoint) else {
             throw GeminiStatusProbeError.apiError("Invalid token refresh URL")
         }
@@ -856,16 +858,25 @@ public struct GeminiStatusProbe: Sendable {
         }
 
         // Update stored credentials with new token
-        try Self.updateStoredCredentials(json, homeDirectory: homeDirectory)
+        try Self.updateStoredCredentials(json, homeDirectory: homeDirectory, expectedCredentialData: credentials.data)
 
         Self.log.info("Token refreshed successfully")
-        return newAccessToken
+        return (newAccessToken, json["id_token"] as? String)
     }
 
-    static func updateStoredCredentials(_ refreshResponse: [String: Any], homeDirectory: String) throws {
+    private enum CredentialPublicationError: Error {
+        case generationChanged
+    }
+
+    static func updateStoredCredentials(
+        _ refreshResponse: [String: Any],
+        homeDirectory: String,
+        expectedCredentialData: Data? = nil) throws
+    {
         let credsURL = URL(fileURLWithPath: homeDirectory + Self.credentialsPath)
 
         guard let existingCreds = try? Data(contentsOf: credsURL),
+              expectedCredentialData == nil || existingCreds == expectedCredentialData,
               var json = try? JSONSerialization.jsonObject(with: existingCreds) as? [String: Any]
         else {
             return
@@ -881,9 +892,21 @@ public struct GeminiStatusProbe: Sendable {
         if let idToken = refreshResponse["id_token"] {
             json["id_token"] = idToken
         }
+        if let refreshToken = refreshResponse["refresh_token"] {
+            json["refresh_token"] = refreshToken
+        }
 
         let updatedData = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted])
-        try CredentialFileWriter.writePrivate(updatedData, to: credsURL)
+        do {
+            try CredentialFileWriter.writePrivate(updatedData, to: credsURL, beforePublish: { _ in
+                guard let currentData = try? Data(contentsOf: credsURL), currentData == existingCreds else {
+                    throw CredentialPublicationError.generationChanged
+                }
+            })
+        } catch CredentialPublicationError.generationChanged {
+            // Gemini CLI changed accounts or refreshed the file while this response was pending.
+            // Keep this response in memory without replacing the newer credential generation.
+        }
     }
 
     private static func loadCredentials(homeDirectory: String) throws -> OAuthCredentials {
@@ -908,6 +931,7 @@ public struct GeminiStatusProbe: Sendable {
         }
 
         return OAuthCredentials(
+            data: data,
             accessToken: accessToken,
             idToken: idToken,
             refreshToken: refreshToken,

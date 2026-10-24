@@ -195,13 +195,21 @@ public struct CodexThreadMetadataReader: Sendable {
     }
 
     private static func topLevelSQLiteHome(from contents: String) -> String? {
+        self.topLevelString("sqlite_home", from: contents)
+    }
+
+    static func topLevelString(_ key: String, from contents: String) -> String? {
         let lines = contents.components(separatedBy: .newlines)
         var multilineQuote: TOMLMultilineQuote?
+        var closingDelimiters: [Character] = []
         var lineIndex = 0
         while lineIndex < lines.count {
             let rawLine = lines[lineIndex]
-            if multilineQuote != nil {
-                multilineQuote = Self.multilineQuote(afterScanning: rawLine, startingWith: multilineQuote)
+            if multilineQuote != nil || !closingDelimiters.isEmpty {
+                multilineQuote = Self.multilineQuote(
+                    afterScanning: rawLine,
+                    startingWith: multilineQuote,
+                    closingDelimiters: &closingDelimiters)
                 lineIndex += 1
                 continue
             }
@@ -215,9 +223,12 @@ public struct CodexThreadMetadataReader: Sendable {
             }
             let parts = line.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             guard parts.count == 2,
-                  Self.tomlKey(String(parts[0])) == "sqlite_home"
+                  Self.tomlKey(String(parts[0])) == key
             else {
-                multilineQuote = Self.multilineQuote(afterScanning: rawLine, startingWith: nil)
+                multilineQuote = Self.multilineQuote(
+                    afterScanning: rawLine,
+                    startingWith: nil,
+                    closingDelimiters: &closingDelimiters)
                 lineIndex += 1
                 continue
             }
@@ -228,7 +239,7 @@ public struct CodexThreadMetadataReader: Sendable {
 
     private static func tomlKey(_ rawKey: String) -> String? {
         let key = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if key == "sqlite_home" {
+        if key.range(of: #"^[A-Za-z0-9_-]+$"#, options: .regularExpression) != nil {
             return key
         }
         return Self.tomlString(key)
@@ -236,7 +247,8 @@ public struct CodexThreadMetadataReader: Sendable {
 
     private static func multilineQuote(
         afterScanning line: String,
-        startingWith multilineQuote: TOMLMultilineQuote?)
+        startingWith multilineQuote: TOMLMultilineQuote?,
+        closingDelimiters: inout [Character])
         -> TOMLMultilineQuote?
     {
         let characters = Array(line)
@@ -251,6 +263,13 @@ public struct CodexThreadMetadataReader: Sendable {
             let character = characters[index]
             switch state {
             case .normal:
+                if character == "[" {
+                    closingDelimiters.append("]")
+                } else if character == "{" {
+                    closingDelimiters.append("}")
+                } else if character == closingDelimiters.last {
+                    closingDelimiters.removeLast()
+                }
                 Self.advanceNormalTOMLState(characters: characters, state: &state, index: &index)
             case .basic:
                 if character == "\\" {

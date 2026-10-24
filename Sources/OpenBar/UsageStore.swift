@@ -1302,9 +1302,9 @@ extension UsageStore {
                 lines.append("Cursor Status Summary:")
                 lines.append("membershipType=\(snapshot.membershipType ?? "nil")")
                 lines.append("accountEmail=\(snapshot.accountEmail ?? "nil")")
-                lines.append("planPercentUsed=\(snapshot.planPercentUsed)%")
-                lines.append("planUsedUSD=$\(snapshot.planUsedUSD)")
-                lines.append("planLimitUSD=$\(snapshot.planLimitUSD)")
+                lines.append("planPercentUsed=\(snapshot.planPercentUsed.map { "\($0)%" } ?? "unavailable")")
+                lines.append("planUsedUSD=\(snapshot.planUsedUSD.map { "$\($0)" } ?? "unavailable")")
+                lines.append("planLimitUSD=\(snapshot.planLimitUSD.map { "$\($0)" } ?? "unavailable")")
                 lines.append("onDemandUsedUSD=$\(snapshot.onDemandUsedUSD)")
                 lines.append("onDemandLimitUSD=\(snapshot.onDemandLimitUSD.map { "$\($0)" } ?? "nil")")
                 if let teamUsed = snapshot.teamOnDemandUsedUSD {
