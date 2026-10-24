@@ -89,12 +89,9 @@ struct ManusPluginTests {
                 #expect(request.httpBody == Data("{}".utf8))
                 return try CookiePluginFixtures.response(request, body: body)
             })
-        let usage = try await runtime.fetchUsage(cookieResolver: { _, _ in "Session_ID = fixture" })
-        #expect(usage.primary?.usedPercent == 70)
-        #expect(usage.primary?.resetDescription == "Total 1,200 • Free 0")
-        #expect(usage.secondary?.usedPercent == 100)
-        #expect(usage.secondary?.resetsAt == Date(timeIntervalSinceReferenceDate: 0))
-        #expect(usage.secondary?.resetDescription == "Daily Refresh: 0 / 100")
+        await CookiePluginFixtures.expectFailure(.parseFailure) {
+            try await runtime.fetchUsage(cookieResolver: { _, _ in "Session_ID = fixture" })
+        }
     }
 
     private actor SessionQueue {

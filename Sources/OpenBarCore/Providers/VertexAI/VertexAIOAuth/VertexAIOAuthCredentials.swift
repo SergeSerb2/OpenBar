@@ -90,22 +90,17 @@ public enum VertexAIOAuthCredentialsStore {
     }
 
     private static func projectFilePath(
-        environment: [String: String] = ProcessInfo.processInfo.environment) -> URL
+        environment: [String: String] = ProcessInfo.processInfo.environment) -> URL?
     {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        if let configDir = environment["CLOUDSDK_CONFIG"]?.trimmingCharacters(
-            in: .whitespacesAndNewlines),
-            !configDir.isEmpty
-        {
-            return URL(fileURLWithPath: configDir)
-                .appendingPathComponent("configurations")
-                .appendingPathComponent("config_default")
-        }
-        return home
-            .appendingPathComponent(".config")
-            .appendingPathComponent("gcloud")
-            .appendingPathComponent("configurations")
-            .appendingPathComponent("config_default")
+        let configuredRoot = environment["CLOUDSDK_CONFIG"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let root = configuredRoot.flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0) }
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config/gcloud")
+        let explicitName = environment["CLOUDSDK_ACTIVE_CONFIG_NAME"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let activeName = try? String(contentsOf: root.appendingPathComponent("active_config"), encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = [explicitName, activeName].compactMap(\.self).first { !$0.isEmpty } ?? "default"
+        guard name.range(of: #"^[A-Za-z0-9_-]+$"#, options: .regularExpression) != nil else { return nil }
+        return root.appendingPathComponent("configurations").appendingPathComponent("config_\(name)")
     }
 
     public static func hasCredentials(
@@ -274,8 +269,9 @@ public enum VertexAIOAuthCredentialsStore {
     }
 
     private static func loadProjectId(environment: [String: String]) -> String? {
-        let configPath = self.projectFilePath(environment: environment)
-        guard let content = try? String(contentsOf: configPath, encoding: .utf8) else {
+        guard let configPath = self.projectFilePath(environment: environment),
+              let content = try? String(contentsOf: configPath, encoding: .utf8)
+        else {
             return environment["GOOGLE_CLOUD_PROJECT"]
                 ?? environment["GCLOUD_PROJECT"]
                 ?? environment["CLOUDSDK_CORE_PROJECT"]

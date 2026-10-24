@@ -61,7 +61,7 @@ public struct MiniMaxUsageFetcher: Sendable {
                         throw error
                     }
                     Self.log.debug(
-                        "MiniMax remains API enrichment failed after HTML fallback: \(error.localizedDescription)")
+                        "MiniMax remains API enrichment failed after HTML fallback")
                 }
             }
             let snapshot = try await self.attachingSubscriptionMetadataIfAvailable(
@@ -204,8 +204,7 @@ public struct MiniMaxUsageFetcher: Sendable {
         }
 
         guard response.statusCode == 200 else {
-            let body = String(data: response.data, encoding: .utf8) ?? ""
-            Self.log.error("MiniMax returned \(response.statusCode): \(body)")
+            Self.log.error("MiniMax returned \(response.statusCode)")
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw MiniMaxUsageError.invalidCredentials
             }
@@ -222,7 +221,7 @@ public struct MiniMaxUsageFetcher: Sendable {
         } catch let error as MiniMaxUsageError {
             throw error
         } catch {
-            throw MiniMaxUsageError.parseFailed(error.localizedDescription)
+            throw MiniMaxUsageError.parseFailed("Invalid remains response.")
         }
         if let services = snapshot.services, !services.isEmpty {
             Self.log.debug("MiniMax multi-service response detected: \(services.count) services")
@@ -354,15 +353,15 @@ public struct MiniMaxUsageFetcher: Sendable {
         return try MiniMaxUsageParser.parse(html: html, now: now)
     }
 
-    private static func normalizedTransportError(_ error: Error) -> Error {
+    static func normalizedTransportError(_ error: Error) -> Error {
+        if error is CancellationError { return CancellationError() }
         let original = error as NSError
-        guard original.domain == NSURLErrorDomain, original.code != NSURLErrorCancelled else { return error }
-        // Keep transport identity for cache/retry policy and MiniMax text for diagnostic classification.
-        var userInfo = original.userInfo
-        let description = original.code == NSURLErrorBadServerResponse ? "Invalid response" : original
-            .localizedDescription
-        userInfo[NSLocalizedDescriptionKey] = MiniMaxUsageError.networkError(description).localizedDescription
-        return NSError(domain: original.domain, code: original.code, userInfo: userInfo)
+        // Keep retry/cancellation identity, but never propagate request URLs, headers or server text.
+        let description = original.code == NSURLErrorBadServerResponse ? "Invalid response" : "Request failed"
+        return NSError(
+            domain: original.domain,
+            code: original.code,
+            userInfo: [NSLocalizedDescriptionKey: MiniMaxUsageError.networkError(description).localizedDescription])
     }
 
     private static func shouldRethrowAfterHTMLFallback(_ error: Error) -> Bool {
@@ -393,10 +392,10 @@ public struct MiniMaxUsageFetcher: Sendable {
             if case .invalidCredentials = error, context.authorizationToken != nil {
                 throw error
             }
-            Self.log.debug("MiniMax billing history unavailable: \(error.localizedDescription)")
+            Self.log.debug("MiniMax billing history unavailable")
             return snapshot
         } catch {
-            Self.log.debug("MiniMax billing history unavailable: \(error.localizedDescription)")
+            Self.log.debug("MiniMax billing history unavailable")
             return snapshot
         }
     }
@@ -414,8 +413,7 @@ public struct MiniMaxUsageFetcher: Sendable {
                 limit: Self.billingHistoryLimit)
             let response = try await self.billingHistoryResponse(url: url, context: context)
             guard response.statusCode == 200 else {
-                let body = String(data: response.data, encoding: .utf8) ?? ""
-                Self.log.debug("MiniMax billing history returned \(response.statusCode): \(body)")
+                Self.log.debug("MiniMax billing history returned \(response.statusCode)")
                 if response.statusCode == 401 || response.statusCode == 403 {
                     throw MiniMaxUsageError.invalidCredentials
                 }
@@ -424,8 +422,7 @@ public struct MiniMaxUsageFetcher: Sendable {
 
             let payload = try MiniMaxBillingHistoryParser.decodePayload(data: response.data)
             if let status = payload.baseResp?.statusCode, status != 0 {
-                let message = payload.baseResp?.statusMessage ?? "status_code \(status)"
-                throw MiniMaxUsageError.apiError(message)
+                throw MiniMaxUsageError.apiError("status_code \(status)")
             }
             totalCount = payload.totalCount ?? totalCount
             guard !payload.chargeRecords.isEmpty else { break }
@@ -456,7 +453,7 @@ public struct MiniMaxUsageFetcher: Sendable {
         } catch let error as URLError where error.code == .badServerResponse {
             throw MiniMaxUsageError.networkError("Invalid response")
         } catch {
-            throw error
+            throw self.normalizedTransportError(error)
         }
     }
 
@@ -738,7 +735,7 @@ enum MiniMaxUsageParser {
             }
         } catch {
             // Log multi-service parsing failure but continue to single-service parsing
-            MiniMaxUsageFetcher.log.debug("MiniMax multi-service parsing failed: \(error.localizedDescription)")
+            MiniMaxUsageFetcher.log.debug("MiniMax multi-service parsing failed")
         }
 
         let payload = try self.decodePayload(data: data)
@@ -779,10 +776,12 @@ enum MiniMaxUsageParser {
         if let status = baseResponse?.statusCode, status != 0 {
             let message = baseResponse?.statusMessage ?? "status_code \(status)"
             let lower = message.lowercased()
-            if status == 1004 || lower.contains("cookie") || lower.contains("log in") || lower.contains("login") {
+            if status == 1004 || lower.contains("cookie") || lower.contains("log in") || lower.contains("login") ||
+                lower.trimmingCharacters(in: .whitespacesAndNewlines) == "invalid api key"
+            {
                 throw MiniMaxUsageError.invalidCredentials
             }
-            throw MiniMaxUsageError.apiError(message)
+            throw MiniMaxUsageError.apiError("status_code \(status)")
         }
 
         guard !payload.data.modelRemains.isEmpty else {
@@ -836,9 +835,10 @@ enum MiniMaxUsageParser {
         let first = payload.data.modelRemains.first
         let hasPercentQuota = first?.currentIntervalRemainingPercent != nil
         let total = hasPercentQuota && first?.currentIntervalTotalCount == 0 ? nil : first?.currentIntervalTotalCount
+            .flatMap { $0 >= 0 ? $0 : nil }
         let remaining = hasPercentQuota && first?.currentIntervalUsageCount == 0
             ? nil
-            : first?.currentIntervalUsageCount
+            : first?.currentIntervalUsageCount.flatMap { $0 >= 0 ? $0 : nil }
         let usedPercent = self.usedPercent(
             total: total,
             remaining: remaining,
@@ -855,11 +855,7 @@ enum MiniMaxUsageParser {
 
         let planName = self.parsePlanName(data: payload.data)
 
-        let currentPrompts: Int? = if let total, let remaining {
-            max(0, total - remaining)
-        } else {
-            nil
-        }
+        let currentPrompts = self.usedCount(total: total, remaining: remaining)
 
         return MiniMaxUsageSnapshot(
             planName: planName,
@@ -878,10 +874,14 @@ enum MiniMaxUsageParser {
         if let remainingPercent {
             return self.usedPercent(remainingPercent: remainingPercent)
         }
-        guard let total, total > 0, let remaining else { return nil }
-        let used = max(0, total - remaining)
+        guard let total, total > 0, let used = self.usedCount(total: total, remaining: remaining) else { return nil }
         let percent = Double(used) / Double(total) * 100
         return min(100, max(0, percent))
+    }
+
+    private static func usedCount(total: Int?, remaining: Int?) -> Int? {
+        guard let total, total >= 0, let remaining, remaining >= 0, remaining <= total else { return nil }
+        return total - remaining
     }
 
     private static func usedPercent(remainingPercent: Double) -> Double {
@@ -910,7 +910,7 @@ enum MiniMaxUsageParser {
             return end
         }
         guard let remains, remains > 0 else { return nil }
-        let seconds: TimeInterval = remains > 1_000_000 ? TimeInterval(remains) / 1000 : TimeInterval(remains)
+        let seconds = TimeInterval(remains) / 1000
         return now.addingTimeInterval(seconds)
     }
 
@@ -1425,8 +1425,9 @@ enum MiniMaxUsageParser {
             limit = quotaLimit
             usage = Int((percent * Double(quotaLimit) / 100.0).rounded())
         } else {
-            guard let total = input.total, total > 0, let remaining = input.remaining else { return nil }
-            let used = max(0, total - remaining)
+            guard let total = input.total, total > 0,
+                  let used = self.usedCount(total: total, remaining: input.remaining)
+            else { return nil }
             percent = Double(used) / Double(total) * 100.0
             limit = total
             usage = used

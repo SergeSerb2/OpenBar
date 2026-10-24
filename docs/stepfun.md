@@ -75,3 +75,11 @@ authenticated via an Oasis-Token obtained through a username + password login fl
 - `Sources/OpenBar/Providers/StepFun/StepFunProviderImplementation.swift` (settings fields + activation logic)
 - `Sources/OpenBar/Providers/StepFun/StepFunSettingsStore.swift` (SettingsStore extension)
 - `Tests/OpenBarTests/StepFunUsageFetcherTests.swift`
+
+Numeric fields accept numbers and numeric strings. Unsupported present values, nonfinite or negative numbers,
+and remaining rates outside 0–1 fail parsing. A valid zero reset remains the no-reset sentinel for credit plans.
+
+Manual Oasis-Token values use the secret `secretKey` config field. Existing tokens in `region` migrate on the first
+config load, under the config write lock, and the old value is cleared. An existing secret-field token takes
+precedence. Default config dumps redact the token. Plain sync payloads never include it; encrypted secret sync
+includes it only when secret sync is enabled. Tokens from older plaintext StepFun sync payloads are ignored.

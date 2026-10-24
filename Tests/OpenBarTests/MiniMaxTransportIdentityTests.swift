@@ -126,8 +126,8 @@ struct MiniMaxTransportIdentityTests {
             let failure = error as NSError
             #expect(failure.domain == NSURLErrorDomain)
             #expect(failure.code == code.rawValue)
-            #expect(failure.userInfo["synthetic-marker"] as? String == "preserved")
-            #expect(error.localizedDescription == "MiniMax network error: Verbindung fehlgeschlagen")
+            #expect(failure.userInfo["synthetic-marker"] == nil)
+            #expect(error.localizedDescription == "MiniMax network error: Request failed")
             #expect(UsageStore.shouldPreservePriorSnapshot(after: error, hadPriorData: true))
             #expect(!UsageStore.shouldPreservePriorSnapshot(after: error, hadPriorData: false))
             #expect(UsageStore.isStartupConnectivityRetryableError(error))

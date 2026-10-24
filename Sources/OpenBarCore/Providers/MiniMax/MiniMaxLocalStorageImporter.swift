@@ -219,20 +219,10 @@ enum MiniMaxLocalStorageImporter {
         }
 
         if tokens.isEmpty, !entries.isEmpty {
-            let sample = entries.prefix(6).map { "\($0.key) (\($0.value.count) chars)" }
-            logger?("[minimax-storage] Local storage key sample: \(sample.joined(separator: ", "))")
             for entry in entries
                 where entry.key == "user_detail" || entry.key == "persist:root" || entry.key == "access_token"
             {
-                let preview = entry.value.prefix(200)
-                if entry.key == "access_token" {
-                    logger?("[minimax-storage] \(entry.key) preview: \(preview) (raw \(entry.rawValueLength) bytes)")
-                } else {
-                    logger?("[minimax-storage] \(entry.key) preview: \(preview)")
-                }
-                if entry.key == "persist:root" {
-                    self.logPersistRootKeys(entry.value, logger: logger)
-                }
+                logger?("[minimax-storage] \(entry.key): \(entry.value.count) chars, token extraction failed")
             }
         }
 
@@ -271,17 +261,6 @@ enum MiniMaxLocalStorageImporter {
             return []
         }
 
-        let tokenKeySample = mapEntries
-            .filter { entry in
-                entry.key.localizedCaseInsensitiveContains("token") ||
-                    entry.key.localizedCaseInsensitiveContains("auth")
-            }
-            .prefix(8)
-            .map(\.key)
-        if !tokenKeySample.isEmpty {
-            logger?("[minimax-storage] MiniMax session storage token keys: \(tokenKeySample.joined(separator: ", "))")
-        }
-
         var tokens: [String] = []
         var seen = Set<String>()
         for entry in mapEntries {
@@ -293,10 +272,7 @@ enum MiniMaxLocalStorageImporter {
         }
 
         if tokens.isEmpty {
-            let sample = mapEntries.prefix(8).map { entry in
-                "\(entry.key) (\(entry.value.count) chars)"
-            }
-            logger?("[minimax-storage] MiniMax session storage sample: \(sample.joined(separator: ", "))")
+            logger?("[minimax-storage] Session storage entries without tokens: \(mapEntries.count)")
         }
 
         return tokens
@@ -336,13 +312,9 @@ enum MiniMaxLocalStorageImporter {
         }
 
         if tokens.isEmpty {
-            let sample = entries.prefix(8).map { entry in
-                "\(entry.key) (\(entry.value.count) chars)"
-            }
-            if !sample.isEmpty {
-                logger?("[minimax-storage] IndexedDB sample: \(sample.joined(separator: ", "))")
-            }
+            logger?("[minimax-storage] IndexedDB entries without tokens: \(entries.count)")
         }
+
         return tokens
     }
 
@@ -463,31 +435,6 @@ enum MiniMaxLocalStorageImporter {
             return trimmed.count >= 60
         }
         return trimmed.count >= 60 && trimmed.range(of: #"^[A-Za-z0-9._\-+=/]+$"#, options: .regularExpression) != nil
-    }
-
-    private static func logPersistRootKeys(_ value: String, logger: ((String) -> Void)?) {
-        guard let data = value.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data, options: []),
-              let root = json as? [String: Any]
-        else { return }
-
-        let rootKeys = root.keys.sorted()
-        if !rootKeys.isEmpty {
-            let sample = rootKeys.prefix(10).joined(separator: ", ")
-            logger?("[minimax-storage] persist:root keys: \(sample)")
-        }
-
-        if let authString = root["auth"] as? String,
-           let authData = authString.data(using: .utf8),
-           let authJSON = try? JSONSerialization.jsonObject(with: authData, options: []),
-           let auth = authJSON as? [String: Any]
-        {
-            let authKeys = auth.keys.sorted()
-            if !authKeys.isEmpty {
-                let sample = authKeys.prefix(10).joined(separator: ", ")
-                logger?("[minimax-storage] persist:root auth keys: \(sample)")
-            }
-        }
     }
 
     private static func matchJWTs(in value: String) -> [String]? {

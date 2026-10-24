@@ -26,13 +26,30 @@ enum CookiePluginFixtures {
             }
             throw error
         }
+        let root = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let fields = (root["data"] ?? root["result"] ?? root["response"] ?? root["availableCredits"] ?? root)
+            as? [String: Any] ?? [:]
+        let measured = { (key: String) in fields[key] != nil && !(fields[key] is NSNull) }
         for engine in BundledPluginTestSupport.engines {
             let usage = try await self.runtime("manus", data: data, engine: engine)
                 .fetchUsage(now: now, cookieResolver: { _, _ in "session_id=fixture" })
             let expected = reference.toUsageSnapshot(now: now)
-            #expect(usage.primary == expected.primary)
-            #expect(usage.secondary == expected.secondary)
-            #expect(usage.identity?.loginMethod == expected.identity?.loginMethod)
+            let primary = expected.primary.flatMap { window -> RateWindow? in
+                guard measured("periodicCredits") else { return nil }
+                let parts = window.resetDescription?.components(separatedBy: " • ") ?? []
+                let description = [
+                    measured("totalCredits") ? parts.first : nil,
+                    measured("freeCredits") ? parts.last : nil,
+                ].compactMap(\.self).joined(separator: " • ")
+                return RateWindow(
+                    usedPercent: window.usedPercent,
+                    windowMinutes: window.windowMinutes,
+                    resetsAt: window.resetsAt,
+                    resetDescription: description.isEmpty ? nil : description)
+            }
+            #expect(usage.primary == primary)
+            #expect(usage.secondary == (measured("refreshCredits") ? expected.secondary : nil))
+            #expect(usage.identity?.loginMethod == (measured("totalCredits") ? expected.identity?.loginMethod : nil))
         }
         return reference
     }
@@ -43,8 +60,10 @@ enum CookiePluginFixtures {
             let usage = try await self.runtime("t3chat", data: Data(text.utf8), engine: engine)
                 .fetchUsage(now: now, cookieResolver: { _, _ in "session=fixture" })
             let expected = reference.toUsageSnapshot()
-            #expect(usage.primary == expected.primary)
-            #expect(usage.secondary == expected.secondary)
+            #expect(usage.primary == (reference.customerData.usageFourHourPercentage == nil ? nil : expected.primary))
+            #expect(usage.secondary == (
+                (reference.customerData.usageMonthPercentage ?? reference.customerData.usagePeriodPercentage) == nil
+                    ? nil : expected.secondary))
             #expect(usage.identity?.loginMethod == expected.identity?.loginMethod)
         }
         return reference

@@ -170,8 +170,7 @@ enum MiniMaxBillingHistoryParser {
     {
         let payload = try self.decodePayload(data: data)
         if let status = payload.baseResp?.statusCode, status != 0 {
-            let message = payload.baseResp?.statusMessage ?? "status_code \(status)"
-            throw MiniMaxUsageError.apiError(message)
+            throw MiniMaxUsageError.apiError("status_code \(status)")
         }
         guard !payload.chargeRecords.isEmpty || (payload.totalCount ?? 0) == 0 else {
             throw MiniMaxUsageError.parseFailed("Missing MiniMax billing records.")

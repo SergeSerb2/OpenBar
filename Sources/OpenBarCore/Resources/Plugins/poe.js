@@ -60,10 +60,17 @@ defineProvider({
 
     const balance = optionalNumber(payload.current_point_balance, "current_point_balance");
     const entries = [];
+    let historyComplete = false;
     try {
       let cursor = null;
+      const cursors = new Set();
+      const queryIDs = new Set();
       const cutoff = ctx.date.nowMillis() - 30 * 86400000;
       for (let page = 0; page < 5; page += 1) {
+        if (cursor) {
+          if (cursors.has(cursor)) break;
+          cursors.add(cursor);
+        }
         const query = cursor ? `?limit=100&starting_after=${encodeURIComponent(cursor)}` : "?limit=100";
         const response = await ctx.http.getJSON(`https://api.poe.com/usage/points_history${query}`);
         if (response.status < 200 || response.status >= 300) throw new Error(`HTTP ${response.status}`);
@@ -78,6 +85,10 @@ defineProvider({
               : [];
         for (const row of rows) {
           if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+          const queryID =
+            typeof row.query_id === "string" || typeof row.query_id === "number" ? String(row.query_id).trim() : null;
+          if (queryID && queryIDs.has(queryID)) continue;
+          if (queryID) queryIDs.add(queryID);
           const date = entryDate(row.creation_time ?? row.timestamp ?? row.created_at);
           if (!date || date.getTime() < cutoff) continue;
           const points = Math.max(0, optionalNumber(row.cost_points ?? row.points ?? row.point_cost, "points") ?? 0);
@@ -87,13 +98,20 @@ defineProvider({
             typeof row.usage_type === "string" && row.usage_type.trim() ? row.usage_type.trim() : "unknown";
           entries.push({ date, points, cost, model, usageType });
         }
+        if (root.has_more === false) {
+          historyComplete = true;
+          break;
+        }
         const next = typeof root.next_cursor === "string" && root.next_cursor.trim() ? root.next_cursor.trim() : null;
         cursor =
           next ||
           (root.has_more === true && rows.length && typeof rows[rows.length - 1].query_id === "string"
             ? rows[rows.length - 1].query_id.trim()
             : null);
-        if (!cursor) break;
+        if (!cursor) {
+          historyComplete = root.has_more !== true;
+          break;
+        }
         const lastDate = rows.length
           ? entryDate(
               rows[rows.length - 1].creation_time ??
@@ -101,7 +119,10 @@ defineProvider({
                 rows[rows.length - 1].created_at,
             )
           : null;
-        if (lastDate && lastDate.getTime() < cutoff) break;
+        if (lastDate && lastDate.getTime() < cutoff) {
+          historyComplete = true;
+          break;
+        }
       }
     } catch {}
 
@@ -137,9 +158,10 @@ defineProvider({
     const rows = [];
     if (balance !== null) rows.push({ label: "Current balance", value: `${compact(balance)} points` });
     if (entries.length) {
-      rows.push(summaryRow("Today", today));
-      rows.push(summaryRow("Last 7 days", seven));
-      rows.push(summaryRow("Last 30 days", thirty));
+      const coverage = historyComplete ? "" : " (partial)";
+      rows.push(summaryRow(`Today${coverage}`, today));
+      rows.push(summaryRow(`Last 7 days${coverage}`, seven));
+      rows.push(summaryRow(`Last 30 days${coverage}`, thirty));
       if (topModel)
         rows.push({ label: "Top model", value: topModel[0], secondaryValue: `${compact(topModel[1])} points` });
       if (topTypes.length) {
@@ -163,11 +185,12 @@ defineProvider({
           });
         });
     }
+    if (!historyComplete) rows.push({ label: "History", value: "Incomplete" });
     const section = { title: "Points", rows };
     if (days.length) {
       section.chart = {
         kind: "bars",
-        title: "Daily points",
+        title: historyComplete ? "Daily points" : "Daily points (partial)",
         unit: "points",
         points: days.map((item) => ({ label: item[0], value: item[1] })),
       };

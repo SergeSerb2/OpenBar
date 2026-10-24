@@ -72,9 +72,15 @@ defineProvider({
       throw ctx.fail.parseFailure("Manus response missing expected credits fields");
     }
     const number = (key) => {
-      const value = typeof data[key] === "number" || typeof data[key] === "string" ? Number(data[key]) : 0;
-      return Number.isFinite(value) ? value : 0;
+      const raw = data[key];
+      if (raw === null || raw === undefined) return undefined;
+      const value = typeof raw === "number" || (typeof raw === "string" && raw.trim()) ? Number(raw) : NaN;
+      if (!Number.isFinite(value)) throw ctx.fail.parseFailure(`Manus ${key} must be a finite number`);
+      return value;
     };
+    if (!creditKeys.map(number).some((value) => value !== undefined)) {
+      throw ctx.fail.parseFailure("Manus response has no credit measurements");
+    }
     // Legacy numeric reset dates use Foundation’s 2001 reference epoch.
     const reset = data.nextRefreshTime;
     const resetDate =
@@ -92,15 +98,23 @@ defineProvider({
     const format = (value) =>
       ctx.format.number(Math.sign(value) * Math.round(Math.abs(value)), { maximumFractionDigits: 0 });
     return {
+      empty:
+        total === undefined && !(monthly > 0 && periodic !== undefined) && !(maxRefresh > 0 && refresh !== undefined),
       primary:
-        monthly > 0
+        monthly > 0 && periodic !== undefined
           ? {
               usedPercent: ctx.pct(monthly - periodic, monthly),
-              resetDescription: `Total ${format(total)} • Free ${format(free)}`,
+              resetDescription:
+                [
+                  total === undefined ? null : `Total ${format(total)}`,
+                  free === undefined ? null : `Free ${format(free)}`,
+                ]
+                  .filter(Boolean)
+                  .join(" • ") || undefined,
             }
           : undefined,
       secondary:
-        maxRefresh > 0
+        maxRefresh > 0 && refresh !== undefined
           ? {
               usedPercent: ctx.pct(maxRefresh - refresh, maxRefresh),
               resetsAt: resetDate,
@@ -110,7 +124,7 @@ defineProvider({
                   : `${format(refresh)} / ${format(maxRefresh)}`,
             }
           : undefined,
-      identity: { loginMethod: `Balance: ${format(total)} credits` },
+      identity: { loginMethod: total === undefined ? undefined : `Balance: ${format(total)} credits` },
     };
   },
 });

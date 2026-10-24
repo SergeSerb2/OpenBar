@@ -162,3 +162,6 @@ components.
 - **"Notion workspace discovery is too large"** — set **Workspace ID** to the UUID of the Business or
   Enterprise workspace to monitor. You can find it in the `spaceId` body field of the
   `getCreditRateLimitStatus` request described in the Manual setup instructions.
+
+If a pinned workspace is absent from the selected account, refresh fails with an actionable workspace error.
+Automatic workspace selection applies only when Workspace ID is empty.

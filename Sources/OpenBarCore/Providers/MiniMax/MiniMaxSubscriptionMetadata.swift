@@ -31,7 +31,12 @@ enum MiniMaxSubscriptionMetadataFetcher {
         request.setValue(region.baseURLString, forHTTPHeaderField: "origin")
         request.setValue(region.baseURLString + "/", forHTTPHeaderField: "referer")
 
-        let response = try await transport.response(for: request)
+        let response: ProviderHTTPResponse
+        do {
+            response = try await transport.response(for: request)
+        } catch {
+            throw MiniMaxUsageFetcher.normalizedTransportError(error)
+        }
         guard response.statusCode == 200 else {
             if response.statusCode == 401 || response.statusCode == 403 { throw MiniMaxUsageError.invalidCredentials }
             throw MiniMaxUsageError.apiError("HTTP \(response.statusCode)")
@@ -94,7 +99,7 @@ enum MiniMaxSubscriptionMetadataFetcher {
         if status == 1004 || message.lowercased().contains("cookie") {
             throw MiniMaxUsageError.invalidCredentials
         }
-        throw MiniMaxUsageError.apiError(message)
+        throw MiniMaxUsageError.apiError("status_code \(status)")
     }
 
     private static func findPlanName(in object: Any) -> String? {
@@ -253,7 +258,7 @@ extension MiniMaxUsageFetcher {
         } catch let error as URLError where error.code == .cancelled {
             throw CancellationError()
         } catch {
-            Self.log.debug("MiniMax subscription metadata unavailable: \(error.localizedDescription)")
+            Self.log.debug("MiniMax subscription metadata unavailable")
             return snapshot
         }
     }
