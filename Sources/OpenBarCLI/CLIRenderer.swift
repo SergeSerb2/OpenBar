@@ -147,22 +147,22 @@ enum CLIRenderer {
 
     static func colorizeCardPercent(_ text: String, remainingPercent: Double, useColor: Bool) -> String {
         guard useColor else { return text }
-        let code = switch remainingPercent {
-        case ..<10: "31"
-        case ..<50: "33"
-        default: "36"
-        }
-        return self.ansi(code, text)
+        return self.ansi(self.basicToneCode(remainingPercent: remainingPercent), text)
     }
 
     static func colorizeCardUsedPercent(_ text: String, usedPercent: Double, useColor: Bool) -> String {
         guard useColor else { return text }
-        let code = switch usedPercent {
-        case 90...: "31"
-        case 60...: "33"
-        default: "36"
+        return self.ansi(self.basicToneCode(remainingPercent: 100 - usedPercent), text)
+    }
+
+    /// 16-color code for a quota tone, using the shared thresholds (`OpenBarQuotaTone`, docs/design/README.md
+    /// §2.2): red when critical, yellow when low, and cyan (the nearest basic color to the `ok` tone) otherwise.
+    private static func basicToneCode(remainingPercent: Double) -> String {
+        switch OpenBarQuotaTone.resolve(remainingPercent: remainingPercent, isStale: false) {
+        case .critical: "31"
+        case .warning: "33"
+        case .normal, .stale: "36"
         }
-        return self.ansi(code, text)
     }
 
     static func cardUsedBar(usedPercent: Double, width: Int, useColor: Bool) -> String {
@@ -194,15 +194,24 @@ enum CLIRenderer {
         return "\u{001B}[48;2;\(r);\(g);\(b)m\(text)\u{001B}[0m"
     }
 
+    /// Meter gradient from the deep (light-appearance) to the bright (dark-appearance) value of a token:
+    /// the `critical` and `warning` tones at the shared thresholds, Iris otherwise.
     static func remainingGradientRGB(remainingPercent: Double) -> (dark: (Int, Int, Int), light: (Int, Int, Int)) {
-        switch remainingPercent {
-        case ..<10:
-            ((180, 55, 55), (255, 95, 95))
-        case ..<50:
-            ((200, 120, 40), (255, 190, 90))
-        default:
-            ((40, 150, 140), (90, 220, 200))
+        let token = switch OpenBarQuotaTone.resolve(remainingPercent: remainingPercent, isStale: false) {
+        case .critical: OpenBarPalette.critical
+        case .warning: OpenBarPalette.warning
+        case .normal, .stale: OpenBarPalette.accent
         }
+        return (self.rgb(token.light), self.rgb(token.dark))
+    }
+
+    private static func rgb(_ value: OpenBarColorValue) -> (Int, Int, Int) {
+        (Int((value.red * 255).rounded()), Int((value.green * 255).rounded()), Int((value.blue * 255).rounded()))
+    }
+
+    private static func ansiTrueColor(_ value: OpenBarColorValue, _ text: String) -> String {
+        let rgb = self.rgb(value)
+        return self.ansiTrueColor(red: rgb.0, green: rgb.1, blue: rgb.2, text)
     }
 
     static func gradientRemainingTrackBar(remainingPercent: Double, width: Int) -> String {
@@ -223,7 +232,7 @@ enum CLIRenderer {
             }
         }
         if empty > 0 {
-            let emptyCell = self.ansiTrueColorBackground(red: 17, green: 30, blue: 50, " ")
+            let emptyCell = self.ansiTrueColorBackground(red: 36, green: 34, blue: 58, " ")
             bar += String(repeating: emptyCell, count: empty)
         }
         return bar
@@ -254,7 +263,7 @@ enum CLIRenderer {
     }
 
     static func colorizeEnhancedAccentBold(_ text: String) -> String {
-        self.ansiTrueColor(red: 198, green: 146, blue: 255, text)
+        self.ansiTrueColor(OpenBarPalette.accent.dark, text)
     }
 
     static func colorizeEnhancedSubtle(_ text: String) -> String {
@@ -266,7 +275,9 @@ enum CLIRenderer {
     }
 
     static func colorizeEnhancedBadge(_ source: String) -> String {
-        "\u{001B}[38;2;245;248;255;48;2;66;133;244m \(source) \u{001B}[0m"
+        // White on Iris (`accentFill`, dark appearance).
+        let fill = self.rgb(OpenBarPalette.accentFill.dark)
+        return "\u{001B}[38;2;245;248;255;48;2;\(fill.0);\(fill.1);\(fill.2)m \(source) \u{001B}[0m"
     }
 
     static func colorizeEnhancedPlanLabel(_ text: String) -> String {
@@ -274,7 +285,7 @@ enum CLIRenderer {
     }
 
     static func colorizeEnhancedPlanValue(_ text: String) -> String {
-        self.ansiTrueColor(red: 238, green: 184, blue: 92, text)
+        self.ansiTrueColor(OpenBarPalette.accent.darkHighContrast, text)
     }
 
     static func colorizeEnhancedRemainingPercent(_ text: String, remainingPercent: Double) -> String {
@@ -295,7 +306,7 @@ enum CLIRenderer {
     }
 
     static func colorizeEnhancedGood(_ text: String) -> String {
-        self.ansiTrueColor(red: 116, green: 220, blue: 195, text)
+        self.ansiTrueColor(OpenBarPalette.ok.dark, text)
     }
 
     static func colorizeReadable(_ text: String) -> String {
@@ -1047,15 +1058,7 @@ enum CLIRenderer {
     private static func colorizeUsage(_ text: String, remainingPercent: Double, useColor: Bool) -> String {
         guard useColor else { return text }
 
-        let code = switch remainingPercent {
-        case ..<10:
-            "31" // red
-        case ..<25:
-            "33" // yellow
-        default:
-            "32" // green
-        }
-        return self.ansi(code, text)
+        return self.ansi(self.basicToneCode(remainingPercent: remainingPercent), text)
     }
 
     private static func colorize(
@@ -1066,7 +1069,7 @@ enum CLIRenderer {
     {
         guard useColor else { return text }
         let code = switch indicator {
-        case .none: "32" // green
+        case .none: "36" // cyan, the nearest basic color to the `ok` tone
         case .minor: "33" // yellow
         case .major, .critical: "31" // red
         case .maintenance: "34" // blue

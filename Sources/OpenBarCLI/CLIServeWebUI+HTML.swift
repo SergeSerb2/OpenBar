@@ -13,28 +13,34 @@ extension CLIServeWebUI {
       <style>
         :root {
           color-scheme: light dark;
-          --page: #f3f4f1;
+          --page: #f7f7f8;
           --surface: #ffffff;
-          --surface-muted: #f7f8f5;
-          --text: #1d211f;
-          --muted: #66706a;
-          --line: #dfe3de;
-          --shadow: 0 10px 30px rgb(27 35 30 / 8%);
-          --ok: #198754;
-          --warning: #b76e00;
-          --critical: #c63d3d;
-          --unknown: #7a827d;
+          --surface-muted: #f2f2f5;
+          --text: #1d1d1f;
+          --muted: #6e6e73;
+          --line: #e3e3e8;
+          --shadow: none;
+          --brand: #5246e0;
+          --ok: #07729a;
+          --warning: #946200;
+          --critical: #b4123f;
+          --unknown: #8a8a8e;
         }
 
         @media (prefers-color-scheme: dark) {
           :root {
-            --page: #121513;
-            --surface: #1b1f1c;
-            --surface-muted: #161a17;
-            --text: #eef2ee;
-            --muted: #9ca69f;
-            --line: #303630;
-            --shadow: 0 14px 38px rgb(0 0 0 / 24%);
+            --page: #0b0b10;
+            --surface: #16161c;
+            --surface-muted: #1e1e25;
+            --text: #f2f2f7;
+            --muted: #a1a1aa;
+            --line: #2c2c33;
+            --shadow: none;
+            --brand: #a39eff;
+            --ok: #2ec0ea;
+            --warning: #ffc533;
+            --critical: #ff6378;
+            --unknown: #98989d;
           }
         }
 
@@ -47,7 +53,7 @@ extension CLIServeWebUI {
           min-width: 280px;
           min-height: 100vh;
           background:
-            linear-gradient(135deg, color-mix(in srgb, var(--page), #49a3b0 4%), var(--page) 42%);
+            linear-gradient(135deg, color-mix(in srgb, var(--page), var(--brand) 4%), var(--page) 42%);
           color: var(--text);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           font-size: 14px;
@@ -86,23 +92,10 @@ extension CLIServeWebUI {
         }
 
         .mark {
-          width: 27px;
-          height: 27px;
-          border: 2px solid currentColor;
-          border-radius: 8px 8px 8px 3px;
-          position: relative;
-          box-shadow: inset 0 -5px 0 color-mix(in srgb, currentColor, transparent 86%);
-        }
-
-        .mark::after {
-          content: "";
-          position: absolute;
-          right: 4px;
-          bottom: 4px;
-          width: 6px;
-          height: 6px;
-          border-radius: 2px;
-          background: #49a3b0;
+          flex: none;
+          width: 28px;
+          height: 28px;
+          display: block;
         }
 
         h1 {
@@ -169,7 +162,7 @@ extension CLIServeWebUI {
         button:focus-visible,
         input:focus-visible,
         select:focus-visible {
-          outline: 2px solid #49a3b0;
+          outline: 2px solid var(--brand);
           outline-offset: 2px;
         }
 
@@ -236,7 +229,7 @@ extension CLIServeWebUI {
         }
 
         .card {
-          --accent: #49a3b0;
+          --accent: var(--brand);
           position: relative;
           overflow: hidden;
           padding: 17px;
@@ -583,7 +576,12 @@ extension CLIServeWebUI {
       <main class="shell">
         <header class="topbar">
           <div class="brand">
-            <span class="mark" aria-hidden="true"></span>
+            <svg class="mark" viewBox="0 0 1024 1024" aria-hidden="true">
+              <rect width="1024" height="1024" rx="229" fill="#5246E0"/>
+              <path d="M 761.0 501.2 A 262 262 0 1 1 522.8 263.0" fill="none" stroke="#FFFFFF"
+                stroke-width="128" stroke-linecap="round"/>
+              <circle cx="685.3" cy="338.7" r="64" fill="#FFFFFF"/>
+            </svg>
             <h1>OpenBar</h1>
             <span id="version" class="version"></span>
           </div>
@@ -803,7 +801,7 @@ extension CLIServeWebUI {
         }
 
         function accentColor(value) {
-          return /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#49A3B0";
+          return /^#[0-9a-f]{6}$/i.test(value || "") ? value : "#5246E0";
         }
 
         function metric(label, value) {
