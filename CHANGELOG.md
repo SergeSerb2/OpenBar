@@ -17,7 +17,7 @@ Entries from 0.80.1 down are CodexBar's upstream history and keep their original
 - Release the decoded Codex scan baseline after 90 seconds idle, keep the Claude fragment cache within 32 MiB, and
   return freed allocator pages after scans.
 - Release Settings, Workspaces, OpenAI Live Usage, Share Stats, and closed chart submenu content when closed; keep only
-  navigation state. Hidden spend-dashboard detail is released after 5 minutes. Menu warmup covers at most three tabs.
+  navigation state. Hidden spend-dashboard detail is released after 1 minute, and freed allocator pages are returned after windows and menus close. Menu warmup covers at most three tabs.
 
 ### Added
 

@@ -1207,7 +1207,7 @@ final class SpendDashboardController {
     private var lastRefreshDateWindowAt: Date?
     private var lastRefreshDateWindowDayStart: Date?
     private static let dashboardSnapshotTTL: TimeInterval = 5 * 60
-    private static let hiddenDetailRetention: Duration = .seconds(5 * 60)
+    private static let hiddenDetailRetention: Duration = .seconds(60)
     @ObservationIgnored private var hiddenDetailReleaseTask: Task<Void, Never>?
     @ObservationIgnored private var loadedInputsAreSummaryOnly = false
     private(set) var dashboardSnapshotLoadedAt: Date?

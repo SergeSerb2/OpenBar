@@ -101,6 +101,8 @@ final class SettingsWindowController: NSWindowController {
         }
         self.didCloseWindow = { [weak store] in
             store?.sharedSpendDashboardControllerStorage?.setDetailsVisible(false)
+            // Hand the closed window's freed allocator pages back to macOS.
+            store?.scheduleMemoryPressureRelief()
         }
     }
 

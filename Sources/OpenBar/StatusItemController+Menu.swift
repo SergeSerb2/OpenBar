@@ -182,6 +182,9 @@ extension StatusItemController {
         DispatchQueue.main.async { [weak self, weak menu] in
             guard let self, let menu else { return }
             self.releaseClosedHostedSubviewContent(in: menu)
+            if self.openMenus.isEmpty {
+                self.store.scheduleMemoryPressureRelief()
+            }
         }
     }
 

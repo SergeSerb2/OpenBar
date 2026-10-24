@@ -130,6 +130,93 @@ enum MemoryScenarioProbe {
         var openMenu: NSMenu? {
             self.controller.openMenus.values.first
         }
+
+        /// Counts what the open menu renders, to attribute its graphics memory.
+        func writeCensus(of menu: NSMenu, label: String) {
+            var census = MenuCensus()
+            let windows = Set(menu.items.compactMap { $0.view?.window })
+            for window in windows {
+                census.windows += 1
+                census.windowPixels += Self.pixels(window.frame.size, scale: window.backingScaleFactor)
+                if let view = window.contentView {
+                    census.visit(view, scale: window.backingScaleFactor)
+                    // Subview layers hang off the root layer, so walk the layer tree once.
+                    if let root = view.layer {
+                        census.visit(root)
+                    }
+                }
+            }
+            census.items = menu.items.count
+            census.customViewItems = menu.items.filter { $0.view != nil }.count
+            let url = self.directory.appendingPathComponent("census-\(label).txt")
+            try? census.report.write(to: url, atomically: true, encoding: .utf8)
+        }
+
+        nonisolated static func pixels(_ size: CGSize, scale: CGFloat) -> Double {
+            Double(size.width * scale) * Double(size.height * scale)
+        }
+    }
+
+    @MainActor
+    struct MenuCensus {
+        var windows = 0
+        var windowPixels = 0.0
+        var items = 0
+        var customViewItems = 0
+        var views = 0
+        var hostingViews = 0
+        var hostingPixels = 0.0
+        var effectViews = 0
+        var effectPixels = 0.0
+        var layers = 0
+        var layersWithContents = 0
+        var contentPixels = 0.0
+        var largestLayers: [(String, Double)] = []
+
+        mutating func visit(_ view: NSView, scale: CGFloat) {
+            self.views += 1
+            let className = String(describing: type(of: view))
+            if className.hasPrefix("NSHostingView") {
+                self.hostingViews += 1
+                self.hostingPixels += Session.pixels(view.bounds.size, scale: scale)
+            }
+            if view is NSVisualEffectView {
+                self.effectViews += 1
+                self.effectPixels += Session.pixels(view.bounds.size, scale: scale)
+            }
+            for subview in view.subviews {
+                self.visit(subview, scale: scale)
+            }
+        }
+
+        mutating func visit(_ layer: CALayer) {
+            self.layers += 1
+            if layer.contents != nil {
+                self.layersWithContents += 1
+                let pixels = Session.pixels(layer.bounds.size, scale: layer.contentsScale)
+                self.contentPixels += pixels
+                self.largestLayers.append(("\(type(of: layer)) \(Int(layer.bounds.width))x\(Int(layer.bounds.height))", pixels))
+            }
+            for sublayer in layer.sublayers ?? [] {
+                self.visit(sublayer)
+            }
+        }
+
+        var report: String {
+            let mb = { (pixels: Double) in String(format: "%.1f MB", pixels * 4 / 1_048_576) }
+            var lines = [
+                "windows=\(self.windows) windowArea=\(mb(self.windowPixels))",
+                "items=\(self.items) customViewItems=\(self.customViewItems) views=\(self.views)",
+                "hostingViews=\(self.hostingViews) hostingArea=\(mb(self.hostingPixels))",
+                "effectViews=\(self.effectViews) effectArea=\(mb(self.effectPixels))",
+                "layers=\(self.layers) layersWithContents=\(self.layersWithContents) contentArea=\(mb(self.contentPixels))",
+                "largest layers with contents:",
+            ]
+            for (name, pixels) in self.largestLayers.sorted(by: { $0.1 > $1.1 }).prefix(15) {
+                lines.append("  \(name) \(mb(pixels))")
+            }
+            return lines.joined(separator: "\n") + "\n"
+        }
     }
 
     @MainActor
@@ -161,6 +248,7 @@ enum MemoryScenarioProbe {
                 let switcher = menu.items.first?.view as? ProviderSwitcherView
                 self.segmentCount = switcher?.segmentCountForProbe ?? 0
                 self.session.record("\(self.label)-open")
+                self.session.writeCensus(of: menu, label: self.label)
                 return
             }
             // Advance one segment per second, then close.
