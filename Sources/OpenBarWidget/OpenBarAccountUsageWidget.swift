@@ -88,7 +88,8 @@ struct OpenBarAccountTimelineProvider: AppIntentTimelineProvider {
             snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot(),
             provider: configuration.provider.provider,
             accountID: configuration.account?.id,
-            now: Date())
+            now: Date(),
+            family: context.family)
     }
 
     func timeline(
@@ -99,7 +100,9 @@ struct OpenBarAccountTimelineProvider: AppIntentTimelineProvider {
             snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot(),
             provider: configuration.provider.provider,
             accountID: configuration.account?.id,
-            now: Date())
+            now: Date(),
+            family: context.family)
+        // The pruned entry keeps the selected account's windows, so the reset schedule is unchanged.
         let refresh = BurnDownRefreshSchedule.nextRefresh(
             snapshot: entry.usageEntry.snapshot,
             provider: entry.usageEntry.provider,
@@ -111,7 +114,8 @@ struct OpenBarAccountTimelineProvider: AppIntentTimelineProvider {
         snapshot: WidgetSnapshot,
         provider: UsageProvider,
         accountID: String?,
-        now: Date) -> OpenBarAccountWidgetEntry
+        now: Date,
+        family: WidgetFamily? = nil) -> OpenBarAccountWidgetEntry
     {
         var selected = snapshot
         if let accountID {
@@ -119,6 +123,15 @@ struct OpenBarAccountTimelineProvider: AppIntentTimelineProvider {
         } else {
             // An unconfigured account widget must not inherit the provider's active account.
             selected.entries = []
+        }
+        if let family {
+            // Keep the selected account (its label) and the provider's entry; drop everything else.
+            selected = WidgetEntryPayload.pruned(
+                selected,
+                provider: provider,
+                dailyPoints: family == .systemLarge ? WidgetTileSize.largeHistoryDays : 0,
+                keepsAccounts: accountID != nil,
+                accountID: accountID ?? "")
         }
         return OpenBarAccountWidgetEntry(
             usageEntry: OpenBarWidgetEntry(date: now, provider: provider, snapshot: selected),
@@ -148,9 +161,10 @@ struct OpenBarAccountUsageWidgetView: View {
                         size: WidgetTileSize(family: self.family))
                     if let label = self.entry.accountLabel {
                         Text(label)
-                            .font(.caption2)
+                            .font(WidgetTheme.Fonts.meta)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                 }
             }
@@ -169,18 +183,17 @@ struct OpenBarAccountUsageWidgetView: View {
         let providerName = ProviderDefaults.metadata[provider]?.displayName ?? provider.rawValue.capitalized
         return VStack(alignment: .leading, spacing: 6) {
             Text(self.entry.accountLabel.map { "\(providerName) · \($0)" } ?? providerName)
-                .font(.body)
-                .fontWeight(.semibold)
+                .font(WidgetTheme.Fonts.cardTitle)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Text(title)
-                .font(.caption)
-                .fontWeight(.semibold)
+                .font(WidgetTheme.Fonts.meta.weight(.semibold))
             Text(message)
-                .font(.caption)
+                .font(WidgetTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .containerBackground(.fill.tertiary, for: .widget)
     }
 }
@@ -190,7 +203,7 @@ struct OpenBarAccountsWidget: Widget {
         AppIntentConfiguration(
             kind: "OpenBarAccountsWidget",
             intent: ProviderSelectionIntent.self,
-            provider: OpenBarTimelineProvider())
+            provider: OpenBarTimelineProvider(payload: .accounts))
         { entry in
             OpenBarAccountsWidgetView(entry: entry)
         }
@@ -250,6 +263,7 @@ struct OpenBarAccountsWidgetView: View {
 }
 
 struct AccountsOverviewTile: View {
+    @Environment(\.widgetPalette) private var palette
     let entry: OpenBarWidgetEntry
     let family: WidgetFamily
 
@@ -269,7 +283,7 @@ struct AccountsOverviewTile: View {
             }
             if overview.overflowCount > 0 {
                 Text(W("+%@ more", String(overview.overflowCount)))
-                    .font(.caption2)
+                    .font(WidgetTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
@@ -281,31 +295,34 @@ struct AccountsOverviewTile: View {
         let remaining = row.quota?.remainingPercent
         let showsUsed = self.entry.snapshot.usageBarsShowUsed
         let displayed = WidgetUsageDisplay.percent(fromRemaining: remaining, showUsed: showsUsed)
+        let tone = QuotaSeverity.tone(remaining: remaining)
         return VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 // The writer owns privacy labels; never recover identity from the saved intent or provider entry.
                 Text(row.account.label)
-                    .font(.caption.weight(.medium))
+                    .font(WidgetTheme.Fonts.meta.weight(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer(minLength: 0)
                 if let quota = row.quota, remaining != nil {
-                    Text(W("%@ %@", W(quota.title), W(
-                        showsUsed ? "%@ used" : "%@ left",
-                        WidgetFormat.percent(displayed))))
-                        .font(.caption2.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(QuotaSeverity.isLow(remaining: remaining) ? Color.red : Color.primary)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
+                    HStack(spacing: 3) {
+                        ToneSymbol(tone: tone, size: 9)
+                        Text(W("%@ %@", W(quota.title), W(
+                            showsUsed ? "%@ used" : "%@ left",
+                            WidgetFormat.percent(displayed))))
+                            .font(WidgetTheme.Fonts.meta.weight(.semibold))
+                            .foregroundStyle(self.palette.text(tone))
+                            .lineLimit(1)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
                 } else {
                     Text(W("Account unavailable"))
-                        .font(.caption2)
+                        .font(WidgetTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
             }
             if self.family == .systemLarge, remaining != nil {
-                QuotaBar(percent: displayed, color: WidgetColors.color(for: self.entry.provider.instanceID), height: 3)
+                QuotaBar(percent: displayed, color: WidgetColors.color(for: self.entry.provider.instanceID), height: 4)
             }
         }
     }

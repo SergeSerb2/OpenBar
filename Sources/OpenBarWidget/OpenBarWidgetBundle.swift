@@ -55,7 +55,7 @@ struct OpenBarHistoryWidget: Widget {
         AppIntentConfiguration(
             kind: self.kind,
             intent: ProviderSelectionIntent.self,
-            provider: OpenBarTimelineProvider())
+            provider: OpenBarTimelineProvider(payload: .history))
         { entry in
             OpenBarHistoryWidgetView(entry: entry)
         }

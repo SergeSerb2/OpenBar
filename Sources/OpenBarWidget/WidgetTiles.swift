@@ -39,7 +39,7 @@ enum WidgetTileSize {
         }
     }
 
-    /// Small tiles list the remaining lanes as figures only: at 127pt of usable height a 7pt bar
+    /// Small tiles list the remaining lanes as figures only: at 131pt of usable height a 7pt bar
     /// costs as much room as the number it duplicates.
     var showsSecondaryBars: Bool {
         self != .small
@@ -53,137 +53,253 @@ enum WidgetTileSize {
     }
 
     var laneSpacing: CGFloat {
-        self == .small ? 5 : WidgetLayout.laneSpacing
+        self == .small ? 3 : WidgetLayout.laneSpacing
     }
+
+    /// Days of history the large tile draws (docs/design/README.md, 9.5).
+    static let largeHistoryDays = 7
 }
 
 // MARK: - Tile
 
-/// Shared body for the usage and switcher widgets across all three families.
+/// Shared body for the usage, switcher, and account widgets across all three families.
 ///
-/// One layout means the two widgets cannot drift apart, and every size difference is a value in
-/// `WidgetTileSize` rather than a separate near-duplicate view.
+/// One layout means the widgets cannot drift apart, and every size difference is a value in
+/// `WidgetTileSize` rather than a separate near-duplicate view. Each family offers a few denser
+/// variants through `ViewThatFits`, so long names, translations, and busy providers drop detail
+/// (reset lines, then lanes, then the chart) instead of clipping.
 struct UsageTile<Header: View>: View {
     @Environment(\.widgetUsageShowsUsed) private var showsUsed
+    @Environment(\.widgetFixedNow) private var fixedNow
     let entry: WidgetSnapshot.ProviderEntry
     let size: WidgetTileSize
+    /// Medium tiles nest the header in the headline column (docs/design/README.md, 9.5). Headers
+    /// that carry their own controls, like the switcher's pager, need the full width instead.
+    var headerSpansColumns: Bool = false
     @ViewBuilder let header: () -> Header
 
     var body: some View {
-        let color = WidgetColors.color(for: self.entry.provider)
-        // The provider's compact row cap curates what a tile may LIST; it must not decide which
-        // lane is binding. Headline and overflow are computed against the full set.
-        let allLanes = WidgetTileLane.lanes(for: self.entry)
-        let displayLanes = self.laneLimit == nil
-            ? allLanes
-            : WidgetTileLane.lanes(for: self.entry, limit: self.laneLimit)
-        let hasChart = self.size.showsChart(
-            laneCount: allLanes.count,
-            hasHistory: !self.entry.dailyUsage.isEmpty)
-        let fallback = allLanes.contains(where: \.isHeadlineCandidate) ? nil : WidgetFallbackHero.make(for: self.entry)
-        let metrics = WidgetMetricRows.rows(
-            for: self.entry,
-            size: self.size,
-            secondaryLaneCount: max(0, allLanes.count - 1),
-            excluding: fallback?.consumedMetricID)
-        let plan = WidgetTilePlan.make(
-            lanes: allLanes,
-            displayCandidates: displayLanes,
-            maxSecondaryLanes: self.size.secondaryLaneCapacity(
-                hasMetrics: !metrics.isEmpty,
-                hasChart: hasChart),
-            reservesOverflowRow: self.size != .large)
+        let content = UsageTileContent(entry: self.entry, size: self.size)
+        Group {
+            switch self.size {
+            case .small: self.small(content)
+            case .medium: self.medium(content)
+            case .large: self.large(content)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
 
-        if self.size == .small {
-            ViewThatFits(in: .vertical) {
-                ForEach([2, 1, 0], id: \.self) { capacity in
-                    self.smallContent(
-                        plan: WidgetTilePlan.make(
-                            lanes: allLanes,
-                            displayCandidates: displayLanes,
-                            maxSecondaryLanes: capacity,
-                            reservesOverflowRow: true),
-                        fallback: fallback,
-                        color: color,
-                        metrics: metrics)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                self.smallContent(
-                    plan: WidgetTilePlan.make(
-                        lanes: allLanes,
-                        displayCandidates: displayLanes,
-                        maxSecondaryLanes: 0,
-                        reservesOverflowRow: true),
-                    fallback: fallback,
-                    color: color,
-                    metrics: [])
-                    .fixedSize(horizontal: false, vertical: true)
+    // MARK: Small
+
+    private func small(_ content: UsageTileContent) -> some View {
+        ViewThatFits(in: .vertical) {
+            ForEach([2, 1, 0], id: \.self) { capacity in
+                self.smallLayout(
+                    content,
+                    plan: content.plan(maxSecondaryLanes: capacity, reservesOverflowRow: true),
+                    metrics: content.metrics)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        } else {
-            VStack(alignment: .leading, spacing: WidgetLayout.sectionSpacing) {
-                self.header()
-                // Medium splits into columns only when there are lanes to fill the right one. A
-                // single-lane provider in two columns leaves a void beside the headline; down one
-                // column it gets the full width for its bar instead.
-                if self.size == .medium, !plan.lanes.isEmpty {
-                    HStack(alignment: .top, spacing: 14) {
-                        self.hero(plan: plan, fallback: fallback, color: color, spreads: !metrics.isEmpty)
-                            .frame(width: 104, alignment: .leading)
-                        VStack(alignment: .leading, spacing: WidgetLayout.laneSpacing) {
-                            self.lanes(plan: plan, color: color)
-                            if !metrics.isEmpty {
-                                Spacer(minLength: 2)
-                                self.metrics(metrics)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    }
-                    .frame(maxHeight: .infinity)
-                } else {
-                    self.hero(plan: plan, fallback: fallback, color: color, spreads: false)
-                    VStack(alignment: .leading, spacing: self.size.laneSpacing) {
-                        self.lanes(plan: plan, color: color)
-                    }
-                    self.metrics(metrics)
-                    if hasChart {
-                        UsageHistoryChart(
-                            points: self.entry.dailyUsage,
-                            color: color,
-                            currencyCode: self.entry.tokenUsage?.currencyCode)
-                            .frame(minHeight: 66, maxHeight: .infinity)
-                    } else {
-                        Spacer(minLength: 0)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            self.smallLayout(
+                content,
+                plan: content.plan(maxSecondaryLanes: 0, reservesOverflowRow: true),
+                metrics: [])
         }
     }
 
-    /// Providers cap how many lanes a compact tile may show; large tiles take everything and page
-    /// the excess behind a "+N more" line.
-    private var laneLimit: Int? {
-        switch self.size {
-        case .small: WidgetUsageRow.smallWidgetRowLimit(for: self.entry)
-        case .medium: WidgetUsageRow.mediumWidgetRowLimit(for: self.entry)
-        case .large: nil
-        }
-    }
-
-    private func smallContent(
+    private func smallLayout(
+        _ content: UsageTileContent,
         plan: WidgetTilePlan,
-        fallback: WidgetFallbackHeroContent?,
-        color: Color,
         metrics: [WidgetMetricRow]) -> some View
     {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             self.header()
-            self.hero(plan: plan, fallback: fallback, color: color, spreads: false)
-            VStack(alignment: .leading, spacing: 3) {
-                self.lanes(plan: plan, color: color)
+            self.hero(content, plan: plan, spreads: true)
+                .padding(.top, 6)
+            if !plan.lanes.isEmpty || plan.overflowCount > 0 || !metrics.isEmpty {
+                VStack(alignment: .leading, spacing: self.size.laneSpacing) {
+                    self.lanes(content, plan: plan, showsResets: false, style: .compact)
+                    self.metricRows(metrics)
+                }
+                .padding(.top, 4)
             }
-            self.metrics(metrics)
+        }
+    }
+
+    // MARK: Medium
+
+    private struct MediumVariant: Hashable {
+        let lanes: Int
+        let showsResets: Bool
+        let metricLimit: Int
+    }
+
+    private func medium(_ content: UsageTileContent) -> some View {
+        let capacity = self.size.secondaryLaneCapacity(hasMetrics: !content.metrics.isEmpty, hasChart: false)
+        var variants: [MediumVariant] = []
+        for lanes in stride(from: capacity, through: 0, by: -1) {
+            variants.append(MediumVariant(lanes: lanes, showsResets: true, metricLimit: content.metrics.count))
+            variants.append(MediumVariant(lanes: lanes, showsResets: false, metricLimit: content.metrics.count))
+        }
+        variants.append(MediumVariant(lanes: 0, showsResets: false, metricLimit: min(1, content.metrics.count)))
+        variants.append(MediumVariant(lanes: 0, showsResets: false, metricLimit: 0))
+        return ViewThatFits(in: .vertical) {
+            ForEach(variants.uniqued(), id: \.self) { variant in
+                self.mediumLayout(
+                    content,
+                    plan: content.plan(maxSecondaryLanes: variant.lanes, reservesOverflowRow: true),
+                    metrics: Array(content.metrics.prefix(variant.metricLimit)),
+                    showsResets: variant.showsResets)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func mediumLayout(
+        _ content: UsageTileContent,
+        plan: WidgetTilePlan,
+        metrics: [WidgetMetricRow],
+        showsResets: Bool) -> some View
+    {
+        // Medium splits into columns only when there is something to fill the right one. A lone
+        // "+N more" line stays under the headline instead.
+        let hasLanes = !plan.lanes.isEmpty
+        if hasLanes || !metrics.isEmpty {
+            VStack(alignment: .leading, spacing: WidgetLayout.sectionSpacing) {
+                if self.headerSpansColumns {
+                    self.header()
+                }
+                HStack(alignment: .top, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if self.headerSpansColumns {
+                            self.hero(content, plan: plan, spreads: true)
+                        } else {
+                            self.header()
+                            Spacer(minLength: 8)
+                            self.hero(content, plan: plan, spreads: false)
+                        }
+                    }
+                    .frame(width: WidgetLayout.heroColumnWidth, alignment: .leading)
+                    .frame(maxHeight: .infinity, alignment: .topLeading)
+
+                    WidgetSeparator(axis: .vertical)
+                        .padding(.horizontal, WidgetLayout.columnGap)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        if hasLanes {
+                            if !metrics.isEmpty {
+                                // Level with the header line, as in the mockup's "Today $4.12".
+                                self.metricRows(metrics)
+                                    .frame(minHeight: self.headerSpansColumns ? 0 : self.size.markSize)
+                                Spacer(minLength: 8)
+                            } else {
+                                Spacer(minLength: 0)
+                            }
+                            VStack(alignment: .leading, spacing: WidgetLayout.laneSpacing) {
+                                self.lanes(content, plan: plan, showsResets: showsResets, style: .regular)
+                            }
+                        } else {
+                            // A single-lane provider: its cost sits level with the reset line.
+                            Spacer(minLength: 0)
+                            self.metricRows(metrics)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                self.header()
+                Spacer(minLength: 8)
+                self.hero(content, plan: plan, spreads: false)
+                if plan.overflowCount > 0 {
+                    self.overflowLine(plan.overflowCount)
+                        .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    // MARK: Large
+
+    private struct LargeVariant: Hashable {
+        let lanes: Int
+        let showsChart: Bool
+    }
+
+    private func large(_ content: UsageTileContent) -> some View {
+        let capacity = self.size.secondaryLaneCapacity(
+            hasMetrics: !content.metrics.isEmpty,
+            hasChart: content.hasChart)
+        let variants = [
+            LargeVariant(lanes: capacity, showsChart: content.hasChart),
+            LargeVariant(lanes: capacity, showsChart: false),
+            LargeVariant(lanes: min(capacity, 2), showsChart: false),
+            LargeVariant(lanes: 0, showsChart: false),
+        ]
+        return ViewThatFits(in: .vertical) {
+            ForEach(variants.uniqued(), id: \.self) { variant in
+                self.largeLayout(
+                    content,
+                    plan: content.plan(maxSecondaryLanes: variant.lanes, reservesOverflowRow: false),
+                    showsChart: variant.showsChart)
+            }
+        }
+    }
+
+    private func largeLayout(
+        _ content: UsageTileContent,
+        plan: WidgetTilePlan,
+        showsChart: Bool) -> some View
+    {
+        VStack(alignment: .leading, spacing: 12) {
+            self.header()
+            self.hero(content, plan: plan, spreads: false, arrangement: .row)
+            if !plan.lanes.isEmpty {
+                self.laneGrid(content, lanes: plan.lanes)
+            }
+            if plan.overflowCount > 0 {
+                self.overflowLine(plan.overflowCount)
+            }
+            // Cost rows and history anchor to the bottom edge, so a sparse provider does not leave
+            // a block of empty tile under them.
+            Spacer(minLength: 0)
+            if !content.metrics.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    WidgetSeparator()
+                    self.metricRows(content.metrics)
+                }
+            }
+            if showsChart {
+                UsageHistoryChart(
+                    points: Array(self.entry.dailyUsage.suffix(WidgetTileSize.largeHistoryDays)),
+                    color: content.color,
+                    currencyCode: self.entry.tokenUsage?.currencyCode,
+                    showsRange: false,
+                    barHeight: WidgetLayout.historyChartHeight)
+            }
+        }
+    }
+
+    /// Two lanes per row: the large tile is wide enough that a single column wastes half of it. A
+    /// single lane takes the full width.
+    private func laneGrid(_ content: UsageTileContent, lanes: [WidgetTileLane]) -> some View {
+        let perRow = lanes.count == 1 ? 1 : 2
+        let rows = stride(from: 0, to: lanes.count, by: perRow).map {
+            Array(lanes[$0..<min($0 + perRow, lanes.count)])
+        }
+        return VStack(alignment: .leading, spacing: WidgetLayout.sectionSpacing) {
+            ForEach(rows, id: \.first?.id) { row in
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(row) { lane in
+                        self.lane(content, lane: lane, showsReset: true, style: .regular)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if row.count < perRow {
+                        Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+                    }
+                }
+            }
         }
     }
 
@@ -191,45 +307,48 @@ struct UsageTile<Header: View>: View {
 
     @ViewBuilder
     private func hero(
+        _ content: UsageTileContent,
         plan: WidgetTilePlan,
-        fallback: WidgetFallbackHeroContent?,
-        color: Color,
-        spreads: Bool) -> some View
+        spreads: Bool,
+        arrangement: HeroBlock.Arrangement = .stacked) -> some View
     {
         if let lane = plan.hero {
             let displayed = WidgetUsageDisplay.percent(
                 fromRemaining: lane.remainingPercent,
-                showUsed: self.showsUsed)
-            let title = WidgetLaneCopy.caption(
-                title: W("%@ %@", W(lane.title), WidgetFormat.percent(displayed)),
                 showUsed: self.showsUsed)
             HeroBlock(
                 value: WidgetFormat.percent(displayed),
                 caption: Text(WidgetLaneCopy.caption(title: lane.title, showUsed: self.showsUsed)),
                 detail: self.resetText(lane),
                 barPercent: displayed ?? 0,
-                isLow: QuotaSeverity.isLow(remaining: lane.remainingPercent),
-                color: color,
+                tone: QuotaSeverity.tone(remaining: lane.remainingPercent),
+                color: content.color,
                 numberSize: self.size.heroNumberSize,
                 spreads: spreads,
-                compact: self.size == .small,
-                inlineQuotaTitle: title)
-        } else if let fallback {
+                arrangement: arrangement,
+                compact: self.size == .small)
+                .accessibilityElement(children: .combine)
+        } else if let fallback = content.fallback {
             HeroBlock(
                 value: fallback.value,
                 caption: WidgetFormat.tokenRowTitle(
                     fallback.caption,
                     summary: fallback.consumedMetricID == "session-cost" ? self.entry.tokenUsage : nil,
-                    entryUpdatedAt: self.entry.updatedAt),
+                    entryUpdatedAt: self.entry.updatedAt,
+                    now: self.fixedNow),
                 detail: fallback.detail.map { Text($0) },
                 numberSize: self.size.heroNumberSize,
+                spreads: spreads,
+                arrangement: arrangement,
                 compact: self.size == .small)
+                .accessibilityElement(children: .combine)
         }
     }
 
     private func resetText(_ lane: WidgetTileLane) -> Text? {
-        switch WidgetLaneCopy.reset(resetsAt: lane.resetsAt, resetDescription: lane.resetDescription) {
-        case let .date(reset): WidgetDateText.reset(reset)
+        let now = self.fixedNow ?? Date()
+        return switch WidgetLaneCopy.reset(resetsAt: lane.resetsAt, resetDescription: lane.resetDescription, now: now) {
+        case let .date(reset): WidgetDateText.reset(reset, now: self.fixedNow)
         case let .text(value): Text(value)
         case nil: nil
         }
@@ -238,44 +357,108 @@ struct UsageTile<Header: View>: View {
     // MARK: Lanes
 
     @ViewBuilder
-    private func lanes(plan: WidgetTilePlan, color: Color) -> some View {
+    private func lanes(
+        _ content: UsageTileContent,
+        plan: WidgetTilePlan,
+        showsResets: Bool,
+        style: QuotaLaneView.Style) -> some View
+    {
         ForEach(plan.lanes) { lane in
-            QuotaLaneView(
-                title: lane.title,
-                percent: WidgetUsageDisplay.percent(
-                    fromRemaining: lane.remainingPercent,
-                    showUsed: self.showsUsed),
-                remainingPercent: lane.remainingPercent,
-                color: color,
-                showsBar: self.size.showsSecondaryBars)
+            self.lane(content, lane: lane, showsReset: showsResets, style: style)
         }
         if plan.overflowCount > 0 {
-            Text(W("+%@ more", String(describing: plan.overflowCount)))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+            self.overflowLine(plan.overflowCount)
         }
+    }
+
+    private func lane(
+        _ content: UsageTileContent,
+        lane: WidgetTileLane,
+        showsReset: Bool,
+        style: QuotaLaneView.Style) -> some View
+    {
+        QuotaLaneView(
+            title: lane.title,
+            percent: WidgetUsageDisplay.percent(fromRemaining: lane.remainingPercent, showUsed: self.showsUsed),
+            remainingPercent: lane.remainingPercent,
+            color: content.color,
+            showsBar: style == .regular && self.size.showsSecondaryBars,
+            reset: showsReset ? self.resetText(lane) : nil,
+            style: style)
+    }
+
+    private func overflowLine(_ count: Int) -> some View {
+        Text(W("+%@ more", String(describing: count)))
+            .font(WidgetTheme.Fonts.caption)
+            .foregroundStyle(.secondary)
     }
 
     // MARK: Cost and credit rows
 
     @ViewBuilder
-    private func metrics(_ lines: [WidgetMetricRow]) -> some View {
+    private func metricRows(_ lines: [WidgetMetricRow]) -> some View {
         if !lines.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                if self.size != .small {
-                    WidgetSeparator().padding(.bottom, 2)
-                }
+            VStack(alignment: .leading, spacing: 3) {
                 ForEach(lines) { line in
                     MetricLine(
                         title: WidgetFormat.tokenRowTitle(
                             line.title,
                             summary: ["session-cost", "last30"].contains(line.id) ? self.entry.tokenUsage : nil,
-                            entryUpdatedAt: self.entry.updatedAt),
+                            entryUpdatedAt: self.entry.updatedAt,
+                            now: self.fixedNow),
                         value: line.value,
                         isProminent: line.isProminent)
                 }
             }
         }
+    }
+}
+
+extension Array where Element: Hashable {
+    /// Order-preserving de-duplication. `ViewThatFits` traps on repeated child identities.
+    fileprivate func uniqued() -> [Element] {
+        var seen = Set<Element>()
+        return self.filter { seen.insert($0).inserted }
+    }
+}
+
+/// What a tile can draw for one entry, computed once per render and shared by every layout variant.
+struct UsageTileContent {
+    let color: Color
+    let allLanes: [WidgetTileLane]
+    let displayLanes: [WidgetTileLane]
+    let hasChart: Bool
+    let fallback: WidgetFallbackHeroContent?
+    let metrics: [WidgetMetricRow]
+
+    init(entry: WidgetSnapshot.ProviderEntry, size: WidgetTileSize) {
+        self.color = WidgetColors.color(for: entry.provider)
+        // The provider's compact row cap curates what a tile may LIST; it must not decide which
+        // lane is binding. Headline and overflow are computed against the full set.
+        let allLanes = WidgetTileLane.lanes(for: entry)
+        let limit: Int? = switch size {
+        case .small: WidgetUsageRow.smallWidgetRowLimit(for: entry)
+        case .medium: WidgetUsageRow.mediumWidgetRowLimit(for: entry)
+        case .large: nil
+        }
+        self.allLanes = allLanes
+        self.displayLanes = limit == nil ? allLanes : WidgetTileLane.lanes(for: entry, limit: limit)
+        self.hasChart = size.showsChart(laneCount: allLanes.count, hasHistory: !entry.dailyUsage.isEmpty)
+        let fallback = allLanes.contains(where: \.isHeadlineCandidate) ? nil : WidgetFallbackHero.make(for: entry)
+        self.fallback = fallback
+        self.metrics = WidgetMetricRows.rows(
+            for: entry,
+            size: size,
+            secondaryLaneCount: max(0, allLanes.count - 1),
+            excluding: fallback?.consumedMetricID)
+    }
+
+    func plan(maxSecondaryLanes: Int, reservesOverflowRow: Bool) -> WidgetTilePlan {
+        WidgetTilePlan.make(
+            lanes: self.allLanes,
+            displayCandidates: self.displayLanes,
+            maxSecondaryLanes: maxSecondaryLanes,
+            reservesOverflowRow: reservesOverflowRow)
     }
 }
 
@@ -333,7 +516,8 @@ enum WidgetMetricRows {
             rows.append(WidgetMetricRow(id: "credits", title: "Credits", value: WidgetFormat.credits(credits)))
         }
         if let token = entry.tokenUsage {
-            rows.append(self.sessionRow(token: token, entry: entry, isProminent: true))
+            // The medium tile's lanes column is ~136 pt wide: money alone fits beside its label there.
+            rows.append(self.sessionRow(token: token, entry: entry, isProminent: true, compact: size == .medium))
             if size == .large {
                 rows.append(WidgetMetricRow(
                     id: "last30",
