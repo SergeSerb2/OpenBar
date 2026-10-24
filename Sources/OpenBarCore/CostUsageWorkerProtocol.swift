@@ -81,6 +81,7 @@ struct CostUsageWorkerRequest: Codable, Sendable {
     var reportContext: CostUsageReportContext?
     var allowScopedCodexHome = false
     var includeProjectAndSessionBreakdowns = true
+    var includeNativeProjection = true
     var requireCompleteHistory = false
     var statusHistoryDays: Int?
     var maximumPasses = 8
@@ -110,23 +111,52 @@ struct CostUsageWorkerPricingJob: Codable, Sendable {
     let cacheRoot: URL?
     var targets: [Target]?
 
+    /// Evaluated in the helper, whose scan already decoded the catalog: the app receives only jobs whose
+    /// refresh gets past the catalog-only checks, so it never decodes the catalog to find nothing to do.
+    var needsRefresh: Bool {
+        guard let targets = self.targets else {
+            return ModelsDevCache.load(now: self.now, cacheRoot: self.cacheRoot).isStale
+        }
+        let groups = Dictionary(grouping: targets, by: \.providerID)
+        for providerID in groups.keys.sorted() {
+            switch ModelsDevPricingPipeline.unknownModelOutcomeWithoutFetching(
+                providerID: providerID,
+                modelIDs: Set(groups[providerID, default: []].map(\.modelID)),
+                now: self.now,
+                cacheRoot: self.cacheRoot)
+            {
+            case .pricingAvailable: return false
+            case .unavailable: continue
+            case nil: return true
+            }
+        }
+        return false
+    }
+
     func start() {
         Task.detached(priority: .utility) {
-            let client = ModelsDevClient()
-            guard let targets = self.targets else {
-                await ModelsDevPricingPipeline.refreshIfNeeded(now: self.now, cacheRoot: self.cacheRoot, client: client)
-                return
-            }
-            let groups = Dictionary(grouping: targets, by: \.providerID)
-            for providerID in groups.keys.sorted() {
-                let outcome = await ModelsDevPricingPipeline.refreshForUnknownModelsIfNeeded(
-                    providerID: providerID,
-                    modelIDs: Set(groups[providerID, default: []].map(\.modelID)),
-                    now: self.now,
-                    cacheRoot: self.cacheRoot,
-                    client: client)
-                if outcome == .pricingAvailable { return }
-            }
+            guard await ModelsDevPricingPipeline.mayStartRefresh(now: self.now, cacheRoot: self.cacheRoot)
+            else { return }
+            await self.refresh()
+            ModelsDevCache.releaseDecodedCatalog(cacheRoot: self.cacheRoot)
+        }
+    }
+
+    private func refresh() async {
+        let client = ModelsDevClient()
+        guard let targets = self.targets else {
+            await ModelsDevPricingPipeline.refreshIfNeeded(now: self.now, cacheRoot: self.cacheRoot, client: client)
+            return
+        }
+        let groups = Dictionary(grouping: targets, by: \.providerID)
+        for providerID in groups.keys.sorted() {
+            let outcome = await ModelsDevPricingPipeline.refreshForUnknownModelsIfNeeded(
+                providerID: providerID,
+                modelIDs: Set(groups[providerID, default: []].map(\.modelID)),
+                now: self.now,
+                cacheRoot: self.cacheRoot,
+                client: client)
+            if outcome == .pricingAvailable { return }
         }
     }
 }

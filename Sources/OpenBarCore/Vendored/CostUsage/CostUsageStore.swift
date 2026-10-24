@@ -122,6 +122,7 @@ actor CostUsageStore {
         parserHash: CodexParserHash.value)
     static let cacheGeneration = "sqlite:\(CostUsageStore.schemaVersion)"
     static let compatiblePredecessorParserHashes: Set<String> = [
+        "3dfae5b17bbb8cdb", // Gating models.dev refresh jobs in the cost helper leaves rows and checkpoints unchanged.
         "54a95e8fe7bd6ee9", // Validating inspection checkpoints leaves persisted rows and scan progress unchanged.
         "455876ace937d42a", // Selected-session detail reads leave current-main native rows and checkpoints unchanged.
         "4feea9e203d85529", // Replacing eager inspection with bounded reads preserves saved rows and checkpoints.

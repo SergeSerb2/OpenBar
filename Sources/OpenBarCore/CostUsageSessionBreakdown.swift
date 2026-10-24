@@ -88,6 +88,21 @@ public struct CostUsageSessionBreakdown: Sendable, Equatable, Identifiable, Coda
         return copy
     }
 
+    /// Re-points decoded copies at shared instances. A plist round trip gives each session its own URLs, but
+    /// the request-detail source repeats the tool-activity source, and one cache database serves every session.
+    func sharingDecodedSources(databaseURLs: inout [URL: URL]) -> CostUsageSessionBreakdown {
+        guard let detail = self.requestDetailSource else { return self }
+        let databaseURL = databaseURLs[detail.databaseURL] ?? detail.databaseURL
+        databaseURLs[databaseURL] = databaseURL
+        var copy = self
+        copy.requestDetailSource = CostUsageSessionDetailSource(
+            databaseURL: databaseURL,
+            sessionSource: self.toolActivitySource.flatMap { $0 == detail.sessionSource ? $0 : nil }
+                ?? detail.sessionSource,
+            parsedBytes: detail.parsedBytes)
+        return copy
+    }
+
     public func withRequestDetails(_ turns: [CostUsageSessionTurn]) -> CostUsageSessionBreakdown {
         var copy = self
         copy.turns = turns
