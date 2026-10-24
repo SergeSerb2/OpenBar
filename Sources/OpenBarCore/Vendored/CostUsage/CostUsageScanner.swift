@@ -197,6 +197,9 @@ enum CostUsageScanner {
         var maxCodexScanDurationPerRefresh: TimeInterval?
         /// Prefer newest session files first so recent usage lands before catch-up work.
         var preferNewestCodexSessionsFirst: Bool = true
+        /// Single-request helpers release the scanner baseline before loading report/project read views.
+        /// Catch-up bursts and the app retain it to reuse decoded state across scan passes.
+        var retainCodexScanState: Bool = true
         var codexScanWorkRecorderForTesting: CodexScanWorkRecorder?
         var codexScanDidYieldBeforeFileAttempt: (@Sendable (Bool) -> Void)?
 
@@ -2505,16 +2508,20 @@ enum CostUsageScanner {
         guard byteCount > 0 else { return nil }
 
         do {
-            let handle = try FileHandle(forReadingFrom: fileURL)
-            defer { try? handle.close() }
-            try handle.seek(toOffset: UInt64(windowStart))
-            guard let data = try handle.read(upToCount: byteCount), data.count == byteCount else {
-                return nil
+            // FileHandle bridges its read buffer through autoreleased NSData. Release each anchor's
+            // buffer here instead of retaining one 64 KiB buffer per file until the scan finishes.
+            return try autoreleasepool {
+                let handle = try FileHandle(forReadingFrom: fileURL)
+                defer { try? handle.close() }
+                try handle.seek(toOffset: UInt64(windowStart))
+                guard let data = try handle.read(upToCount: byteCount), data.count == byteCount else {
+                    return nil
+                }
+                return CostUsageCodexTokenIndexAnchor(
+                    indexedBytes: indexedBytes,
+                    windowStart: windowStart,
+                    sha256: Self.sha256Hex(data))
             }
-            return CostUsageCodexTokenIndexAnchor(
-                indexedBytes: indexedBytes,
-                windowStart: windowStart,
-                sha256: Self.sha256Hex(data))
         } catch {
             return nil
         }
@@ -5998,7 +6005,7 @@ enum CostUsageScanner {
         checkCancellation: CancellationCheck?) throws -> CostUsageDailyReport
     {
         let loadedCache = Self.loadCodexCache(options: options, range: range)
-        defer { loadedCache.release() }
+        defer { loadedCache.release(retainingScanState: options.retainCodexScanState) }
         var cache = loadedCache.cache
         let history = CodexScanHistoryHydrator(load: loadedCache)
         let nowMs = Int64(now.timeIntervalSince1970 * 1000)

@@ -122,6 +122,7 @@ actor CostUsageStore {
         parserHash: CodexParserHash.value)
     static let cacheGeneration = "sqlite:\(CostUsageStore.schemaVersion)"
     static let compatiblePredecessorParserHashes: Set<String> = [
+        "03d76ae62d1a55a1", // Bounded temporary buffers and helper cache lifetimes preserve rows and checkpoints.
         "3dfae5b17bbb8cdb", // Gating models.dev refresh jobs in the cost helper leaves rows and checkpoints unchanged.
         "54a95e8fe7bd6ee9", // Validating inspection checkpoints leaves persisted rows and scan progress unchanged.
         "455876ace937d42a", // Selected-session detail reads leave current-main native rows and checkpoints unchanged.
@@ -286,8 +287,8 @@ extension CostUsageStore {
         self.syncWithStoreIsolation { $0.loadCodexScan(calendar: calendar) }
     }
 
-    nonisolated func syncReleaseCodexBaseline(_ receipt: CodexBaselineReceipt) {
-        self.syncWithStoreIsolation { $0.releaseCodexBaseline(receipt) }
+    nonisolated func syncReleaseCodexBaseline(_ receipt: CodexBaselineReceipt, retainingScanState: Bool = true) {
+        self.syncWithStoreIsolation { $0.releaseCodexBaseline(receipt, retainingScanState: retainingScanState) }
     }
 
     nonisolated func syncLoadCodexCache(
