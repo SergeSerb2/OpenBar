@@ -75,13 +75,22 @@ public enum OpenAIDashboardParser {
 
     public static func parseCreditsRemaining(bodyText: String) -> Double? {
         let cleaned = bodyText.replacingOccurrences(of: "\r", with: "\n")
+        // The balance sits on the label's line or the next one; a farther number belongs to something else.
         let patterns = [
-            #"credits\s*remaining[^0-9]*([0-9][0-9.,]*)"#,
-            #"remaining\s*credits[^0-9]*([0-9][0-9.,]*)"#,
-            #"credit\s*balance[^0-9]*([0-9][0-9.,]*)"#,
+            #"credits\s*remaining[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
+            #"remaining\s*credits[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
+            #"credit\s*balance[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
         ]
         for pattern in patterns {
-            if let val = TextParsing.firstNumber(pattern: pattern, text: cleaned) { return val }
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+                  let match = regex.firstMatch(
+                      in: cleaned,
+                      options: [],
+                      range: NSRange(cleaned.startIndex..<cleaned.endIndex, in: cleaned)),
+                  let range = Range(match.range(at: 1), in: cleaned)
+            else { continue }
+            // The dashboard is loaded in en-US: commas group thousands and a dot is always the decimal point.
+            if let value = Double(cleaned[range].replacingOccurrences(of: ",", with: "")) { return value }
         }
         return nil
     }
