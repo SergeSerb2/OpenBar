@@ -294,6 +294,8 @@ final class SettingsStore {
     @ObservationIgnored var providerConfigRevisions: [ProviderInstanceID: UInt64] = [:]
     @ObservationIgnored var onProviderFetchIdentityChange: ((ProviderInstanceID) -> Void)?
     @ObservationIgnored var providerConfigFingerprints: [ProviderInstanceID: Data] = [:]
+    /// Set while launch-time plugin discovery runs off the main actor; it completes after the results are applied.
+    @ObservationIgnored private(set) var initialUserPluginDiscovery: Task<Void, Never>?
 
     static func resolveSharedDefaults(
         _ resolve: () -> UserDefaults? = { AppGroupSupport.sharedDefaults() }) -> UserDefaults?
@@ -343,7 +345,8 @@ final class SettingsStore {
     {
         // Resolve and freeze legacy consent before plugin loading or credential migration can touch Keychain.
         keychainAccessPolicy.setDisabled(Self.loadDebugDisableKeychainAccess(userDefaults: userDefaults))
-        if !Self.isRunningTests {
+        // Plugin files run top-level code, so discovery must not hold up the main actor at launch.
+        let userPluginDiscovery = Self.isRunningTests ? nil : Task.detached(priority: .userInitiated) {
             _ = UserProviderPluginRegistry.refresh()
         }
         // Capture this before app-group/config migrations can create prior-installation state.
@@ -442,6 +445,13 @@ final class SettingsStore {
         self.keychainAccessPolicy.setDisabled(self.debugDisableKeychainAccess)
         self.startConfigFileWatcher()
         self.observeSystemPowerStateChanges()
+        if let userPluginDiscovery {
+            self.initialUserPluginDiscovery = Task { @MainActor [weak self] in
+                await userPluginDiscovery.value
+                self?.applyInitialUserPluginDiscovery()
+                self?.initialUserPluginDiscovery = nil
+            }
+        }
     }
 
     deinit {

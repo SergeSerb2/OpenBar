@@ -589,7 +589,7 @@ final class UsageStore {
             guard instanceID.firstPartyProvider == nil else { return }
             self?.clearUserPluginHookState(instanceID)
         }
-        self.pruneUserPluginHookState()
+        self.pruneUserPluginHookStateAfterDiscovery()
         self.observeSettingsChanges()
         self.pathDebugInfo = PathDebugSnapshot(
             codexBinary: nil,
@@ -613,7 +613,11 @@ final class UsageStore {
         Task { @MainActor [weak self] in
             await self?.refreshHistoricalDatasetIfNeeded()
         }
-        Task { await self.refresh(enrichmentMode: .automatic) }
+        Task { [discovery = self.settings.initialUserPluginDiscovery] in
+            // Keep user plugins in the first refresh; discovery itself runs off the main actor.
+            await discovery?.value
+            await self.refresh(enrichmentMode: .automatic)
+        }
         self.startTimer()
     }
 

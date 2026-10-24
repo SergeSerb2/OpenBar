@@ -24,26 +24,22 @@ struct OSLogLogHandler: LogHandler {
     }
 
     func log(event: LogEvent) {
-        let msg = Self.decorate(
-            message: event.message.description,
-            label: self.label,
-            subsystem: self.subsystem,
-            metadata: self.metadata,
-            extraMetadata: event.metadata)
-
-        switch event.level {
-        case .trace:
-            self.logger.debug("\(msg, privacy: .public)")
-        case .debug:
-            self.logger.debug("\(msg, privacy: .public)")
-        case .info, .notice:
-            self.logger.info("\(msg, privacy: .public)")
-        case .warning:
-            self.logger.warning("\(msg, privacy: .public)")
-        case .error:
-            self.logger.error("\(msg, privacy: .public)")
-        case .critical:
-            self.logger.fault("\(msg, privacy: .public)")
+        let message = event.message.description
+        let metadata = Self.metadataSuffix(metadata: self.metadata, extraMetadata: event.metadata)
+        // os.Logger's own mapping: warning is error-level, critical is a fault.
+        let type: OSLogType = switch event.level {
+        case .trace, .debug: .debug
+        case .info, .notice: .info
+        case .warning, .error: .error
+        case .critical: .fault
+        }
+        // Messages are redacted before they reach this handler and stay readable in `log show`. Metadata mostly
+        // carries provider-derived values (response bodies, URLs, identifiers), so the unified log keeps it
+        // private; the opt-in file log still records the redacted values for diagnostics.
+        if let metadata {
+            self.logger.log(level: type, "\(message, privacy: .public) (\(metadata, privacy: .private))")
+        } else {
+            self.logger.log(level: type, "\(message, privacy: .public)")
         }
     }
 
@@ -53,25 +49,19 @@ struct OSLogLogHandler: LogHandler {
         return String(label.dropFirst(prefix.count))
     }
 
-    private static func decorate(
-        message: String,
-        label: String,
-        subsystem: String,
+    private static func metadataSuffix(
         metadata: Logging.Logger.Metadata,
         extraMetadata: Logging.Logger.Metadata?)
-        -> String
+        -> String?
     {
         var merged = metadata
         if let extraMetadata { merged.merge(extraMetadata, uniquingKeysWith: { _, new in new }) }
-        guard !merged.isEmpty else { return message }
+        guard !merged.isEmpty else { return nil }
 
-        let suffix = merged
+        return merged
             .sorted(by: { $0.key < $1.key })
             .map { "\($0.key)=\($0.value)" }
             .joined(separator: " ")
-        _ = label
-        _ = subsystem
-        return "\(message) (\(suffix))"
     }
 }
 #endif

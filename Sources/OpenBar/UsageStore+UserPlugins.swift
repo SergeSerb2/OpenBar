@@ -14,6 +14,17 @@ extension UsageStore {
     func refreshUserPluginDiscovery(loader: UserProviderPluginLoader = UserProviderPluginLoader()) {
         let previous = UserProviderPluginRegistry.all
         _ = UserProviderPluginRegistry.refresh(loader: loader)
+        self.applyUserPluginDiscovery(previous: previous)
+    }
+
+    /// Settings actions use this variant so plugin top-level code never runs on the main actor.
+    func refreshUserPluginDiscoveryInBackground(loader: UserProviderPluginLoader = UserProviderPluginLoader()) async {
+        let previous = UserProviderPluginRegistry.all
+        _ = await UserProviderPluginRegistry.refreshInBackground(loader: loader)
+        self.applyUserPluginDiscovery(previous: previous)
+    }
+
+    private func applyUserPluginDiscovery(previous: [UserProviderPlugin]) {
         self.settings.updateProviderState(config: self.settings.configSnapshot)
         for plugin in previous {
             guard let current = UserProviderPluginRegistry.plugin(for: plugin.manifest.id) else {
@@ -112,9 +123,11 @@ extension UsageStore {
             approvalStore: self.pluginApprovalStore,
             config: &config,
             historyDirectory: self.planUtilizationHistoryStore.directoryURL)
+        let previous = UserProviderPluginRegistry.all
+        UserProviderPluginRegistry.remove(plugin.manifest.id)
         self.settings.replaceConfigAfterPluginDeletion(config)
         self.clearUserPluginState(plugin.manifest.id)
-        self.refreshUserPluginDiscovery()
+        self.applyUserPluginDiscovery(previous: previous)
     }
 
     func emitUserPluginHooks(provider: ProviderInstanceID, snapshot: UsageSnapshot) {
@@ -200,6 +213,18 @@ extension UsageStore {
         self.sessionLimitResetDetectorStates = self.sessionLimitResetDetectorStates.filter { !$0.key.hasPrefix(prefix) }
         self.weeklyLimitResetDetectorStates = self.weeklyLimitResetDetectorStates.filter { !$0.key.hasPrefix(prefix) }
         self.persistUserPluginResetStates()
+    }
+
+    /// Hook state of plugins that are still loading at launch must survive until discovery finishes.
+    func pruneUserPluginHookStateAfterDiscovery() {
+        guard let discovery = self.settings.initialUserPluginDiscovery else {
+            self.pruneUserPluginHookState()
+            return
+        }
+        Task { @MainActor [weak self] in
+            await discovery.value
+            self?.pruneUserPluginHookState()
+        }
     }
 
     func pruneUserPluginHookState() {
