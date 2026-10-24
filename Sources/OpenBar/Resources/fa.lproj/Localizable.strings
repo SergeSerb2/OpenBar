@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "همگام‌سازی عکس‌های فوری استفاده";
 "Show accounts from other Macs" = "نمایش حساب‌ها از دیگر مک‌ها";
 "Requires a signed release build of OpenBar." = "به نسخه انتشار امضا شده OpenBar نیاز دارد.";
+"iCloud Sync is not available in this build of OpenBar." = "همگام‌سازی iCloud در این نسخه از OpenBar در دسترس نیست.";
 "Sign in to iCloud in System Settings to enable sync." = "برای فعال کردن همگام سازی، در تنظیمات سیستم وارد iCloud شوید.";
 "iCloud access is restricted on this Mac." = "دسترسی iCloud در این مک محدود شده است.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "همگام‌سازی متوقف شد: مک دیگری از نسخه جدیدتر OpenBar استفاده می‌کند. به روز رسانی برای از سرگیری.";

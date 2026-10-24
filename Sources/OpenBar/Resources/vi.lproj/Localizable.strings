@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Đồng bộ hóa ảnh chụp nhanh sử dụng";
 "Show accounts from other Macs" = "Hiển thị tài khoản từ các máy Mac khác";
 "Requires a signed release build of OpenBar." = "Yêu cầu bản phát hành có chữ ký của OpenBar.";
+"iCloud Sync is not available in this build of OpenBar." = "Đồng bộ hóa iCloud không khả dụng trong bản dựng OpenBar này.";
 "Sign in to iCloud in System Settings to enable sync." = "Đăng nhập vào iCloud trong Cài đặt hệ thống để bật đồng bộ hóa.";
 "iCloud access is restricted on this Mac." = "Quyền truy cập iCloud bị hạn chế trên máy Mac này.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Đồng bộ hóa bị tạm dừng: một máy Mac khác sử dụng phiên bản OpenBar mới hơn. Cập nhật để tiếp tục.";

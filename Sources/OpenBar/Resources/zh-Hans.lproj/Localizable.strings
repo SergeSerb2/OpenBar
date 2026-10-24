@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "同步使用情况快照";
 "Show accounts from other Macs" = "显示其他 Mac 上的账户";
 "Requires a signed release build of OpenBar." = "需要经过签名的 OpenBar 正式版本。";
+"iCloud Sync is not available in this build of OpenBar." = "此版本的 OpenBar 不支持 iCloud 同步。";
 "Sign in to iCloud in System Settings to enable sync." = "在“系统设置”中登录 iCloud 以启用同步。";
 "iCloud access is restricted on this Mac." = "此 Mac 上的 iCloud 访问受到限制。";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "同步已暂停：另一台 Mac 使用较新版本的 OpenBar。更新以恢复。";

@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Sinkronkan snapshot penggunaan";
 "Show accounts from other Macs" = "Tampilkan akun dari Mac lain";
 "Requires a signed release build of OpenBar." = "Memerlukan build rilis OpenBar yang ditandatangani.";
+"iCloud Sync is not available in this build of OpenBar." = "Sinkronisasi iCloud tidak tersedia di build OpenBar ini.";
 "Sign in to iCloud in System Settings to enable sync." = "Masuk ke iCloud di Pengaturan Sistem untuk mengaktifkan sinkronisasi.";
 "iCloud access is restricted on this Mac." = "Akses iCloud dibatasi di Mac ini.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Sinkronisasi dijeda: Mac lain menggunakan versi OpenBar yang lebih baru. Perbarui untuk melanjutkan.";
