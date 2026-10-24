@@ -327,9 +327,15 @@ public struct OpenAIDashboardBrowserCookieImporter {
             throw ImportError.noMatchingAccount(found: [FoundAccount(sourceLabel: "Manual", email: signedInEmail)])
         case .unknown:
             if allowAnyAccount {
-                return try await self.persist(
+                let result = try await self.persist(
                     candidate: candidate,
                     targetEmail: nil,
+                    deadline: deadline,
+                    logger: log)
+                return await self.copyIntoResolvedAccountStore(
+                    result,
+                    candidate: candidate,
+                    cacheScope: cacheScope,
                     deadline: deadline,
                     logger: log)
             }
@@ -568,7 +574,12 @@ public struct OpenAIDashboardBrowserCookieImporter {
                         scope: context.cacheScope,
                         deadline: deadline,
                         logger: log)
-                    return result
+                    return await self.copyIntoResolvedAccountStore(
+                        result,
+                        candidate: candidate,
+                        cacheScope: context.cacheScope,
+                        deadline: deadline,
+                        logger: log)
                 }
                 _ = try Self.remainingTimeout(until: deadline)
                 return nil
@@ -773,6 +784,39 @@ public struct OpenAIDashboardBrowserCookieImporter {
                 cookieCount: candidate.cookies.count,
                 signedInEmail: signedInEmail,
                 matchesCodexEmail: signedInEmail.lowercased() == targetEmail.lowercased())
+        }
+    }
+
+    /// An unknown-email import writes the default store. When its probe then names the account, callers load that
+    /// account's own store, so the verified cookies are copied there. If the copy fails, the email is dropped and
+    /// callers keep using the default store, which holds the cookies.
+    private func copyIntoResolvedAccountStore(
+        _ result: ImportResult,
+        candidate: Candidate,
+        cacheScope: CookieHeaderCache.Scope?,
+        deadline: Date?,
+        logger: @escaping (String) -> Void) async -> ImportResult
+    {
+        guard let email = result.signedInEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !email.isEmpty
+        else { return result }
+        let store = OpenAIDashboardWebsiteDataStore.store(forAccountEmail: email, scope: cacheScope)
+        do {
+            try await Self.withPersistentCookieTransaction(
+                key: store.identifier?.uuidString ?? "webkit-default",
+                deadline: deadline)
+            {
+                try await self.clearChatGPTCookies(in: store, deadline: deadline)
+                try await self.setCookies(candidate.cookies, into: store, deadline: deadline)
+            }
+            return result
+        } catch {
+            logger("Could not copy \(candidate.label) cookies into the account store: \(error.localizedDescription)")
+            return ImportResult(
+                sourceLabel: result.sourceLabel,
+                cookieCount: result.cookieCount,
+                signedInEmail: nil,
+                matchesCodexEmail: result.matchesCodexEmail)
         }
     }
 
