@@ -516,23 +516,17 @@ private struct SpendActivityDailyGrid: View {
                 let cell = pitch - SpendActivityGridGeometry.cellSpacing
                 ZStack(alignment: .topLeading) {
                     ZStack(alignment: .topLeading) {
-                        Canvas { context, _ in
-                            let corner = min(cell * 0.22, 2.5)
-                            for index in 0..<(self.columns * self.rows) where self.series.isVisible(index) {
-                                let col = index / self.rows
-                                let row = index % self.rows
-                                let rect = CGRect(
-                                    x: CGFloat(col) * pitch + (pitch - cell) / 2,
-                                    y: CGFloat(row) * pitch + (pitch - cell) / 2,
-                                    width: cell,
-                                    height: cell)
-                                palette.drawCell(
-                                    in: &context,
-                                    rect: rect,
-                                    corner: corner,
+                        palette.cells(
+                            (0..<(self.columns * self.rows)).filter(self.series.isVisible).map { index in
+                                SpendActivityCell(
+                                    rect: CGRect(
+                                        x: CGFloat(index / self.rows) * pitch + (pitch - cell) / 2,
+                                        y: CGFloat(index % self.rows) * pitch + (pitch - cell) / 2,
+                                        width: cell,
+                                        height: cell),
                                     level: self.series.isCovered[index] ? levels[index] : nil)
-                            }
-                        }
+                            },
+                            corner: min(cell * 0.22, 2.5))
                         self.hoverHighlight(cell: cell, pitch: pitch)
                         self.tooltip(size: gridFrame.size, pitch: pitch, visibleRect: visibleRect)
                     }
@@ -776,32 +770,7 @@ private struct SpendActivityWeekGrid: View {
             let pitch = gridFrame.width / CGFloat(self.columns)
             let cell = pitch - SpendActivityGridGeometry.cellSpacing
             ZStack(alignment: .topLeading) {
-                Canvas { context, _ in
-                    let corner = min(cell * 0.22, 2.5)
-                    for col in 0..<self.columns where col < self.activity.values.count && self.isVisible(col) {
-                        let value = self.activity.values[col]
-                        let isCovered = self.activity.isCovered[col]
-                        let rawFill = maxValue > 0
-                            ? Int((Double(value) / Double(maxValue) * Double(self.rows)).rounded())
-                            : 0
-                        let filled = value > 0 ? max(rawFill, 1) : 0
-                        for row in 0..<self.rows {
-                            let level: Int? = if !isCovered {
-                                nil
-                            } else if row >= self.rows - filled {
-                                2
-                            } else {
-                                0
-                            }
-                            let rect = CGRect(
-                                x: CGFloat(col) * pitch + (pitch - cell) / 2,
-                                y: CGFloat(row) * pitch + (pitch - cell) / 2,
-                                width: cell,
-                                height: cell)
-                            palette.drawCell(in: &context, rect: rect, corner: corner, level: level)
-                        }
-                    }
-                }
+                palette.cells(self.cells(maxValue: maxValue, pitch: pitch, cell: cell), corner: min(cell * 0.22, 2.5))
                 self.tooltip(size: gridFrame.size, pitch: pitch, visibleRect: visibleRect)
             }
             .frame(width: gridFrame.width, height: gridFrame.height)
@@ -826,6 +795,36 @@ private struct SpendActivityWeekGrid: View {
                 }
             }
         }
+    }
+
+    /// One column per week, filled from the bottom in proportion to the busiest week.
+    private func cells(maxValue: Int, pitch: CGFloat, cell: CGFloat) -> [SpendActivityCell] {
+        var cells: [SpendActivityCell] = []
+        for col in 0..<self.columns where col < self.activity.values.count && self.isVisible(col) {
+            let value = self.activity.values[col]
+            let isCovered = self.activity.isCovered[col]
+            let rawFill = maxValue > 0
+                ? Int((Double(value) / Double(maxValue) * Double(self.rows)).rounded())
+                : 0
+            let filled = value > 0 ? max(rawFill, 1) : 0
+            for row in 0..<self.rows {
+                let level: Int? = if !isCovered {
+                    nil
+                } else if row >= self.rows - filled {
+                    2
+                } else {
+                    0
+                }
+                cells.append(SpendActivityCell(
+                    rect: CGRect(
+                        x: CGFloat(col) * pitch + (pitch - cell) / 2,
+                        y: CGFloat(row) * pitch + (pitch - cell) / 2,
+                        width: cell,
+                        height: cell),
+                    level: level))
+            }
+        }
+        return cells
     }
 
     @ViewBuilder
