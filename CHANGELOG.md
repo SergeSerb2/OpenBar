@@ -18,6 +18,14 @@ Entries from 0.80.1 down are CodexBar's upstream history and keep their original
   return freed allocator pages after scans.
 - Release Settings, Workspaces, OpenAI Live Usage, Share Stats, and closed chart submenu content when closed; keep only
   navigation state. Hidden spend-dashboard detail is released after 1 minute, and freed allocator pages are returned after windows and menus close. Menu warmup covers at most three tabs.
+- Draw usage bars, menu chart submenus, the token activity heatmap, the Usage & Spend trend chart, and the OpenAI live
+  usage chart with plain SwiftUI shapes instead of `Canvas` and Swift Charts. On macOS 26 and later those render through
+  Metal and committed about 97 MB of graphics memory the first time a menu or window drew one.
+- Draw the limit-reset confetti with Core Animation particles instead of the Vortex package, which drew with `Canvas`;
+  a celebration no longer commits graphics memory or ~4 s of main-thread CPU. Pieces now spin flat instead of tumbling.
+  The Vortex dependency is removed.
+- Lower the cost helper's peak memory: bound per-file and per-row temporaries, drop the scanner baseline before report
+  reads in single-request helpers, and share request-identity strings between decoded rows and ledgers.
 
 ### Added
 

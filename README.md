@@ -23,14 +23,15 @@ Usage & Spend, close it, force a refresh, reopen the menu, idle — Codex and Cl
 
 | | CodexBar code | OpenBar |
 |---|---:|---:|
-| Idle after startup scans | 165 MB | 70–100 MB |
-| Settled after the scenario | 190 MB (worst 451 MB) | 110 MB |
-| Peak during the scenario | 383 MB (worst 618 MB) | ~260 MB |
+| Idle after startup scans | 165 MB | 68 MB |
+| Settled after the scenario | 190 MB (worst 451 MB) | 94 MB |
+| Peak during the scenario | 383 MB (worst 618 MB) | 162 MB |
+| Graphics memory after a chart or menu draws | ~97 MB | under 1 MB |
 | App memory during a Codex cost scan | 133 MB | 14 MB |
 | ChatGPT dashboard page loads (300–520 MB web process each) | every 25 min | at most every 6 h |
 
-The remaining peak comes from about 100 MB of GPU memory that macOS allocates while the menu is open; it is released
-when the menu closes, and reducing it is the next step.
+Cost scans now run in a separate helper process that lives for a few seconds per refresh. Its peak was 166–177 MB in
+these runs, and macOS gets all of it back when the helper exits.
 
 What changed, in short:
 
@@ -42,6 +43,9 @@ What changed, in short:
   cycle. A manual refresh or missing history still loads the page.
 - **Decoded caches do not linger.** The Codex scan baseline is released after 90 seconds idle, the Claude fragment
   cache keeps 32 MiB instead of 512 MiB, and the allocator returns freed pages after each scan.
+- **Charts are drawn with plain shapes.** On macOS 26 and later, SwiftUI `Canvas` and Swift Charts render through
+  Metal and commit about 97 MB of graphics memory the first time anything draws. Usage bars, menu charts, the token
+  heatmap, the Usage & Spend trend chart, the OpenAI live usage chart, and the limit-reset confetti no longer use them.
 - **Closed windows let go of their content.** Settings, inspectors, and chart submenus release their view trees when
   closed and keep only navigation state; hidden spend-dashboard detail is released after 1 minute.
 
