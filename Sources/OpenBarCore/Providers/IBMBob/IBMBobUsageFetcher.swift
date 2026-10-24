@@ -52,14 +52,16 @@ public struct IBMBobUsageSnapshot: Sendable, Equatable {
     public var limitBobcoins: Double? {
         let limits = self.teams.compactMap(\.limitBobcoins)
         guard limits.count == self.teams.count, !limits.isEmpty else { return nil }
-        return limits.reduce(0, +)
+        guard limits.allSatisfy({ $0.isFinite && $0 > 0 }) else { return nil }
+        let total = limits.reduce(0, +)
+        return total.isFinite ? total : nil
     }
 
     public func toUsageSnapshot() -> UsageSnapshot {
         let used = self.usedBobcoins
         let limit = self.limitBobcoins
         let reset = self.teams.compactMap(\.resetsAt).min()
-        let usedPercent = limit.flatMap { $0 > 0 ? min(100, max(0, used / $0 * 100)) : nil }
+        let usedPercent = limit.flatMap { used.isFinite && used >= 0 ? min(100, max(0, used / $0 * 100)) : nil }
         let summary = limit.map { "\(Self.bobcoins(used)) / \(Self.bobcoins($0)) Bobcoins" }
             ?? "\(Self.bobcoins(used)) Bobcoins used"
         let planNames = Array(Set(self.teams.compactMap(\.planName))).sorted()
@@ -71,18 +73,23 @@ public struct IBMBobUsageSnapshot: Sendable, Equatable {
             let label = team.teamName == team.instanceName
                 ? team.teamName
                 : "\(team.instanceName) · \(team.teamName)"
+            let metadata = [team.planName, team.resetsAt.map {
+                "Resets " + ISO8601DateFormatter().string(from: $0)
+            }].compactMap(\.self).joined(separator: " · ")
             return ProviderDetailSection.Row.makeRow(
                 label: label,
                 value: value,
-                secondaryValue: team.planName)
+                secondaryValue: metadata.isEmpty ? nil : metadata)
         }
 
         return UsageSnapshot(
-            primary: RateWindow(
-                usedPercent: usedPercent ?? 0,
-                windowMinutes: ProviderPaceCapability.monthlyWindowSentinelMinutes,
-                resetsAt: reset,
-                resetDescription: summary),
+            primary: usedPercent.map {
+                RateWindow(
+                    usedPercent: $0,
+                    windowMinutes: ProviderPaceCapability.monthlyWindowSentinelMinutes,
+                    resetsAt: reset,
+                    resetDescription: summary)
+            },
             secondary: nil,
             details: [.makeSection(title: "Bobcoin usage", rows: rows)],
             updatedAt: self.updatedAt,
