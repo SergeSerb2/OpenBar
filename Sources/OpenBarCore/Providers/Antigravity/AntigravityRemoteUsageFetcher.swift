@@ -68,9 +68,13 @@ public struct AntigravityRemoteUsageFetcher: Sendable {
         let oauthClientResolver: @Sendable () -> AntigravityOAuthClient?
         let credentialsUpdateHandler: @Sendable (AntigravityOAuthCredentials) async throws -> Void
 
-        func persistCredentials(_ credentials: AntigravityOAuthCredentials) async throws {
+        func persistCredentials(
+            _ credentials: AntigravityOAuthCredentials,
+            replacing expected: AntigravityOAuthCredentials) async throws
+        {
+            try Task.checkCancellation()
             if let store {
-                try store.save(credentials)
+                guard try store.save(credentials, ifUnchangedFrom: expected) else { throw CancellationError() }
             } else {
                 try await self.credentialsUpdateHandler(credentials)
             }
@@ -125,10 +129,6 @@ public struct AntigravityRemoteUsageFetcher: Sendable {
                 context: context)
             accessToken = refreshed.accessToken
             credentials = refreshed.credentials
-            if let store {
-                credentials = try store.load() ?? credentials
-            }
-            credentials.accessToken = credentials.accessToken?.trimmedNonEmpty ?? accessToken
         }
 
         let claims = Self.extractClaims(from: credentials)
@@ -146,10 +146,12 @@ public struct AntigravityRemoteUsageFetcher: Sendable {
             initialResponse: codeAssist,
             context: context)
         if let projectId, credentials.projectID?.trimmedNonEmpty != projectId {
+            let previousCredentials = credentials
             credentials.projectID = projectId
             do {
-                try await context.persistCredentials(credentials)
+                try await context.persistCredentials(credentials, replacing: previousCredentials)
             } catch {
+                if error is CancellationError { throw error }
                 Self.log.warning("Could not persist Antigravity project ID: \(error.localizedDescription)")
             }
         }
@@ -548,7 +550,7 @@ public struct AntigravityRemoteUsageFetcher: Sendable {
         }
 
         let updatedCredentials = Self.updatedCredentials(credentials, refreshResponse: json)
-        try await context.persistCredentials(updatedCredentials)
+        try await context.persistCredentials(updatedCredentials, replacing: credentials)
         return RefreshResult(accessToken: accessToken, credentials: updatedCredentials)
     }
 

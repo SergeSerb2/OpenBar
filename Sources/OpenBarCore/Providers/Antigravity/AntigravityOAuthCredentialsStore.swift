@@ -442,6 +442,19 @@ public struct AntigravityOAuthCredentialsStore: @unchecked Sendable {
         }
     }
 
+    public func save(
+        _ credentials: AntigravityOAuthCredentials,
+        ifUnchangedFrom expected: AntigravityOAuthCredentials) throws -> Bool
+    {
+        try Self.fileLock.withLock {
+            guard try self.loadUnlocked() == expected else { return false }
+            try Task.checkCancellation()
+            let data = try JSONEncoder.antigravityCredentials.encode(credentials)
+            try CredentialFileWriter.writePrivate(data, to: self.fileURL)
+            return true
+        }
+    }
+
     public func deleteIfPresent() throws {
         try Self.fileLock.withLock {
             try self.deleteIfPresentUnlocked()
