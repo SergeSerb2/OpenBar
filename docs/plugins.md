@@ -163,9 +163,9 @@ defineProvider({
 - `auth` (optional): one of the forms below. The named secret must be a declared `secure` setting.
 - `settings`: up to 32 setting definitions. Keys contain 1–64 ASCII letters, digits, or underscores and start with a
   letter. Each entry has `key`, `title`, optional `subtitle`, and `type: "plain" | "secure"` (default `secure`).
-- `capabilities` (optional): `"browser-cookies"`, `"http-status"`, and `"persistent-storage"`. With `"http-status"`, the plugin observes
-  non-2xx responses itself instead of the host failing the request.
-- `cookieDomains`: required with `browser-cookies`; a non-empty list of normalized DNS host names.
+- `capabilities` (optional): up to 16 entries from `"browser-cookies"`, `"http-status"`, and `"persistent-storage"`.
+  With `"http-status"`, the plugin observes non-2xx responses itself instead of the host failing the request.
+- `cookieDomains`: required with `browser-cookies`; a non-empty list of up to 32 normalized DNS host names.
 - `fetchUsage(ctx)`: function returning a snapshot or fetch result envelope, or a promise for one.
 
 Authentication forms:
