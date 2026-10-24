@@ -76,3 +76,7 @@ Your session has expired or been revoked. Log out and back in to Manus, or paste
 ### "Response missing expected credits fields"
 
 The API returned a 200 response that doesn't look like a credits payload (often an error object). Re-login to Manus; if it persists, the upstream response schema may have changed.
+
+Sparse responses keep missing credit amounts unknown. The balance label requires a measured `totalCredits`,
+and each quota lane requires both its remaining amount and limit. Sparse data with no displayable measurement
+uses the provider’s empty state. Malformed present numbers fail parsing.
