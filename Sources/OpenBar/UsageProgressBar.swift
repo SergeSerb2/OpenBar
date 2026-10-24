@@ -41,7 +41,7 @@ struct UsageProgressBar: View {
     let workdayMarkerPercents: [Double]
     let workdayTickAppearance: WorkdayTickAppearance
     @Environment(\.menuItemHighlighted) private var isHighlighted
-    @Environment(\.displayScale) private var displayScale
+    @Environment(\.self) private var environment
 
     init(
         percent: Double,
@@ -68,105 +68,131 @@ struct UsageProgressBar: View {
     }
 
     var body: some View {
-        // Draw the entire progress bar — track, fill, and pace-tip punch-out — in a single Canvas.
-        // A single Canvas uses Core Graphics internally and avoids the SwiftUI compositing modifiers
-        // (.compositingGroup, .blendMode) that trigger Metal/RenderBox shader compilation on macOS 26.x,
-        // which caused the status item icon to disappear (issue #805).
-        Canvas { context, size in
-            let scale = max(self.displayScale, 1)
-            let fillPercent = Self.renderedFillPercent(self.clamped)
-            let fillWidth = size.width * fillPercent / 100
-            let paceWidth = size.width * Self.clampedPercent(self.pacePercent) / 100
-            let tipWidth = max(25, size.height * 6.5)
-            let stripeInset = 1 / scale
-            let tipOffset = paceWidth - tipWidth + (Self.paceStripeSpan(for: scale) / 2) + stripeInset
-            let showTip = self.pacePercent != nil && tipWidth > 0.5
-            let markers = Self.resolvedMarkers(
-                warningPercents: self.warningMarkerPercents,
-                workdayPercents: self.workdayMarkerPercents,
-                workdayAppearance: self.workdayTickAppearance)
-
-            let cornerRadius = size.height / 2
-            let cornerSize = CGSize(width: cornerRadius, height: cornerRadius)
-            let rect = CGRect(origin: .zero, size: size)
-
-            context.clip(to: Path(rect))
-
-            // Track
-            let trackPath = Path { p in p.addRoundedRect(in: rect, cornerSize: cornerSize) }
-            context.fill(trackPath, with: .color(MenuHighlightStyle.progressTrack(self.isHighlighted)))
-
-            // Fill
-            if fillWidth > 0 {
-                let fillRect = CGRect(x: 0, y: 0, width: min(fillWidth, size.width), height: size.height)
-                let fillPath = Path { p in p.addRoundedRect(in: fillRect, cornerSize: cornerSize) }
-                context.fill(
-                    fillPath,
-                    with: .color(MenuHighlightStyle.progressTint(self.isHighlighted, fallback: self.tint)))
-            }
-
-            for marker in markers {
-                let x = size.width * marker.percent / 100
-                switch marker.kind {
-                case .quotaWarning:
-                    let markerRect = Self.warningMarkerRect(x: x, size: size, scale: scale)
-                    let markerStripeRect = Self.warningMarkerStripeRect(markerRect, scale: scale)
-                    let markerPunchPath = Path { p in
-                        p.addRect(Self.extendedMarkerRect(markerRect, size: size))
-                    }
-                    let markerStripePath = Path { p in
-                        p.addRect(Self.extendedMarkerRect(markerStripeRect, size: size))
-                    }
-
-                    // Match the pace stripe treatment: punch through the bar, then draw a slimmer neutral stripe.
-                    context.blendMode = .destinationOut
-                    context.fill(markerPunchPath, with: .color(.white.opacity(Self.stripePunchOpacity)))
-                    context.blendMode = .normal
-                    context.fill(
-                        markerStripePath,
-                        with: .color(Self.warningMarkerColor(isHighlighted: self.isHighlighted)))
-                case .workdayBoundary:
-                    let markerRect = Self.workdayMarkerRect(
-                        x: x,
-                        size: size,
-                        scale: scale,
-                        appearance: self.workdayTickAppearance)
-                    context.fill(
-                        Path(markerRect),
-                        with: .color(Self.workdayMarkerColor(
-                            isHighlighted: self.isHighlighted,
-                            appearance: self.workdayTickAppearance)))
-                }
-            }
-
-            // Pace tip: punch-out + center stripe drawn within the canvas context using Core Graphics
-            // blend modes so no SwiftUI compositing modifier (.blendMode, .compositingGroup) is needed.
-            if showTip {
-                let isDeficit = self.paceOnTop == false
-                let useDeficitRed = isDeficit && self.isHighlighted == false
-                let stripeColor: Color = if self.isHighlighted {
-                    .white
-                } else if useDeficitRed {
-                    .red
-                } else {
-                    .green
-                }
-
-                let tipSize = CGSize(width: tipWidth, height: size.height)
-                let stripes = Self.paceStripePaths(size: tipSize, scale: scale)
-                let shift = CGAffineTransform(translationX: tipOffset, y: 0)
-
-                // Punch out of the accumulated track+fill pixels.
-                context.blendMode = .destinationOut
-                context.fill(stripes.punched.applying(shift), with: .color(.white.opacity(Self.stripePunchOpacity)))
-                context.blendMode = .normal
-
-                context.fill(stripes.center.applying(shift), with: .color(stripeColor))
+        // Rasterize the bar with Core Graphics on the CPU and show it as a plain image. SwiftUI `Canvas`
+        // (like Swift Charts and the .compositingGroup/.blendMode modifiers, issue #805) renders through
+        // RenderBox's Metal backend on macOS 26+, which commits ~100 MB of GPU memory the first time a
+        // menu draws one. A few kilobytes of bitmap per bar keep the menu off the GPU entirely.
+        GeometryReader { proxy in
+            let scale = max(self.environment.displayScale, 1)
+            if let image = self.renderedImage(size: proxy.size, scale: scale) {
+                Image(decorative: image, scale: scale)
             }
         }
         .frame(height: 6)
+        .accessibilityElement()
         .accessibilityLabel(self.accessibilityLabel)
         .accessibilityValue(self.markerAccessibilityValue)
+    }
+
+    private func renderedImage(size: CGSize, scale: CGFloat) -> CGImage? {
+        let pixelWidth = Int((size.width * scale).rounded(.up))
+        let pixelHeight = Int((size.height * scale).rounded(.up))
+        guard pixelWidth > 0, pixelHeight > 0,
+              let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil,
+                  width: pixelWidth,
+                  height: pixelHeight,
+                  bitsPerComponent: 8,
+                  bytesPerRow: 0,
+                  space: colorSpace,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        // Flip to SwiftUI's top-left origin so the geometry below matches the view's coordinates.
+        context.translateBy(x: 0, y: CGFloat(pixelHeight))
+        context.scaleBy(x: scale, y: -scale)
+        self.draw(in: context, size: size, scale: scale)
+        return context.makeImage()
+    }
+
+    /// Draws track, fill, markers, and the pace tip. Punch-outs use `.destinationOut`, which erases
+    /// the pixels already drawn instead of needing a SwiftUI compositing group.
+    private func draw(in context: CGContext, size: CGSize, scale: CGFloat) {
+        let fill = { (path: Path, color: Color, blendMode: CGBlendMode) in
+            context.setBlendMode(blendMode)
+            context.setFillColor(color.resolve(in: self.environment).cgColor)
+            context.addPath(path.cgPath)
+            context.fillPath()
+        }
+        let fillPercent = Self.renderedFillPercent(self.clamped)
+        let fillWidth = size.width * fillPercent / 100
+        let paceWidth = size.width * Self.clampedPercent(self.pacePercent) / 100
+        let tipWidth = max(25, size.height * 6.5)
+        let stripeInset = 1 / scale
+        let tipOffset = paceWidth - tipWidth + (Self.paceStripeSpan(for: scale) / 2) + stripeInset
+        let showTip = self.pacePercent != nil && tipWidth > 0.5
+        let markers = Self.resolvedMarkers(
+            warningPercents: self.warningMarkerPercents,
+            workdayPercents: self.workdayMarkerPercents,
+            workdayAppearance: self.workdayTickAppearance)
+
+        let cornerRadius = size.height / 2
+        let cornerSize = CGSize(width: cornerRadius, height: cornerRadius)
+        let rect = CGRect(origin: .zero, size: size)
+        let punchColor = Color.white.opacity(Self.stripePunchOpacity)
+
+        context.clip(to: rect)
+
+        // Track
+        let trackPath = Path { p in p.addRoundedRect(in: rect, cornerSize: cornerSize) }
+        fill(trackPath, MenuHighlightStyle.progressTrack(self.isHighlighted), .normal)
+
+        // Fill
+        if fillWidth > 0 {
+            let fillRect = CGRect(x: 0, y: 0, width: min(fillWidth, size.width), height: size.height)
+            let fillPath = Path { p in p.addRoundedRect(in: fillRect, cornerSize: cornerSize) }
+            fill(fillPath, MenuHighlightStyle.progressTint(self.isHighlighted, fallback: self.tint), .normal)
+        }
+
+        for marker in markers {
+            let x = size.width * marker.percent / 100
+            switch marker.kind {
+            case .quotaWarning:
+                let markerRect = Self.warningMarkerRect(x: x, size: size, scale: scale)
+                let markerStripeRect = Self.warningMarkerStripeRect(markerRect, scale: scale)
+                let markerPunchPath = Path { p in
+                    p.addRect(Self.extendedMarkerRect(markerRect, size: size))
+                }
+                let markerStripePath = Path { p in
+                    p.addRect(Self.extendedMarkerRect(markerStripeRect, size: size))
+                }
+
+                // Match the pace stripe treatment: punch through the bar, then draw a slimmer neutral stripe.
+                fill(markerPunchPath, punchColor, .destinationOut)
+                fill(markerStripePath, Self.warningMarkerColor(isHighlighted: self.isHighlighted), .normal)
+            case .workdayBoundary:
+                let markerRect = Self.workdayMarkerRect(
+                    x: x,
+                    size: size,
+                    scale: scale,
+                    appearance: self.workdayTickAppearance)
+                fill(
+                    Path(markerRect),
+                    Self.workdayMarkerColor(isHighlighted: self.isHighlighted, appearance: self.workdayTickAppearance),
+                    .normal)
+            }
+        }
+
+        // Pace tip: punch-out + center stripe.
+        if showTip {
+            let isDeficit = self.paceOnTop == false
+            let useDeficitRed = isDeficit && self.isHighlighted == false
+            let stripeColor: Color = if self.isHighlighted {
+                .white
+            } else if useDeficitRed {
+                .red
+            } else {
+                .green
+            }
+
+            let tipSize = CGSize(width: tipWidth, height: size.height)
+            let stripes = Self.paceStripePaths(size: tipSize, scale: scale)
+            let shift = CGAffineTransform(translationX: tipOffset, y: 0)
+
+            // Punch out of the accumulated track+fill pixels.
+            fill(stripes.punched.applying(shift), punchColor, .destinationOut)
+            fill(stripes.center.applying(shift), stripeColor, .normal)
+        }
     }
 
     private var markerAccessibilityValue: String {
