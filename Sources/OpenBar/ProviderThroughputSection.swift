@@ -114,10 +114,10 @@ struct ProviderThroughputContent: View {
         if let action = self.section.presentation?.action { self.performAction.perform?(action) }
     }
 
+    /// `percent` is the share of the limit used; the tone follows the shared remaining thresholds.
     static func limitColor(_ percent: Double) -> Color {
-        if percent >= 95 { return .red }
-        if percent >= 80 { return .orange }
-        return .secondary
+        let tone = OpenBarQuotaTone.resolve(remainingPercent: 100 - percent, isStale: false)
+        return tone.menuColor(highlighted: false) ?? .secondary
     }
 }
 

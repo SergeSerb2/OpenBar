@@ -1,17 +1,21 @@
 import CoreGraphics
 
+/// Card geometry for hosted menu rows (spec §4, §9.2). Card content sits 8 pt (card inset) + 12 pt
+/// (card padding) from the menu row edge.
 enum UsageMenuCardLayout {
-    static let horizontalPadding: CGFloat = 20
-    static let headerOnlyVerticalPadding: CGFloat = 6
-    static let headerContentSpacing: CGFloat = 6
-    static let sectionTopPadding: CGFloat = 6
-    static let usageSectionTopPadding: CGFloat = 10
-    static let sectionBottomPadding: CGFloat = 6
-    static let headerLineSpacing: CGFloat = 4
-    static let headerColumnSpacing: CGFloat = 12
+    /// Card content inset from the row edge; text rows without a card use it too, so they align.
+    static let horizontalPadding = OpenBarMenuStyle.cardContentInset
+    static let headerOnlyVerticalPadding = OpenBarMenuStyle.cardPaddingVertical
+    static let headerContentSpacing = OpenBarMenuStyle.headerToLanes
+    static let sectionTopPadding = OpenBarMenuStyle.cardPaddingVertical
+    static let usageSectionTopPadding = OpenBarMenuStyle.headerToLanes
+    static let sectionBottomPadding = OpenBarMenuStyle.cardPaddingVertical
+    /// Name row to account row.
+    static let headerLineSpacing: CGFloat = 2
+    static let headerColumnSpacing: CGFloat = 8
 
+    /// Header to the first quota lane. Overview rows and full cards share it, so both align.
     static var postHeaderDividerContentSpacing: CGFloat {
-        // Reproduces Overview's header-bottom + usage-top gap so full cards align.
-        sectionBottomPadding + usageSectionTopPadding
+        self.headerContentSpacing
     }
 }
