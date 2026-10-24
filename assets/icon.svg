@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#d97706"/>
-  <text x="32" y="32" dy="0.35em" text-anchor="middle" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="32" font-weight="600" fill="#ffffff">O</text>
+  <defs>
+    <linearGradient id="iris" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6D63F2"/>
+      <stop offset="1" stop-color="#3D32C6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14.3" fill="url(#iris)"/>
+  <path d="M 47.56 31.33 A 16.375 16.375 0 1 1 32.68 16.44" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="42.83" cy="21.17" r="4" fill="#FFFFFF"/>
 </svg>
