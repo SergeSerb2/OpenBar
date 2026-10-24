@@ -910,7 +910,7 @@ extension CursorStatusProbeTests {
             persistAppAuthSession: { session in persistence.record(session) })
             .fetch(allowCachedSessions: false)
 
-        #expect(abs(snapshot.planPercentUsed - 19.4) < 0.0001)
+        #expect(snapshot.planPercentUsed.map { abs($0 - 19.4) < 0.0001 } == true)
         #expect(snapshot.planUsedUSD == 3.88)
         #expect(snapshot.planLimitUSD == 20.0)
         #expect(snapshot.onDemandUsedUSD == 4.5)
@@ -1389,14 +1389,17 @@ extension CursorStatusProbeTests {
         let testSession = CursorStatusProbeTestSession(handler: handler)
 
         let baseURL = try #require(URL(string: "https://cursor-web.test"))
-        let snapshot = try await CursorStatusProbe(
-            baseURL: baseURL,
-            browserDetection: BrowserDetection(cacheTTL: 0),
-            browserCookieImportOrder: [],
-            urlSession: testSession.urlSession,
-            appAuthStore: CursorAppAuthSessionProviderStub(session: nil)).fetch()
-
-        #expect(snapshot.accountEmail == "replacement@example.com")
+        await #expect {
+            _ = try await CursorStatusProbe(
+                baseURL: baseURL,
+                browserDetection: BrowserDetection(cacheTTL: 0),
+                browserCookieImportOrder: [],
+                urlSession: testSession.urlSession,
+                appAuthStore: CursorAppAuthSessionProviderStub(session: nil)).fetch()
+        } throws: { error in
+            guard case let .parseFailed(message) = error as? CursorStatusProbeError else { return false }
+            return message == "No usage measurements in the response"
+        }
         #expect(replacementCommitted.value == true)
         #expect(CookieHeaderCache.load(provider: .cursor)?.cookieHeader == replacementSession.cookieHeader)
         #expect(CookieHeaderCache.load(provider: .cursor)?.authenticationFailurePolicy == .stopFallback)
