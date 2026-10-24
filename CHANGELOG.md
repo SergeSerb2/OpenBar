@@ -1,5 +1,8 @@
 # Changelog
 
+OpenBar is a fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
+Entries below 0.80.1 are CodexBar's upstream history and keep their original names.
+
 ## 0.80.1 — Unreleased
 
 ### Added

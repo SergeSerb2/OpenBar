@@ -1,25 +1,25 @@
 import Testing
-@testable import CodexBarCLI
-@testable import CodexBarCore
+@testable import OpenBarCLI
+@testable import OpenBarCore
 
 struct DeepSeekSourceModeTests {
     @Test
     func `Auto with an API key passes the Linux web support gate`() async {
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(
             .auto, provider: .deepseek, environment: ["DEEPSEEK_API_KEY": "synthetic-api-key"]))
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(
             .auto, provider: .deepseek, environment: ["DEEPSEEK_KEY": "synthetic-api-key"]))
-        #expect(await CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await OpenBarCLI.sourceModeRequiresWebSupport(
             .auto, provider: .deepseek, environment: [:]))
-        #expect(await CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await OpenBarCLI.sourceModeRequiresWebSupport(
             .auto, provider: .deepseek, environment: ["DEEPSEEK_API_KEY": " \n "]))
-        #expect(await CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await OpenBarCLI.sourceModeRequiresWebSupport(
             .web, provider: .deepseek, environment: ["DEEPSEEK_API_KEY": "synthetic-api-key"]))
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(.api, provider: .deepseek, environment: [:]))
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(.api, provider: .deepseek, environment: [:]))
     }
 }
 
-extension CodexBarCLI {
+extension OpenBarCLI {
     static func sourceModeRequiresWebSupport(
         _ sourceMode: ProviderSourceMode,
         provider: UsageProvider,

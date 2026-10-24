@@ -43,14 +43,14 @@ for full in (True, False):
     (home / "config.json").write_text('{"version":1,"providers":[]}')
     env = {
         "PATH": "/usr/bin:/bin", "HOME": str(home), "CFFIXED_USER_HOME": str(home),
-        "CLAUDE_CONFIG_DIR": str(home / ".claude"), "CODEXBAR_CONFIG": str(home / "config.json"),
-        "CODEXBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1", "CODEXBAR_TEST_SESSION_FILE_ISOLATION": "1",
-        "CODEXBAR_TEST_CODEX_FILE_ISOLATION": "1",
+        "CLAUDE_CONFIG_DIR": str(home / ".claude"), "OPENBAR_CONFIG": str(home / "config.json"),
+        "OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1", "OPENBAR_TEST_SESSION_FILE_ISOLATION": "1",
+        "OPENBAR_TEST_CODEX_FILE_ISOLATION": "1",
         "DYLD_INSERT_LIBRARIES": str(root / "cli-write-observer.dylib"), "TZ": "UTC",
     }
     if full:
         env["PROOF_CLONE_ERRNO"] = str(errno.ENOTSUP)
-    cache = home / "Library/Caches/CodexBar/cost-usage"
+    cache = home / "Library/Caches/OpenBar/cost-usage"
 
     def run(cycle):
         result = subprocess.run([str(binary), "cost", "--provider", "claude", "--format", "json"],

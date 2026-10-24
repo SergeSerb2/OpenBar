@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 #if os(Linux)
 @Suite(.serialized)
@@ -13,7 +13,7 @@ struct ProcessExitReleaseLinuxTests {
     @Test
     func `serve returns output pipes after repeated RPC refreshes`() async throws {
         let binary = URL(fileURLWithPath: CommandLine.arguments[0])
-            .deletingLastPathComponent().appendingPathComponent("CodexBarCLI")
+            .deletingLastPathComponent().appendingPathComponent("OpenBarCLI")
         let script = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Scripts/test_linux_serve_rpc_pipes.py")

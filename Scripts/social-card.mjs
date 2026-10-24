@@ -163,7 +163,7 @@ function replaceTagAttribute(source, tagName, matches, attribute, value, label) 
 
 function imageReferences(repoRoot, imageHash) {
   const query = `?v=${imageHash.slice(0, 16)}`;
-  const imageURL = `https://codexbar.app/social.png${query}`;
+  const imageURL = `https://sergeserb2.github.io/OpenBar/social.png${query}`;
   let index = fs.readFileSync(path.join(repoRoot, "docs/index.html"), "utf8");
   for (const [attribute, name] of [
     ["property", "og:image"],

@@ -1,7 +1,7 @@
-import CodexBarCore
+import OpenBarCore
 import Foundation
 import Testing
-@testable import CodexBarCLI
+@testable import OpenBarCLI
 
 struct MistralCLIOutputTests {
     @Test(arguments: [false, true])

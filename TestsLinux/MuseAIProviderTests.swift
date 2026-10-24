@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-@testable import CodexBarCLI
-@testable import CodexBarCore
+@testable import OpenBarCLI
+@testable import OpenBarCore
 
 struct MuseAIProviderTests {
     @Test(arguments: [ProviderSourceMode.auto, .web])
@@ -9,11 +9,11 @@ struct MuseAIProviderTests {
         let settings = ProviderSettingsSnapshot(
             CookieProviderSettings(cookieSource: .manual, manualCookieHeader: "hatch_sess=fixture"),
             for: MuseAIProviderSettingsKey.self)
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(mode, provider: .museai, settings: settings))
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(mode, provider: .museai, settings: settings))
         for source in [ProviderCookieSource.auto, .off] {
             let settings = ProviderSettingsSnapshot(
                 CookieProviderSettings(cookieSource: source), for: MuseAIProviderSettingsKey.self)
-            #expect(await CodexBarCLI.sourceModeRequiresWebSupport(mode, provider: .museai, settings: settings))
+            #expect(await OpenBarCLI.sourceModeRequiresWebSupport(mode, provider: .museai, settings: settings))
         }
     }
 

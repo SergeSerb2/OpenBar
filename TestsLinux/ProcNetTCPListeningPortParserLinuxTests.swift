@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 /// Tests for the `/proc/<pid>/net/tcp` listening-port parser used on Linux as a
 /// fallback for Antigravity CLI port detection when `lsof` is unavailable.
@@ -82,7 +82,7 @@ struct ProcNetTCPListeningPortParserLinuxTests {
     func `reads process scoped TCP tables`() throws {
         let fileManager = FileManager.default
         let procRoot = fileManager.temporaryDirectory
-            .appendingPathComponent("codexbar-proc-\(UUID().uuidString)")
+            .appendingPathComponent("openbar-proc-\(UUID().uuidString)")
         let processRoot = procRoot.appendingPathComponent("42")
         let fdDirectory = processRoot.appendingPathComponent("fd")
         let netDirectory = processRoot.appendingPathComponent("net")

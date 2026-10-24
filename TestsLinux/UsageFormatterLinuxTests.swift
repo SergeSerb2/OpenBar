@@ -1,4 +1,4 @@
-import CodexBarCore
+import OpenBarCore
 import Testing
 
 @Suite(.serialized)

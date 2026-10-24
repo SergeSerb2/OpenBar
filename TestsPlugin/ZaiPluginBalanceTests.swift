@@ -1,4 +1,4 @@
-import CodexBarCore
+import OpenBarCore
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking

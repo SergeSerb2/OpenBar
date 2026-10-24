@@ -1,10 +1,10 @@
-import CodexBarCore
+import OpenBarCore
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
 import Testing
-@testable import CodexBarCLI
+@testable import OpenBarCLI
 
 /// Fixtures below were captured verbatim from a locally running Wayfinder gateway
 /// (`wayfinder-router serve`, two-tier priced config) after routing real traffic.

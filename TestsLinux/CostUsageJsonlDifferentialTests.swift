@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 /// Bounded default-suite subset of the synthetic LF-span investigation; no timing assertions.
 private let jsonlSmallStrings = [

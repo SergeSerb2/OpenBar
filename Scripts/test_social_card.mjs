@@ -38,7 +38,7 @@ function pngImage(data = compressed, ihdr = header) {
 const pngFixture = pngImage();
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codexbar-social-card-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openbar-social-card-"));
   t.after(() => fs.rmSync(root, { recursive: true }));
   fs.mkdirSync(path.join(root, "docs/logos"), { recursive: true });
   const write = (relativePath, value) => fs.writeFileSync(path.join(root, relativePath), value);
@@ -72,7 +72,7 @@ test("updater records all rendered inputs and updates the three image references
   assert.equal(receipt.image.sha256, hash);
   assert.deepEqual([receipt.image.width, receipt.image.height], [1200, 630]);
   assert(fs.readFileSync(path.join(f.root, "docs/social.png")).equals(pngFixture));
-  const url = `https://codexbar.app/social.png?v=${hash.slice(0, 16)}`;
+  const url = `https://sergeserb2.github.io/OpenBar/social.png?v=${hash.slice(0, 16)}`;
   assert.equal(f.read("docs/index.html").split(url).length - 1, 2);
   assert(f.read("README.md").includes(`src="docs/social.png?v=${hash.slice(0, 16)}"`));
   assert(f.read("docs/index.html").includes('content="Keep this description"'));

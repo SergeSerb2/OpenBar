@@ -1,6 +1,6 @@
-import CodexBarCore
+import OpenBarCore
 import Testing
-@testable import CodexBarCLI
+@testable import OpenBarCLI
 
 struct ProviderSelectionRawIDTests {
     @Test

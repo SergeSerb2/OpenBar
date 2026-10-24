@@ -3,7 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct ProviderPluginOptionalPOSTTests {
     @Test(arguments: BundledPluginTestSupport.engines, [false, true])

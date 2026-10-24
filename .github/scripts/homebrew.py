@@ -21,7 +21,7 @@ def rewrite_cask(source, version, digest):
 def rewrite_formula(source, version, digests):
     source, count = re.subn(r'(?m)^  version "[^"]+"$', f'  version "{version}"', source)
     assert count == 1, 'Unexpected formula version layout'
-    pattern = r'(url "https://github.com/steipete/CodexBar/releases/download/v#\{version\}/CodexBarCLI-v#\{version\}-(macos-arm64|macos-x86_64|linux-aarch64|linux-x86_64)\.tar\.gz"\n\s*sha256 ")[0-9a-f]+(")'
+    pattern = r'(url "https://github.com/SergeSerb2/OpenBar/releases/download/v#\{version\}/OpenBarCLI-v#\{version\}-(macos-arm64|macos-x86_64|linux-aarch64|linux-x86_64)\.tar\.gz"\n\s*sha256 ")[0-9a-f]+(")'
     seen = []
     def replace(match):
         target = match[2]
@@ -36,7 +36,7 @@ def main():
     assert os.environ['DRY_RUN'] == 'false', 'No tap writes in dry runs'
     version, _ = metadata()
     assert not is_prerelease(version), 'Prereleases must not replace the stable Homebrew packages'
-    tap = 'steipete/homebrew-tap'
+    tap = 'SergeSerb2/homebrew-tap'
     app = CONFIG['app']
     directory = Path('release-assets')
     archive = CONFIG['app_archive'].format(version=version)
@@ -50,8 +50,8 @@ def main():
     assert asset['digest'] == 'sha256:' + expected_digest, 'Published cask archive digest differs'
     head = api(f'repos/{tap}/git/ref/heads/main')['object']['sha']
     paths = [f'Casks/{app.lower()}.rb']
-    if app == 'CodexBar':
-        paths.append('Formula/codexbar.rb')
+    if app == 'OpenBar':
+        paths.append('Formula/openbar.rb')
     tree = []
     expected = {}
     for path in paths:
@@ -60,7 +60,7 @@ def main():
         if path.startswith('Casks/'):
             updated = rewrite_cask(source, version, expected_digest)
         else:
-            digests = {target: digest(f'CodexBarCLI-v{version}-{target}.tar.gz') for target in ['macos-arm64', 'macos-x86_64', 'linux-aarch64', 'linux-x86_64']}
+            digests = {target: digest(f'OpenBarCLI-v{version}-{target}.tar.gz') for target in ['macos-arm64', 'macos-x86_64', 'linux-aarch64', 'linux-x86_64']}
             updated = rewrite_formula(source, version, digests)
         expected[path] = updated
         if updated != source:

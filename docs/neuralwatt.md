@@ -34,11 +34,11 @@ is reported, the kWh counts remain details without a reset clock.
 Store the API key without opening Settings:
 
 ```bash
-printf '%s' "$NEURALWATT_API_KEY" | codexbar config set-api-key --provider neuralwatt --stdin
+printf '%s' "$NEURALWATT_API_KEY" | openbar config set-api-key --provider neuralwatt --stdin
 ```
 
-This trims the piped key, writes it to CodexBar's config file (`~/.config/codexbar/config.json`
-by default, or the legacy `~/.codexbar/config.json` when already present), and enables Neuralwatt by
+This trims the piped key, writes it to OpenBar's config file (`~/.config/openbar/config.json`
+by default, or the legacy `~/.openbar/config.json` when already present), and enables Neuralwatt by
 default. Use `--no-enable` to save the key without enabling the provider.
 
 ### Settings
@@ -47,11 +47,11 @@ default. Use `--no-enable` to save the key without enabling the provider.
 2. Enable **Neuralwatt**
 3. Open `https://portal.neuralwatt.com/dashboard`
 4. Create or copy an API key
-5. Paste the key into CodexBar's Neuralwatt provider settings
+5. Paste the key into OpenBar's Neuralwatt provider settings
 
 ### Environment Variables
 
-CodexBar also accepts these environment variables:
+OpenBar also accepts these environment variables:
 
 - `NEURALWATT_API_KEY`
 
@@ -71,7 +71,7 @@ For tests or self-hosted/proxy setups, override the API base URL with `NEURALWAT
 - `subscription` may be `null`; prepaid balance remains visible without a subscription window.
 - Transient quota failures are retried once, including `Retry-After` handling for rate limits.
 
-The bundled [`neuralwatt.js`](../Sources/CodexBarCore/Resources/Plugins/neuralwatt.js) is authoritative on QuickJS and
+The bundled [`neuralwatt.js`](../Sources/OpenBarCore/Resources/Plugins/neuralwatt.js) is authoritative on QuickJS and
 JavaScriptCore. Swift supplies credential resolution, validated endpoint settings, and provider registration; the native
 fetch/parser twin is removed. The host retries eligible HTTP statuses and transient URL errors once, with a one-second
 default delay and `Retry-After` capped at ten seconds. Each attempt retains its fifteen-second request deadline. Offline,
@@ -81,12 +81,12 @@ TLS, authentication, and cancellation failures do not retry, and cancellation re
 
 ### "Missing Neuralwatt API key"
 
-Set the key with `codexbar config set-api-key --provider neuralwatt --stdin`, add it in
+Set the key with `openbar config set-api-key --provider neuralwatt --stdin`, add it in
 **Settings → Providers → Neuralwatt**, set `NEURALWATT_API_KEY`, or configure a Neuralwatt token
-account in CodexBar.
+account in OpenBar.
 
 ### "Neuralwatt API error"
 
 Confirm the API key is valid and that the current network can reach `api.neuralwatt.com`. The
-quota endpoint is rate-limited to 1 request per second per customer; CodexBar refreshes on its
+quota endpoint is rate-limited to 1 request per second per customer; OpenBar refreshes on its
 normal cycle so this should not be hit in practice.

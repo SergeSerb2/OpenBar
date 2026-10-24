@@ -1,7 +1,7 @@
-import CodexBarCore
+import OpenBarCore
 import Foundation
 import Testing
-@testable import CodexBarCLI
+@testable import OpenBarCLI
 
 struct DashboardMultiAccountTests {
     @Test
@@ -15,7 +15,7 @@ struct DashboardMultiAccountTests {
             usageBarsShowUsed: { true },
             allAccounts: true)
         let result = try await producer.collect(
-            config: self.config, refreshInterval: 60, codexBarVersion: nil, identityMode: .full)
+            config: self.config, refreshInterval: 60, openBarVersion: nil, identityMode: .full)
         let row = try #require(result.payload.providers.first)
         let accounts = try #require(row.accounts)
         #expect(result.payload.providers.count == 1)
@@ -105,7 +105,7 @@ struct DashboardMultiAccountTests {
     @Test
     func `configured accounts select non first active and missing accounts use ambient fallback`() throws {
         let accounts = [self.token(), self.token()]
-        let config = CodexBarConfig(providers: [ProviderConfig(
+        let config = OpenBarConfig(providers: [ProviderConfig(
             id: .claude,
             enabled: true,
             tokenAccounts: ProviderTokenAccountData(version: 1, accounts: accounts, activeIndex: 1))])
@@ -121,19 +121,19 @@ struct DashboardMultiAccountTests {
             baseEnvironment: [:])
         #expect(try selected.resolvedAccounts(for: .claude, sourceMode: .web).map(\.id) == [accounts[1].id])
         #expect(try all.resolvedAccounts(for: .claude, sourceMode: .web).map(\.id) == accounts.map(\.id))
-        #expect(CodexBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: config, allAccounts: true))
-        #expect(!CodexBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: config, allAccounts: false))
-        #expect(!CodexBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: self.config, allAccounts: true))
-        #expect(!CodexBarCLI.serveIncludesConfiguredAccounts(provider: .codex, config: self.config, allAccounts: true))
+        #expect(OpenBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: config, allAccounts: true))
+        #expect(!OpenBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: config, allAccounts: false))
+        #expect(!OpenBarCLI.serveIncludesConfiguredAccounts(provider: .claude, config: self.config, allAccounts: true))
+        #expect(!OpenBarCLI.serveIncludesConfiguredAccounts(provider: .codex, config: self.config, allAccounts: true))
     }
 
     @Test
     func `default all and usage scopes cannot share provider operation fingerprints`() {
-        let selected = CodexBarCLI.serveUsageOperationFingerprint(
+        let selected = OpenBarCLI.serveUsageOperationFingerprint(
             configFingerprint: "fixture", includeAllCodexAccounts: false)
-        let usage = CodexBarCLI.serveUsageOperationFingerprint(
+        let usage = OpenBarCLI.serveUsageOperationFingerprint(
             configFingerprint: "fixture", includeAllCodexAccounts: true)
-        let all = CodexBarCLI.serveUsageOperationFingerprint(
+        let all = OpenBarCLI.serveUsageOperationFingerprint(
             configFingerprint: "fixture", includeAllCodexAccounts: true, includeAllAccounts: true)
         #expect(Set([selected, usage, all]).count == 3)
     }
@@ -142,10 +142,10 @@ struct DashboardMultiAccountTests {
     func `warm response cache keeps account scopes separate`() async throws {
         let cache = CLIServeResponseCache()
         for allAccounts in [false, true, false, true] {
-            let key = try CodexBarCLI.serveDashboardOperationKey(
+            let key = try OpenBarCLI.serveDashboardOperationKey(
                 identityMode: .redacted, usageBarsShowUsed: false, provider: "codex", allAccounts: allAccounts)
             let expected = Data((allAccounts ? "all" : "selected").utf8)
-            let response = await CodexBarCLI.cachedServeResponse(
+            let response = await OpenBarCLI.cachedServeResponse(
                 key: key, cache: cache, refreshInterval: 60, configFingerprint: "fixture")
             {
                 CLILocalHTTPResponse(status: .ok, body: expected)
@@ -173,7 +173,7 @@ struct DashboardMultiAccountTests {
             identityMode: .full,
             generatedAt: Date(timeIntervalSince1970: 0),
             refreshInterval: 60,
-            codexBarVersion: nil,
+            openBarVersion: nil,
             accountCollections: [.claude: DashboardAccountsInput(
                 accounts: adapter, adapterError: nil, weeklyWorkDays: nil)],
             allAccounts: allAccounts)
@@ -223,13 +223,13 @@ struct DashboardMultiAccountTests {
         let accounts = [first.dashboardAccount, second.dashboardAccount]
         let deadline = now.advanced(by: .seconds(30))
         let leader = Task {
-            await CodexBarCLI.serveCollectUsageOutputs(
+            await OpenBarCLI.serveCollectUsageOutputs(
                 providers: [.codex],
                 configFingerprint: "fixture",
                 deadline: deadline,
                 operations: operations)
             { provider, publish in
-                await CodexBarCLI.collectAccountUsage(
+                await OpenBarCLI.collectAccountUsage(
                     provider: provider,
                     accounts: accounts,
                     publishPartial: expanded ? publish : nil)
@@ -245,7 +245,7 @@ struct DashboardMultiAccountTests {
         }
         await slowStarted.wait()
         let follower = Task {
-            await CodexBarCLI.serveCollectUsageOutputs(
+            await OpenBarCLI.serveCollectUsageOutputs(
                 providers: [.codex],
                 configFingerprint: "fixture",
                 deadline: deadline,
@@ -263,7 +263,7 @@ struct DashboardMultiAccountTests {
         await timer.open()
         let outputs = await [leader.value, follower.value]
         #expect(await operations.snapshot().operationCount == 1)
-        let changedConfig = await CodexBarCLI.serveCollectUsageOutputs(
+        let changedConfig = await OpenBarCLI.serveCollectUsageOutputs(
             providers: [.codex],
             configFingerprint: "different-account-configuration",
             deadline: deadline.advanced(by: .seconds(30)),
@@ -305,8 +305,8 @@ struct DashboardMultiAccountTests {
         }
     }
 
-    private var config: CodexBarConfig {
-        CodexBarConfig(providers: [ProviderConfig(id: .codex, enabled: true)])
+    private var config: OpenBarConfig {
+        OpenBarConfig(providers: [ProviderConfig(id: .codex, enabled: true)])
     }
 
     private func snapshot(
@@ -321,7 +321,7 @@ struct DashboardMultiAccountTests {
             identityMode: mode,
             generatedAt: Date(timeIntervalSince1970: 0),
             refreshInterval: 60,
-            codexBarVersion: nil,
+            openBarVersion: nil,
             allAccounts: allAccounts)
     }
 

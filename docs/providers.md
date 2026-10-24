@@ -1,5 +1,5 @@
 ---
-summary: "Provider data sources and parsing overview for every registered CodexBar provider."
+summary: "Provider data sources and parsing overview for every registered OpenBar provider."
 read_when:
   - Adding or modifying provider fetch/parsing
   - Adjusting provider labels, toggles, or metadata
@@ -8,7 +8,7 @@ read_when:
 
 # Providers
 
-CodexBar currently registers 109 provider IDs. Some companies expose multiple surfaces, such as Codex vs OpenAI API or
+OpenBar currently registers 109 provider IDs. Some companies expose multiple surfaces, such as Codex vs OpenAI API or
 OpenCode vs OpenCode Go, because the auth source and quota shape differ.
 
 ## Fetch strategies (current)
@@ -18,8 +18,8 @@ Source labels (CLI/header): `openai-web`, `web`, `oauth`, `api`, `local`, `cli`,
 Cookie-based providers expose a Cookie source picker (Automatic or Manual) in Settings → Providers.
 Some browser cookie imports are cached in Keychain and reused until the session is invalid. API keys, manual cookie
 headers, source selection, provider ordering, and token accounts are stored in the resolved config file.
-New installs use `~/.config/codexbar/config.json`; existing `~/.codexbar/config.json` installs retain that legacy path.
-See [CLI configuration](cli-configuration.md) for `XDG_CONFIG_HOME` and `CODEXBAR_CONFIG` overrides.
+New installs use `~/.config/openbar/config.json`; existing `~/.openbar/config.json` installs retain that legacy path.
+See [CLI configuration](cli-configuration.md) for `XDG_CONFIG_HOME` and `OPENBAR_CONFIG` overrides.
 
 ## Usage & Spend settings
 
@@ -40,7 +40,7 @@ dashboard refresh before retrying. Codex account-cache ownership and provider-de
 
 Native cost-history sources are the descriptors that advertise token-cost support: Codex, Claude, OpenAI Admin,
 Mistral, AWS Bedrock, Vertex AI, Cursor, and OpenCode Go. Providers without that contract are omitted instead of
-appearing as empty subscriptions. Each native currency has its own total, ranking, and daily chart; CodexBar never
+appearing as empty subscriptions. Each native currency has its own total, ranking, and daily chart; OpenBar never
 adds or ranks amounts across currencies.
 
 The page also shows token mix (input / output / cache / reasoning), priced/unpriced/unmetered/estimated coverage,
@@ -202,13 +202,13 @@ complete when the available scan window covers fewer days.
 - Details: `docs/codex.md`.
 
 ## OpenAI
-- API key from `~/.codexbar/config.json`, `OPENAI_ADMIN_KEY`, or `OPENAI_API_KEY`.
+- API key from `~/.openbar/config.json`, `OPENAI_ADMIN_KEY`, or `OPENAI_API_KEY`.
 - Admin API keys are preferred and fetch organization costs plus completion usage for inline Today/7d/configured-window dashboards.
 - Normal API keys fall back to the legacy credit-grants balance endpoint when organization usage is unavailable.
 - Details: `docs/openai.md`.
 
 ## Azure OpenAI
-- API key, endpoint, and deployment from `~/.codexbar/config.json` or `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, and `AZURE_OPENAI_DEPLOYMENT_NAME`.
+- API key, endpoint, and deployment from `~/.openbar/config.json` or `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, and `AZURE_OPENAI_DEPLOYMENT_NAME`.
 - `AZURE_OPENAI_ENDPOINT` and configured endpoint overrides must be HTTPS URLs or bare hosts normalized to HTTPS; explicit `http://` URLs, user info, and encoded host-delimiter tricks fail closed before `api-key` headers are attached.
 - Validates the configured deployment with a minimal chat-completions request; it does not expose Azure spend or quota history.
 - Use `AZURE_OPENAI_API_VERSION` to override the API version. Set it to `v1` for Azure's OpenAI-compatible v1 API path.
@@ -241,7 +241,7 @@ complete when the available scan window covers fewer days.
 - Details: `docs/claudeplatform.md`.
 
 ## z.ai
-- API token from `~/.codexbar/config.json` (`providers[].apiKey`) or `Z_AI_API_KEY` env var.
+- API token from `~/.openbar/config.json` (`providers[].apiKey`) or `Z_AI_API_KEY` env var.
 - Supports global and BigModel CN quota hosts; override with `Z_AI_API_HOST` or `Z_AI_QUOTA_URL`.
 - z.ai endpoint overrides must be HTTPS or bare hosts normalized to HTTPS. `Z_AI_QUOTA_URL` takes precedence for
   quota resolution; combined usage validates both configured endpoints before sending bearer auth.
@@ -270,14 +270,14 @@ complete when the available scan window covers fewer days.
 - Details: `docs/minimax.md`.
 
 ## Kimi
-- Kimi Code API key via `~/.codexbar/config.json` or `KIMI_CODE_API_KEY`.
+- Kimi Code API key via `~/.openbar/config.json` or `KIMI_CODE_API_KEY`.
 - Web fallback uses the JWT from `kimi-auth` cookie via manual entry or `KIMI_AUTH_TOKEN` env var.
 - Shows weekly quota and 5-hour rate limit (300 minutes).
 - Status: none yet.
 - Details: `docs/kimi.md`.
 
 ## Kilo
-- API token from `~/.codexbar/config.json` (`providers[].apiKey`) or `KILO_API_KEY`.
+- API token from `~/.openbar/config.json` (`providers[].apiKey`) or `KILO_API_KEY`.
 - Auto mode tries API first and falls back to CLI auth when API credentials are missing or unauthorized.
 - CLI auth source: `~/.local/share/kilo/auth.json` (`kilo.access`), typically created by `kilo auth login`.
 - Status: none yet.
@@ -301,7 +301,7 @@ complete when the available scan window covers fewer days.
 ## Cursor
 - Web API via browser cookies (`cursor.com` + `cursor.sh`).
 - Fallbacks: a legacy stored session, then Cursor.app local auth.
-- Add Account and Switch Account open Cursor's authenticator in a supported browser; Switch Account prefers stable account IDs and falls back to normalized email when IDs are unavailable. CodexBar uses the supported system HTTPS handler when possible and otherwise asks the user to choose an eligible supported browser.
+- Add Account and Switch Account open Cursor's authenticator in a supported browser; Switch Account prefers stable account IDs and falls back to normalized email when IDs are unavailable. OpenBar uses the supported system HTTPS handler when possible and otherwise asks the user to choose an eligible supported browser.
 - Grok Bot weekly included usage is a fourth Cursor card bar from `POST /api/dashboard/get-sand-usage-status` (same session). Paid 7-day Bot allowances show weekly pace on that extra bar. Accounts without a Bot allowance omit the bar.
 - Status: Statuspage.io (Cursor).
 - Details: `docs/cursor.md`.
@@ -321,7 +321,7 @@ complete when the available scan window covers fewer days.
   not include local fallback.
 - Uses the public usage API for rolling 5-hour, weekly, and monthly usage windows, with the workspace Go page/server
   data retained as a compatibility fallback.
-- Optional workspace ID comes from `~/.codexbar/config.json` (`providers[].workspaceID`) or `CODEXBAR_OPENCODEGO_WORKSPACE_ID`.
+- Optional workspace ID comes from `~/.openbar/config.json` (`providers[].workspaceID`) or `OPENBAR_OPENCODEGO_WORKSPACE_ID`.
 - Status: none yet.
 - Details: `docs/opencodego.md`.
 
@@ -351,7 +351,7 @@ complete when the available scan window covers fewer days.
 
 Alibaba Coding Plan, Alibaba Token Plan, and Qwen Cloud all run on the Aliyun OneConsole
 backend. They selectively reuse plumbing under
-`Sources/CodexBarCore/Providers/Shared/AliyunOneConsole/`:
+`Sources/OpenBarCore/Providers/Shared/AliyunOneConsole/`:
 
 - `AliyunOneConsoleCookieImporter` — browser cookie iteration, Chromium fallback, Keychain preflight.
   The Alibaba providers and Qwen Cloud supply their own cookie domains and authenticated-session predicate.
@@ -379,7 +379,7 @@ provider-specific cookie validation, endpoints, login detection, and error trans
 - Details: `docs/qwen-cloud.md`.
 
 ## Droid (Factory)
-- API key from `~/.codexbar/config.json` (`providers[].apiKey`), `FACTORY_API_KEY`, or `~/.factory/.env`.
+- API key from `~/.openbar/config.json` (`providers[].apiKey`), `FACTORY_API_KEY`, or `~/.factory/.env`.
 - Web API via Factory cookies, bearer tokens, and WorkOS refresh tokens.
 - Auto prefers API when a key is available, then falls back to web strategies.
 - Status: `https://status.factory.ai`.
@@ -465,7 +465,7 @@ provider-specific cookie validation, endpoints, login detection, and error trans
 - Credits API endpoint (`https://ai.zoom.us/ai-computer/api/v1/credits/status`) authenticated via a
   bearer token.
 - Auto-imports ZoomMate/Zoom session cookies in the shared browser order, validates and stores the narrowed cookie
-  header in CodexBar's Keychain cache, and exchanges it for a short-lived bearer token through
+  header in OpenBar's Keychain cache, and exchanges it for a short-lived bearer token through
   ZoomMate's own cookie-to-token bootstrap endpoint. The bearer remains in memory only and is reused
   until it nears expiry. Manual cURL capture is available as an explicit alternative.
 - Shows a single "Credits" window: used/remaining credits against a budget cap, resetting at the
@@ -485,20 +485,20 @@ provider-specific cookie validation, endpoints, login detection, and error trans
 
 ## llmman
 - Local `llmman serve` daemon (default `http://127.0.0.1:17434`; Base URL or `LLMMAN_HOST` overrides it).
-- Optional API key from `~/.codexbar/config.json` (`providers[].apiKey`) or `LLMMAN_API_KEY`, for daemons that require keys.
+- Optional API key from `~/.openbar/config.json` (`providers[].apiKey`) or `LLMMAN_API_KEY`, for daemons that require keys.
 - `/llmman/node`: loaded weights as a share of model memory, plus loaded/stored model summaries; `/api/version` best effort.
 - Status: none (local daemon).
 - Details: `docs/llmman.md`.
 
 ## Synthetic
-- API key from `~/.codexbar/config.json` (`providers[].apiKey`) or `SYNTHETIC_API_KEY`.
+- API key from `~/.openbar/config.json` (`providers[].apiKey`) or `SYNTHETIC_API_KEY`.
 - The menu card shows rolling five-hour, weekly token, and search-hourly quota lanes when present. The compact menu bar
   metric uses the five-hour or weekly lane; weekly credit regeneration details appear when returned.
-- External status page: `https://status.synthetic.new` (not linked or auto-polled by CodexBar).
+- External status page: `https://status.synthetic.new` (not linked or auto-polled by OpenBar).
 - Details: `docs/synthetic.md`.
 
 ## OpenRouter
-- API token from the resolved CodexBar config (`providers[].apiKey`, default `~/.config/codexbar/config.json`) or `OPENROUTER_API_KEY` env var. Legacy config paths remain supported.
+- API token from the resolved OpenBar config (`providers[].apiKey`, default `~/.config/openbar/config.json`) or `OPENROUTER_API_KEY` env var. Legacy config paths remain supported.
 - Reads key quota from `/key` and attempts credits with the selected API key. On the official API, a primary key identified as a management key also enables account Activity; a separate Management API key takes precedence for Activity without replacing the selected account’s balance credential.
 - Shows account spend, tokens, requests, and model counts for the last 30 completed UTC days when Activity is available.
 - Shows daily, weekly, and monthly API-key spend when `/api/v1/key` returns those fields.
@@ -584,7 +584,7 @@ provider-specific cookie validation, endpoints, login detection, and error trans
 - Details: `docs/venice.md`.
 
 ## Codebuff
-- API token from `~/.codexbar/config.json`, `CODEBUFF_API_KEY`, or `~/.config/manicode/credentials.json` created by `codebuff login`.
+- API token from `~/.openbar/config.json`, `CODEBUFF_API_KEY`, or `~/.config/manicode/credentials.json` created by `codebuff login`.
 - Reads usage and subscription data from Codebuff APIs.
 - Shows credit balance, weekly rate limit, reset timing, subscription status, and auto-top-up flag when present.
 - Override base URL with `CODEBUFF_API_URL`.
@@ -603,12 +603,12 @@ provider-specific cookie validation, endpoints, login detection, and error trans
 
 ## ClinePass
 
-Cline's existing browser sign-in session is reused read-only when no API key is configured. CodexBar does not copy or
+Cline's existing browser sign-in session is reused read-only when no API key is configured. OpenBar does not copy or
 refresh the token; renew an expired session with `cline auth`. See the path overrides in [ClinePass setup](clinepass.md).
 
 ClinePass usage is fetched by the bundled TypeScript plugin on macOS and Linux; QuickJS is the default engine and
 JavaScriptCore is the macOS rollback engine. The committed `.js` is generated from `clinepass.ts`.
-- Selected labeled API-key account, otherwise an API key from `~/.codexbar/config.json`, `CLINE_API_KEY`, or `CLINEPASS_API_KEY`; a rejected selected key never falls back to another credential.
+- Selected labeled API-key account, otherwise an API key from `~/.openbar/config.json`, `CLINE_API_KEY`, or `CLINEPASS_API_KEY`; a rejected selected key never falls back to another credential.
 - Reads 5-hour, weekly, and monthly usage limits from `GET https://api.cline.bot/api/v1/users/me/plan/usage-limits`.
 - ClinePass subscription limits are distinct from Cline pay-as-you-go balance and usage.
 - Status: none yet.
@@ -625,8 +625,8 @@ JavaScriptCore is the macOS rollback engine. The committed `.js` is generated fr
 - `grok agent stdio` (ACP) JSON-RPC `x.ai/billing` method; requires `grok login` (SuperGrok OAuth/OIDC).
 - Reads cached credentials from `~/.grok/auth.json` for identity (email, team).
 - Falls back to grok.com's billing gRPC-web endpoint via browser session cookies when the CLI does not expose billing.
-- Ordinary CLI/test runs do not import browser cookies unless `CODEXBAR_ALLOW_BROWSER_COOKIE_IMPORT=1` is set;
-  `codexbar cookie refresh --provider grok` opts in for its explicit refresh.
+- Ordinary CLI/test runs do not import browser cookies unless `OPENBAR_ALLOW_BROWSER_COOKIE_IMPORT=1` is set;
+  `openbar cookie refresh --provider grok` opts in for its explicit refresh.
 - Validated sessions are cached in the Keychain cookie cache and reused before any new browser import;
   the cache is evicted only on authentication failures.
 - Local fallback aggregates `~/.grok/sessions/**/signals.json` token counts when the RPC is unavailable.
@@ -643,16 +643,16 @@ JavaScriptCore is the macOS rollback engine. The committed `.js` is generated fr
 - Details: `docs/groq.md`.
 
 ## LLM Proxy
-- API key + base URL from `~/.codexbar/config.json` (`enterpriseHost`), `LLM_PROXY_API_KEY`, or `LLM_PROXY_BASE_URL`.
+- API key + base URL from `~/.openbar/config.json` (`enterpriseHost`), `LLM_PROXY_API_KEY`, or `LLM_PROXY_BASE_URL`.
 - Reads `/v1/quota-stats` for aggregate proxy usage with lowest remaining quota, requests, tokens, and approximate cost.
 - Status: none yet.
 - Details: `docs/llm-proxy.md`.
 
 ## ClawRouter
-- API key from the resolved CodexBar config (`providers[].apiKey`) or `CLAWROUTER_API_KEY`.
+- API key from the resolved OpenBar config (`providers[].apiKey`) or `CLAWROUTER_API_KEY`.
 - Defaults to `https://clawrouter.openclaw.ai`; optional config `enterpriseHost` or `CLAWROUTER_BASE_URL` selects another HTTPS deployment.
 - Reads `/v1/usage` for the key policy's monthly budget, spend, request/token totals, and per-provider breakdown.
-- Provider rows are data-driven, so any routed provider returned by ClawRouter is displayed without provider-specific CodexBar code.
+- Provider rows are data-driven, so any routed provider returned by ClawRouter is displayed without provider-specific OpenBar code.
 - Details: `docs/clawrouter.md`.
 
 ## Wayfinder
@@ -672,9 +672,9 @@ JavaScriptCore is the macOS rollback engine. The committed `.js` is generated fr
 ## AWS Bedrock
 - AWS credentials from `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and optional `AWS_SESSION_TOKEN`.
 - Region from `AWS_REGION` / `AWS_DEFAULT_REGION`, defaulting to `us-east-1`.
-- Reads AWS Cost Explorer for Bedrock spend and can compare usage against `CODEXBAR_BEDROCK_BUDGET`.
+- Reads AWS Cost Explorer for Bedrock spend and can compare usage against `OPENBAR_BEDROCK_BUDGET`.
 - Optionally reads rolling 14-day Claude token and request totals from CloudWatch with `cloudwatch:GetMetricData`.
-- Override Cost Explorer base URL with `CODEXBAR_BEDROCK_API_URL` for tests.
+- Override Cost Explorer base URL with `OPENBAR_BEDROCK_API_URL` for tests.
 - Details: `docs/bedrock.md`.
 
 ## Deepgram

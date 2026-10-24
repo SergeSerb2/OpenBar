@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 @Suite(.serialized)
 struct ShellCommandOutputLimitTests {

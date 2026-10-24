@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 /// A Codex session resumed in an older date partition must keep being counted.
 ///
@@ -18,7 +18,7 @@ struct CodexWarmCacheResumeLinuxTests {
 
         init() throws {
             self.root = FileManager.default.temporaryDirectory
-                .appendingPathComponent("codexbar-warm-resume-\(UUID().uuidString)", isDirectory: true)
+                .appendingPathComponent("openbar-warm-resume-\(UUID().uuidString)", isDirectory: true)
             self.cacheRoot = self.root.appendingPathComponent("cache", isDirectory: true)
             self.codexSessionsRoot = self.root.appendingPathComponent("sessions", isDirectory: true)
             try FileManager.default.createDirectory(at: self.cacheRoot, withIntermediateDirectories: true)

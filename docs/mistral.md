@@ -8,7 +8,7 @@ read_when:
 
 # Mistral Provider
 
-CodexBar reads Mistral billing usage and subscription allowances with the Mistral web session from
+OpenBar reads Mistral billing usage and subscription allowances with the Mistral web session from
 `admin.mistral.ai`. It also fetches credit balance and falls back to the console Vibe endpoint when the subscription
 page does not expose a Vibe allowance.
 
@@ -24,7 +24,7 @@ Manual cookies must include an `ory_session_*` cookie. A `csrftoken` cookie enab
 require the `X-CSRFTOKEN` header.
 
 On Linux, browser import is unavailable, so the CLI reads Mistral only in Manual mode: set the provider's
-`cookieSource` to `manual` and its `cookieHeader` to the pasted header in `~/.config/codexbar/config.json`.
+`cookieSource` to `manual` and its `cookieHeader` to the pasted header in `~/.config/openbar/config.json`.
 
 Automatic import follows the shared supported-browser order. Safari requires Full Disk Access.
 The shared access gate bounds Keychain prompts. Automatic import reads only unexpired cookies from
@@ -32,18 +32,18 @@ the documented Mistral domains.
 
 ## Data Sources
 
-CodexBar requests the current UTC month, subscription allowances, and credits from Mistral Admin:
+OpenBar requests the current UTC month, subscription allowances, and credits from Mistral Admin:
 
 - `GET https://admin.mistral.ai/api/billing/v2/usage?month=<month>&year=<year>`
 - `GET https://admin.mistral.ai/subscription` (best-effort included API and Vibe allowances)
 - `GET https://admin.mistral.ai/api/billing/credits` (best-effort credit balance)
 
-If the subscription page has no Vibe allowance and a CSRF token is available, CodexBar makes a bounded best-effort
+If the subscription page has no Vibe allowance and a CSRF token is available, OpenBar makes a bounded best-effort
 fallback request:
 
 - `GET https://console.mistral.ai/api-ui/trpc/billing.vibeUsage?...`
 
-For the console request, CodexBar forwards only the `csrftoken` and `ory_session_*` cookies. Other
+For the console request, OpenBar forwards only the `csrftoken` and `ory_session_*` cookies. Other
 `admin.mistral.ai` cookies stay origin-bound.
 
 ## Display
@@ -84,7 +84,7 @@ or account ownership is invalidated. Burn Down eligibility still requires a know
 ## CLI Usage
 
 ```bash
-codexbar usage --provider mistral --verbose
+openbar usage --provider mistral --verbose
 ```
 
 Text output includes both Included API and the optional Monthly Plan, each with its percentage, reset date when
@@ -106,13 +106,13 @@ In manual mode, paste a full `Cookie:` header from an `admin.mistral.ai` request
 ### Included allowance, credits, or Vibe plan usage are missing
 
 The billing usage request is required. Subscription allowances, credits, and Vibe usage are best-effort; if an
-optional source fails or does not expose data for the account, CodexBar keeps the main Mistral usage result.
+optional source fails or does not expose data for the account, OpenBar keeps the main Mistral usage result.
 
 ## Related Files
 
-- `Sources/CodexBarCore/Providers/Mistral/MistralProviderDescriptor.swift`
-- `Sources/CodexBarCore/Providers/Mistral/MistralUsageFetcher.swift`
-- `Sources/CodexBarCore/Providers/Mistral/MistralSubscriptionBudgetParser.swift`
-- `Sources/CodexBarCore/Providers/Mistral/MistralModels.swift`
-- `Sources/CodexBarCore/Providers/Mistral/MistralCookieImporter.swift`
-- `Sources/CodexBar/Providers/Mistral/MistralProviderImplementation.swift`
+- `Sources/OpenBarCore/Providers/Mistral/MistralProviderDescriptor.swift`
+- `Sources/OpenBarCore/Providers/Mistral/MistralUsageFetcher.swift`
+- `Sources/OpenBarCore/Providers/Mistral/MistralSubscriptionBudgetParser.swift`
+- `Sources/OpenBarCore/Providers/Mistral/MistralModels.swift`
+- `Sources/OpenBarCore/Providers/Mistral/MistralCookieImporter.swift`
+- `Sources/OpenBar/Providers/Mistral/MistralProviderImplementation.swift`

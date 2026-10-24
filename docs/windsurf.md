@@ -27,7 +27,7 @@ Usage source picker:
 ### Local SQLite cache
 - File: `~/Library/Application Support/Windsurf/User/globalStorage/state.vscdb`.
 - Key: `windsurf.settings.cachedPlanInfo` in `ItemTable`.
-- Newer cache shapes may omit `quotaUsage` but include `usage` counters. In that case CodexBar derives
+- Newer cache shapes may omit `quotaUsage` but include `usage` counters. In that case OpenBar derives
   usage windows from `usedMessages/messages` and `usedFlowActions/flowActions`.
 - Limitation: only updates when Windsurf is launched; can be significantly stale.
 
@@ -83,7 +83,7 @@ Preferences → Providers → Windsurf → Cookie source:
 ```
 
 5. Copy the JSON output.
-6. In CodexBar: Providers → Windsurf → Cookie source → Manual → paste the JSON bundle.
+6. In OpenBar: Providers → Windsurf → Cookie source → Manual → paste the JSON bundle.
 
 ## Authentication flow (Automatic mode)
 
@@ -128,7 +128,7 @@ UsageSnapshot (daily/weekly quota %)
 - Protobuf request fields:
   - `1 auth_token: string`
   - `2 include_top_up_status: bool`
-- Parsed response fields used by CodexBar:
+- Parsed response fields used by OpenBar:
   - `plan_status.plan_info.plan_name`
   - `plan_status.plan_end`
   - `plan_status.daily_quota_remaining_percent`
@@ -150,7 +150,7 @@ UsageSnapshot (daily/weekly quota %)
 ### "No Windsurf web session found in Chromium localStorage"
 - Sign in to [app.devin.ai](https://app.devin.ai) or [windsurf.com](https://windsurf.com) in Chrome, Edge, or another
   Chromium browser.
-- Grant Full Disk Access to CodexBar (System Settings → Privacy & Security → Full Disk Access).
+- Grant Full Disk Access to OpenBar (System Settings → Privacy & Security → Full Disk Access).
 - Try Manual mode and paste the JSON session bundle directly.
 
 ### "Invalid Windsurf session payload"
@@ -166,9 +166,9 @@ UsageSnapshot (daily/weekly quota %)
 - The local SQLite cache only updates when Windsurf is launched. Switch to Auto or Web API mode for real-time data.
 
 ## Key files
-- `Sources/CodexBarCore/Providers/Windsurf/WindsurfStatusProbe.swift` (local SQLite)
-- `Sources/CodexBarCore/Providers/Windsurf/WindsurfDevinSessionImporter.swift` (Chromium localStorage extraction)
-- `Sources/CodexBarCore/Providers/Windsurf/WindsurfWebFetcher.swift` (protobuf request + response parsing)
-- `Sources/CodexBarCore/Providers/Windsurf/WindsurfProviderDescriptor.swift` (fetch strategies)
-- `Sources/CodexBar/Providers/Windsurf/WindsurfProviderImplementation.swift` (settings UI)
-- `Sources/CodexBar/Providers/Windsurf/WindsurfSettingsStore.swift` (settings persistence)
+- `Sources/OpenBarCore/Providers/Windsurf/WindsurfStatusProbe.swift` (local SQLite)
+- `Sources/OpenBarCore/Providers/Windsurf/WindsurfDevinSessionImporter.swift` (Chromium localStorage extraction)
+- `Sources/OpenBarCore/Providers/Windsurf/WindsurfWebFetcher.swift` (protobuf request + response parsing)
+- `Sources/OpenBarCore/Providers/Windsurf/WindsurfProviderDescriptor.swift` (fetch strategies)
+- `Sources/OpenBar/Providers/Windsurf/WindsurfProviderImplementation.swift` (settings UI)
+- `Sources/OpenBar/Providers/Windsurf/WindsurfSettingsStore.swift` (settings persistence)

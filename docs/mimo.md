@@ -27,12 +27,12 @@ counts remain details rather than appearing as a reset clock. This does not chan
 2. Enable **Xiaomi MiMo**
 3. Leave **Cookie source** on **Auto** (recommended)
 
-CodexBar imports cookies in the shared supported-browser order, including Safari, Chrome variants, Firefox, Zen, Edge, Arc, and Brave. The shared access gate bounds Keychain prompts. Use **Manual** with a pasted `Cookie:` header when browser import is unavailable.
+OpenBar imports cookies in the shared supported-browser order, including Safari, Chrome variants, Firefox, Zen, Edge, Arc, and Brave. The shared access gate bounds Keychain prompts. Use **Manual** with a pasted `Cookie:` header when browser import is unavailable.
 
 Automatic refresh validates each browser's sessions before reading the next browser. A working session stops
 traversal; missing or rejected sessions continue in the order above.
 
-Safari cookie import may require granting CodexBar Full Disk Access in **System Settings → Privacy & Security**.
+Safari cookie import may require granting OpenBar Full Disk Access in **System Settings → Privacy & Security**.
 
 ### Manual cookie import (optional)
 
@@ -46,7 +46,7 @@ Safari cookie import may require granting CodexBar Full Disk Access in **System 
 - Requires the `api-platform_serviceToken` and `userId` cookies
 - Accepts optional MiMo cookies like `api-platform_ph` and `api-platform_slh` when present
 - Supports `MIMO_API_URL` to override the base API URL for testing. Override values must be explicit HTTPS URLs or
-  bare hosts/paths that CodexBar normalizes to HTTPS. Explicit `http://` values fail closed before MiMo cookies are
+  bare hosts/paths that OpenBar normalizes to HTTPS. Explicit `http://` values fail closed before MiMo cookies are
   attached to a request, and invalid endpoint overrides do not fall back to local MiMo usage accounting.
 
 ## Limitations
@@ -59,7 +59,7 @@ Safari cookie import may require granting CodexBar Full Disk Access in **System 
 
 ### “No Xiaomi MiMo browser session found”
 
-Log in at `https://platform.xiaomimimo.com/#/console/balance` in a supported browser, then refresh CodexBar. If browser access is unavailable, switch the MiMo provider to **Cookie source → Manual** and paste the `Cookie:` header instead.
+Log in at `https://platform.xiaomimimo.com/#/console/balance` in a supported browser, then refresh OpenBar. If browser access is unavailable, switch the MiMo provider to **Cookie source → Manual** and paste the `Cookie:` header instead.
 
 ### “Xiaomi MiMo requires the api-platform_serviceToken and userId cookies”
 
@@ -67,13 +67,13 @@ The pasted header or imported browser session is missing required cookies. Re-co
 
 ### “Xiaomi MiMo browser session expired”
 
-Your MiMo login is stale. Sign out and back in on the MiMo site, then refresh CodexBar.
+Your MiMo login is stale. Sign out and back in on the MiMo site, then refresh OpenBar.
 
 ## Local fallback (opt-in)
 
-When the platform.xiaomimimo.com cookie path is unavailable — Chrome session cookies expire on Chrome relaunch, Chrome Safe Storage keychain access blocked, no SSO login from this machine, etc. — and you drive MiMo inference through a local wrapper such as `cc-mimo` (Claude Code CLI with `ANTHROPIC_BASE_URL=https://token-plan-sgp.xiaomimimo.com/anthropic`), CodexBar can surface **local token accounting** from that wrapper’s session jsonl as graceful degradation — the MiMo card shows lifetime/weekly token sums instead of `login required`.
+When the platform.xiaomimimo.com cookie path is unavailable — Chrome session cookies expire on Chrome relaunch, Chrome Safe Storage keychain access blocked, no SSO login from this machine, etc. — and you drive MiMo inference through a local wrapper such as `cc-mimo` (Claude Code CLI with `ANTHROPIC_BASE_URL=https://token-plan-sgp.xiaomimimo.com/anthropic`), OpenBar can surface **local token accounting** from that wrapper’s session jsonl as graceful degradation — the MiMo card shows lifetime/weekly token sums instead of `login required`.
 
-This fallback is **implicit opt-in**: it only activates when `~/.codexbar/mimo-local-usage.json` exists. Users who do not run a local wrapper see no change.
+This fallback is **implicit opt-in**: it only activates when `~/.openbar/mimo-local-usage.json` exists. Users who do not run a local wrapper see no change.
 
 ### Setup (optional)
 
@@ -84,7 +84,7 @@ This fallback is **implicit opt-in**: it only activates when `~/.codexbar/mimo-l
    chmod +x ~/.local/bin/mimo-usage
    ```
 
-2. Run `mimo-usage --update` once to populate `~/.codexbar/mimo-local-usage.json`. The tracker scans `~/.claude-envs/mimo/.claude/projects/**/*.jsonl` (default path for a `cc-mimo`-style wrapper) and aggregates input, output, cache-read, and cache-creation tokens per time window (today / this week / all time).
+2. Run `mimo-usage --update` once to populate `~/.openbar/mimo-local-usage.json`. The tracker scans `~/.claude-envs/mimo/.claude/projects/**/*.jsonl` (default path for a `cc-mimo`-style wrapper) and aggregates input, output, cache-read, and cache-creation tokens per time window (today / this week / all time).
 
    Invalid session records are skipped so valid usage can still refresh the cache.
 
@@ -92,7 +92,7 @@ This fallback is **implicit opt-in**: it only activates when `~/.codexbar/mimo-l
 
    Overlapping updates use separate temporary files and atomically replace the cache; a failed write leaves the previous cache intact.
 
-4. CodexBar picks up the file on its next refresh. The MiMo card displays `Xiaomi MiMo (local)` with a `Local · <today> · <week> · <lifetime> · <sessions>` summary and the cache's actual update time. Local activity is not rendered as a quota percentage. The `Balance updates / Daily billing finalizes` footer is suppressed for `local` source since neither applies. Because CodexBar only reads this cache (it never regenerates it), a summary whose cache has not refreshed within 12 hours gets a `stale <age>` marker (e.g. `stale 34d`) so a frozen tracker is not misread as live usage — re-run `mimo-usage --update`, or add the scheduled job in step 3, to clear it.
+4. OpenBar picks up the file on its next refresh. The MiMo card displays `Xiaomi MiMo (local)` with a `Local · <today> · <week> · <lifetime> · <sessions>` summary and the cache's actual update time. Local activity is not rendered as a quota percentage. The `Balance updates / Daily billing finalizes` footer is suppressed for `local` source since neither applies. Because OpenBar only reads this cache (it never regenerates it), a summary whose cache has not refreshed within 12 hours gets a `stale <age>` marker (e.g. `stale 34d`) so a frozen tracker is not misread as live usage — re-run `mimo-usage --update`, or add the scheduled job in step 3, to clear it.
 
 ### Wrapper integration example
 
@@ -107,4 +107,4 @@ exit $_exit
 
 - **Local accounting only** — this is not real platform quota. The Xiaomi platform may rate-limit your account before your local counter reflects it.
 - Override the session root with `MIMO_CLAUDE_HOME` and the cache path with `MIMO_LOCAL_USAGE_PATH` when a wrapper uses non-default locations.
-- Cache schema (`~/.codexbar/mimo-local-usage.json`) is internal; do not rely on the JSON shape for external tooling.
+- Cache schema (`~/.openbar/mimo-local-usage.json`) is internal; do not rely on the JSON shape for external tooling.

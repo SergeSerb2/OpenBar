@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthetic CLI/HTTP dashboard regression; requires a local debug CodexBarCLI build."""
+"""Synthetic CLI/HTTP dashboard regression; requires a local debug OpenBarCLI build."""
 
 import json
 import pathlib
@@ -20,7 +20,7 @@ def account_data(result):
 
 
 def verify(binary, root):
-    app = root / "Library/Application Support/CodexBar"
+    app = root / "Library/Application Support/OpenBar"
     app.mkdir(parents=True)
     first = "9e122a52-b3db-4a7e-a7a7-c3b8fc9d01e9"
     second = "a1c82a14-9250-4a32-b9f6-1de9b69f865a"
@@ -53,13 +53,13 @@ def verify(binary, root):
         "HOME": str(root),
         "CFFIXED_USER_HOME": str(root),
         "CODEX_HOME": str(root / ".codex"),
-        "CODEXBAR_CONFIG": str(config),
+        "OPENBAR_CONFIG": str(config),
         "PATH": "/usr/bin:/bin",
-        "CODEXBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1",
-        "CODEXBAR_DISABLE_KEYCHAIN_ACCESS": "1",
-        "CODEXBAR_TEST_CODEX_FILE_ISOLATION": "1",
-        "CODEXBAR_TEST_SESSION_FILE_ISOLATION": "1",
-        "CODEXBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
+        "OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1",
+        "OPENBAR_DISABLE_KEYCHAIN_ACCESS": "1",
+        "OPENBAR_TEST_CODEX_FILE_ISOLATION": "1",
+        "OPENBAR_TEST_SESSION_FILE_ISOLATION": "1",
+        "OPENBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
             {"url": root.as_uri(), "resolvedURL": root.as_uri(), "isRoot": True},
         ]}),
     }
@@ -121,9 +121,9 @@ def verify(binary, root):
 
 
 def main():
-    binaries = list(pathlib.Path(".build").glob("*/debug/CodexBarCLI"))
+    binaries = list(pathlib.Path(".build").glob("*/debug/OpenBarCLI"))
     if len(binaries) != 1:
-        raise SystemExit("Expected one local debug CodexBarCLI build.")
+        raise SystemExit("Expected one local debug OpenBarCLI build.")
     with tempfile.TemporaryDirectory(prefix="codex-dashboard-fixture-") as folder:
         # Keep Foundation's /var spelling; its fixture grants compare normalized URL paths.
         return verify(str(binaries[0].resolve()), pathlib.Path(folder))

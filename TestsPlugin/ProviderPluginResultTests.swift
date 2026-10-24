@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct ProviderPluginResultTests {
     @Test(arguments: ProviderPluginTransportTests.engines)
@@ -78,8 +78,8 @@ extension ProviderPluginResultTests {
     func `CLI writes preserve unrelated config and reject stale or foreign changes`() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let store = CodexBarConfigStore(fileURL: directory.appendingPathComponent("config.json"))
-        var config = CodexBarConfig.makeDefault()
+        let store = OpenBarConfigStore(fileURL: directory.appendingPathComponent("config.json"))
+        var config = OpenBarConfig.makeDefault()
         var fireworks = ProviderConfig(id: .fireworks)
         fireworks.apiKey = "fixture-key"
         var other = ProviderConfig(id: .openai)
@@ -122,8 +122,8 @@ extension ProviderPluginResultTests {
         #expect(await writer.save(
             provider: .fireworks,
             values: ["ACCOUNT_SLUG": "fixture"],
-            expected: CodexBarConfig.makeDefault().providerConfig(for: .fireworks),
-            store: CodexBarConfigStore(fileURL: blocked.appendingPathComponent("config.json"))) ==
+            expected: OpenBarConfig.makeDefault().providerConfig(for: .fireworks),
+            store: OpenBarConfigStore(fileURL: blocked.appendingPathComponent("config.json"))) ==
             .failed)
     }
 }
@@ -153,7 +153,7 @@ extension ProviderPluginResultTests {
     func `cancelled CLI discovery cannot write settings`() async {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let store = CodexBarConfigStore(fileURL: directory.appendingPathComponent("config.json"))
+        let store = OpenBarConfigStore(fileURL: directory.appendingPathComponent("config.json"))
         let task = Task {
             withUnsafeCurrentTask { $0?.cancel() }
             return await ProviderPluginConfigWriter.shared.save(

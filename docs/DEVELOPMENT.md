@@ -6,7 +6,7 @@ read_when:
   - Troubleshooting Keychain prompts in dev
 ---
 
-# CodexBar Development Guide
+# OpenBar Development Guide
 
 ## Quick Start
 
@@ -28,11 +28,11 @@ read_when:
 
 ### Development Workflow
 
-1. **Make code changes** in `Sources/CodexBar/`
+1. **Make code changes** in `Sources/OpenBar/`
 2. **Run** `./Scripts/compile_and_run.sh --test` to test, rebuild, and launch
-3. **Check logs** in Console.app (filter by "codexbar")
+3. **Check logs** in Console.app (filter by "openbar")
 4. **Optional file log**: enable Debug → Logging → "Enable file logging" to write
-   `~/Library/Logs/CodexBar/CodexBar.log` (verbosity defaults to "Verbose")
+   `~/Library/Logs/OpenBar/OpenBar.log` (verbosity defaults to "Verbose")
 
 ## Localized countdowns
 
@@ -52,7 +52,7 @@ to explicitly typed locals when the type checker struggles. Use
 ## Keychain Prompts (Development)
 
 ### First Launch After Fresh Clone
-CodexBar does not run a prompt-capable startup Keychain migration. Unified config migration reads retired stores and
+OpenBar does not run a prompt-capable startup Keychain migration. Unified config migration reads retired stores and
 clears them only after every source was readable and the new config was persisted. If a source is unreadable, cleanup
 and migration completion are deferred to a later launch.
 
@@ -73,7 +73,7 @@ See [Keychain prompts](keychain-prompts.md) for the current user-facing boundary
 ## Augment Cookie Refresh
 
 ### How It Works
-CodexBar checks Augment through the provider fetch pipeline. Auto mode tries the Augment CLI first, then the
+OpenBar checks Augment through the provider fetch pipeline. Auto mode tries the Augment CLI first, then the
 browser-cookie web path. The web path reuses cached cookies when possible and imports from supported browsers when
 the cache is missing or rejected.
 
@@ -97,24 +97,24 @@ If automatic import fails:
 Key source, test, and packaging paths (not exhaustive):
 
 ```
-CodexBar/
-├── Sources/CodexBar/          # Main app (SwiftUI + AppKit)
-│   ├── CodexbarApp.swift      # App entry point
+OpenBar/
+├── Sources/OpenBar/          # Main app (SwiftUI + AppKit)
+│   ├── OpenbarApp.swift      # App entry point
 │   ├── StatusItemController*.swift  # Menu bar icon, menu rendering, and actions
 │   ├── UsageStore*.swift      # Usage refresh, caching, widgets, and history
 │   ├── SettingsStore*.swift   # User preferences and config persistence
 │   ├── Providers/             # App-side provider settings/runtime glue
 │   └── Resources/             # Assets and localized strings
-├── Sources/CodexBarCore/      # Shared business logic used by app, CLI, and widgets
+├── Sources/OpenBarCore/      # Shared business logic used by app, CLI, and widgets
 │   ├── Config/                # Config file model, reader, writer, and validation
 │   ├── Providers/             # Provider descriptors, fetchers, parsers, and status probes
 │   ├── OpenAIWeb/             # OpenAI dashboard integration helpers
 │   ├── WebKit/                # Web session helpers
 │   └── Vendored/              # Embedded support code
-├── Sources/CodexBarCLI/       # Bundled codexbar command-line tool
-├── Sources/CodexBarWidget/    # WidgetKit support
+├── Sources/OpenBarCLI/       # Bundled openbar command-line tool
+├── Sources/OpenBarWidget/    # WidgetKit support
 ├── WidgetExtension/           # Xcode wrapper for the packaged widget extension
-├── Tests/CodexBarTests/       # macOS app/core test suite (XCTest + Swift Testing)
+├── Tests/OpenBarTests/       # macOS app/core test suite (XCTest + Swift Testing)
 ├── TestsLinux/                # Portable and Linux-specific CLI/core tests (target exists on macOS too)
 └── Scripts/                   # Build and packaging scripts
 ```
@@ -123,7 +123,7 @@ CodexBar/
 
 The glibc CLI must not depend on `libxml2`: newer distributions use an incompatible SONAME. Keep
 `FoundationXML` imports and XML parsing under `#if os(macOS)`. Plugin SVG icons fall back to their monogram
-on Linux. CI and release builds run `bash Scripts/check-linux-cli-linkage.sh <CodexBarCLI>` against each glibc
+on Linux. CI and release builds run `bash Scripts/check-linux-cli-linkage.sh <OpenBarCLI>` against each glibc
 binary; static musl builds do not have a dynamic dependency table.
 
 ## Common Tasks
@@ -131,21 +131,21 @@ binary; static musl builds do not have a dynamic dependency table.
 ### Add a New Provider
 See the canonical [provider authoring guide](provider.md#adding-a-new-provider) for the complete flow.
 
-1. Add the provider identity to `Sources/CodexBarCore/Providers/Providers.swift`.
+1. Add the provider identity to `Sources/OpenBarCore/Providers/Providers.swift`.
 2. Add the descriptor and the fetcher, parser, settings-reader, or status-probe pieces the provider needs under
-   `Sources/CodexBarCore/Providers/YourProvider/`.
+   `Sources/OpenBarCore/Providers/YourProvider/`.
 3. Follow the descriptor naming convention in the provider authoring guide.
-4. Add an app-side `ProviderImplementation` under `Sources/CodexBar/Providers/YourProvider/`; implementations can use
+4. Add an app-side `ProviderImplementation` under `Sources/OpenBar/Providers/YourProvider/`; implementations can use
    protocol defaults when no custom UI or macOS integration is needed.
 5. Run `Scripts/regenerate-provider-manifests.sh` to update the Core descriptor manifest and the immutable app catalog.
-6. Add icon assets under `Sources/CodexBar/Resources/`.
-7. Add focused tests under `Tests/CodexBarTests/` and, for CLI/core behavior that must run on Linux, `TestsLinux/`.
+6. Add icon assets under `Sources/OpenBar/Resources/`.
+7. Add focused tests under `Tests/OpenBarTests/` and, for CLI/core behavior that must run on Linux, `TestsLinux/`.
 
 ### Debug Cookie Issues
 1. Enable Debug → Logging → "Enable file logging" or raise verbosity in the app settings.
 2. Reproduce with `./Scripts/compile_and_run.sh`.
 3. Check logs in Console.app:
-   - Filter: `subsystem:com.steipete.codexbar category:augment`
+   - Filter: `subsystem:com.serbinenko.openbar category:augment`
    - Importer messages include the `[augment-cookie]` prefix
 
 ### Debug Menu Bar Placement
@@ -157,7 +157,7 @@ untouched, and each removed key is logged. The bound is the widest connected dis
 is available. Unlike the older global-coordinate bound, this also clears menu-manager parking positions beyond that
 range. Preferred-position repair runs on each creation, independently of the one-time hidden-visibility repair flag.
 Items are created with zero length, assigned their stable autosave name, registered, then given variable length.
-Startup, provider vending, and visibility recovery all use this synchronous factory; recovery keeps `codexbar-merged`.
+Startup, provider vending, and visibility recovery all use this synchronous factory; recovery keeps `openbar-merged`.
 Dictionary-backed placement tests and a recording item cover cleanup and creation order without creating live status
 items. AppKit exposes no public factory taking an autosave name, so zero-length creation cannot prove how a menu
 manager enumerates an item inside AppKit's factory. These tests also do not establish the writer of a position that
@@ -167,7 +167,7 @@ Runtime removal and visibility changes preserve the current saved position if Ap
 hides the item under its stable name, removes it with that name intact, then retires the autosave identity to prevent
 later cleanup from clearing the restored position. This includes startup visibility recovery when Control Center
 has not hosted the items yet: resetting a visible item's name before removal exposes a new automatic identity to
-menu bar managers. Replacement items keep the existing `codexbar-merged` and `codexbar-<provider>` names. During
+menu bar managers. Replacement items keep the existing `openbar-merged` and `openbar-<provider>` names. During
 `applicationWillTerminate`, removal instead keeps the identity intact: renaming a host immediately before exit can
 leave a blank Control Center slot on macOS 26.6.2. Status-menu Quit requests termination after menu tracking unwinds
 and leaves cleanup to that callback; shutdown detaches menus without hiding or renaming the items before removal.
@@ -184,10 +184,10 @@ Control Center host removal or placement after process exit. This does not diagn
 The shell test runners and all Make test targets source `Scripts/test_environment.sh` before launching Swift.
 The Linux CI test step sources it too. It removes exported variables whose names contain `TOKEN`, `KEY`, `SECRET`,
 `PASSWORD`, `PASSWD`, `WEBHOOK`, `CREDENTIAL`, `COOKIE`, `PRIVATE`, or `_PAT`, ignoring case. Explicit non-secret
-exceptions preserve `CODEXBAR_ALLOW_TEST_KEYCHAIN_ACCESS`, `CODEXBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS`,
-`CODEXBAR_DISABLE_KEYCHAIN_ACCESS`, and `CODEXBAR_USE_LOCAL_SWEETCOOKIEKIT`. Standard build and loader search paths
+exceptions preserve `OPENBAR_ALLOW_TEST_KEYCHAIN_ACCESS`, `OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS`,
+`OPENBAR_DISABLE_KEYCHAIN_ACCESS`, and `OPENBAR_USE_LOCAL_SWEETCOOKIEKIT`. Standard build and loader search paths
 (`LD_LIBRARY_PATH`, `DYLD_LIBRARY_PATH`, `DYLD_FRAMEWORK_PATH`, `LIBRARY_PATH`, and `PKG_CONFIG_PATH`) are also preserved:
-their `_PATH` suffix otherwise matches `_PAT`. Other matching variables, including `CODEXBAR_*` credentials, are removed.
+their `_PATH` suffix otherwise matches `_PAT`. Other matching variables, including `OPENBAR_*` credentials, are removed.
 Use synthetic dictionaries or set synthetic sentinels inside fixtures; never depend on inherited real credentials.
 For direct `swift test`, source the script in a Bash subshell first. This does not authorize live account tests.
 
@@ -230,7 +230,7 @@ make test-skip-build FILTER='(?<suite>AdaptiveRefreshPolicyTests)'
 
 `FILTER` is passed literally, including Make/shell syntax and apostrophes. The script forwards all arguments to
 `swift test`; SwiftPM owns regex syntax and repeated-filter selection. Runs are serial by default and have a
-30-minute build-and-test deadline, configurable with `CODEXBAR_TEST_NATIVE_TIMEOUT`. An explicit `--skip-build` uses
+30-minute build-and-test deadline, configurable with `OPENBAR_TEST_NATIVE_TIMEOUT`. An explicit `--skip-build` uses
 existing binaries. No framework search-path override is added.
 
 `make test` remains the complete sharded path. Measured expensive suites run in their own groups, retaining all
@@ -490,7 +490,7 @@ launch-count, isolation, and stale-artifact assertions remain independent of the
 Ordinary tests deny Codex credential-file access at the Codex-owned I/O boundaries, before reads,
 existence probes, or writes. Detection uses the actual process name/environment, independently of
 the credential environment under test. `HOME`, `CODEX_HOME`, `XDG_DATA_HOME`, and
-`CODEXBAR_ALLOW_TEST_KEYCHAIN_ACCESS` do not authorize files. The disabled live-account test remains
+`OPENBAR_ALLOW_TEST_KEYCHAIN_ACCESS` do not authorize files. The disabled live-account test remains
 disabled; neither `LIVE_TEST` nor Keychain permission alone bypasses this boundary.
 
 Use `CodexCredentialFileAccess.withFixtureScope(.init(files: [...], roots: [...]))` for an explicitly
@@ -509,7 +509,7 @@ Task-local scopes inherit through structured tasks, but not detached work. Captu
 `fixtureScope` and explicitly re-enter it in a detached task when fixture access is required; lost
 context fails closed. Never authorize a path just because it appears in an environment dictionary.
 
-`Scripts/test.sh` exports `CODEXBAR_TEST_CODEX_FILE_ISOLATION=1` and removes inherited fixture grants.
+`Scripts/test.sh` exports `OPENBAR_TEST_CODEX_FILE_ISOLATION=1` and removes inherited fixture grants.
 Direct test commands that launch children should export the same signal. A child needing files must
 receive `FixtureScope(files: ..., roots: ...).childEnvironment(base: ...)` naming only that child's
 fixtures; this replaces any inherited grants without changing global environment state. The signal,
@@ -532,7 +532,7 @@ compiled in release builds; allowing real Keychain access does not disable this 
 and owner-only persistence remain unchanged.
 
 Persistence tests should construct stores with an explicitly owned `fileURL` and clean up that fixture. Use fresh
-writer/reader instances to prove disk reloads. The sharded runner exports `CODEXBAR_TEST_SESSION_FILE_ISOLATION=1`
+writer/reader instances to prove disk reloads. The sharded runner exports `OPENBAR_TEST_SESSION_FILE_ISOLATION=1`
 for child processes; direct test commands that launch children should export it too. This covers these four default
 session stores, not arbitrary file access or provider-owned credential databases.
 
@@ -558,7 +558,7 @@ Pin order and workspace-specific `originHash` values do not affect the compariso
 resolve the widget workspace from the repository root and commit both resolved files together:
 
 ```bash
-xcodebuild -resolvePackageDependencies -project WidgetExtension/CodexBarWidgetExtension.xcodeproj
+xcodebuild -resolvePackageDependencies -project WidgetExtension/OpenBarWidgetExtension.xcodeproj
 ```
 
 The check names each drifted package and prints this repair command before packaging can fail with an out-of-date
@@ -575,7 +575,7 @@ tests deferred for a draft still leave the aggregate incomplete. Whole-workflow 
 `always() && !cancelled()` condition, so the verifier does not run in that case.
 
 `Scripts/test_ci_path_gate.sh` checks these result combinations, shared path decisions, and the workflow's Linux
-dependency, condition, and verifier arguments. `CodexBarLinuxTests` includes the portable `AntigravityLocalhostSessionLifetimeTests` suite on
+dependency, condition, and verifier arguments. `OpenBarLinuxTests` includes the portable `AntigravityLocalhostSessionLifetimeTests` suite on
 both macOS and Linux. It checks session reuse and concurrent synthetic loopback failures without credentials;
 this coverage does not establish or fix the cause of Linux dispatch crashes.
 
@@ -599,10 +599,10 @@ swiftlint --strict
 ### Local Development Build
 ```bash
 ./Scripts/package_app.sh
-# Creates: CodexBar.app with ad-hoc signing by default
+# Creates: OpenBar.app with ad-hoc signing by default
 ```
 
-For an identity-signed package, set `CODEXBAR_SIGNING=identity` and `APP_IDENTITY` to an installed Developer ID Application signing
+For an identity-signed package, set `OPENBAR_SIGNING=identity` and `APP_IDENTITY` to an installed Developer ID Application signing
 identity's full name, unique name substring, or SHA-1 certificate hash. Packaging resolves it through
 `security find-identity -p codesigning -v`, derives the Team ID from the selected identity, and signs with that
 certificate's hash. A missing or ambiguous match, a certificate other than Developer ID Application with a ten-character Team ID, or a conflicting
@@ -613,12 +613,12 @@ development certificate names can carry a personal ID. Explicit identity selecti
 App and widget entitlements use the resolved team. Only upstream-team identity-signed release builds embed the
 upstream provisioning profile and CloudKit entitlements; other teams package without those upstream resources.
 Widget build failures and timestamp/signature failures still fail packaging. The sandboxed launch smoke check is
-retained; the existing `CODEXBAR_SKIP_LAUNCH_SMOKE=1` override explicitly reports that it skipped validation.
+retained; the existing `OPENBAR_SKIP_LAUNCH_SMOKE=1` override explicitly reports that it skipped validation.
 
 ### Release Build (Notarized)
 ```bash
 ./Scripts/sign-and-notarize.sh
-# Creates: CodexBar-<version>.zip and CodexBar-<version>.dSYM.zip
+# Creates: OpenBar-<version>.zip and OpenBar-<version>.dSYM.zip
 ```
 
 `sign-and-notarize.sh` honors `APP_IDENTITY` and passes the same selection to packaging; it defaults to the upstream
@@ -631,14 +631,14 @@ See `docs/RELEASING.md` for full release process.
 ### App Won't Launch
 ```bash
 # Check crash logs
-ls -lt ~/Library/Logs/DiagnosticReports/CodexBar* | head -5
+ls -lt ~/Library/Logs/DiagnosticReports/OpenBar* | head -5
 
 # Check Console.app for errors
-# Filter: process:CodexBar
+# Filter: process:OpenBar
 ```
 
 ### Keychain Prompts Keep Appearing
-Confirm the prompt's requested item and requesting binary, then check for another running or installed CodexBar copy.
+Confirm the prompt's requested item and requesting binary, then check for another running or installed OpenBar copy.
 Do not validate a fix by querying the real Keychain from routine tests. See [Keychain prompts](keychain-prompts.md).
 
 ### Cookies Not Refreshing
@@ -650,17 +650,17 @@ Do not validate a fix by querying the real Keychain from routine tests. See [Key
 ### Main-Thread Hangs
 
 Debug builds start the hang watchdog automatically. To diagnose a release build,
-enable it explicitly and restart CodexBar:
+enable it explicitly and restart OpenBar:
 
 ```bash
-defaults write com.steipete.codexbar debugMainThreadHangWatchdog -bool true
+defaults write com.serbinenko.openbar debugMainThreadHangWatchdog -bool true
 ```
 
 Hangs are written to the app log. Hangs over two seconds also request a process
-sample under `~/Library/Logs/CodexBar/`. Disable the release opt-in with:
+sample under `~/Library/Logs/OpenBar/`. Disable the release opt-in with:
 
 ```bash
-defaults delete com.steipete.codexbar debugMainThreadHangWatchdog
+defaults delete com.serbinenko.openbar debugMainThreadHangWatchdog
 ```
 
 ## Architecture Notes
@@ -675,7 +675,7 @@ defaults delete com.steipete.codexbar debugMainThreadHangWatchdog
 - Automatic browser import via SweetCookieKit
 - Keychain cache for some imported browser cookies and OAuth/device-flow credentials
 - The resolved config file for provider settings, manual cookies, and stored API keys: new installs use
-  `~/.config/codexbar/config.json`, while existing `~/.codexbar/config.json` installs retain their legacy path
+  `~/.config/openbar/config.json`, while existing `~/.openbar/config.json` installs retain their legacy path
 - Manual override for debugging
 - Browser-cookie import when cached sessions need refresh
 

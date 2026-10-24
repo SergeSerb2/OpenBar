@@ -23,7 +23,7 @@ class HomebrewTests(unittest.TestCase):
 
     def test_formula_replaces_exact_platform_checksums(self):
         targets = ['macos-arm64', 'macos-x86_64', 'linux-aarch64', 'linux-x86_64']
-        source = '  version "1.0.0"\n' + ''.join('  url "https://github.com/steipete/CodexBar/releases/download/v#{version}/CodexBarCLI-v#{version}-' + t + '.tar.gz"\n  sha256 "' + 'a' * 64 + '"\n' for t in targets)
+        source = '  version "1.0.0"\n' + ''.join('  url "https://github.com/SergeSerb2/OpenBar/releases/download/v#{version}/OpenBarCLI-v#{version}-' + t + '.tar.gz"\n  sha256 "' + 'a' * 64 + '"\n' for t in targets)
         digests = {t: str(i + 1) * 64 for i, t in enumerate(targets)}
         changed = homebrew.rewrite_formula(source, '1.2.3', digests)
         for digest in digests.values():

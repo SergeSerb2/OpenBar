@@ -23,7 +23,7 @@ def verify(binary, root):
             "accessToken": "synthetic-access", "refreshToken": "synthetic-refresh",
             "idToken": jwt({"alg": "none"}) + "." + jwt(identity) + ".synthetic",
         }}))
-    app = root / "Library/Application Support/CodexBar"
+    app = root / "Library/Application Support/OpenBar"
     app.mkdir(parents=True)
     managed_id = "9e122a52-b3db-4a7e-a7a7-c3b8fc9d01e9"
     (app / "managed-codex-accounts.json").write_text(json.dumps({"version": 3, "accounts": [{
@@ -60,11 +60,11 @@ for line in sys.stdin:
     stub.chmod(0o755)
     environment = {
         "HOME": str(root), "CFFIXED_USER_HOME": str(root), "CODEX_HOME": str(root / "empty"),
-        "CODEXBAR_CONFIG": str(config), "CODEX_CLI_PATH": str(stub), "PATH": "/usr/bin:/bin",
-        "SHELL": "/bin/sh", "CODEXBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1",
-        "CODEXBAR_DISABLE_KEYCHAIN_ACCESS": "1", "CODEXBAR_TEST_SESSION_FILE_ISOLATION": "1",
-        "CODEXBAR_TEST_CODEX_FILE_ISOLATION": "1",
-        "CODEXBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
+        "OPENBAR_CONFIG": str(config), "CODEX_CLI_PATH": str(stub), "PATH": "/usr/bin:/bin",
+        "SHELL": "/bin/sh", "OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1",
+        "OPENBAR_DISABLE_KEYCHAIN_ACCESS": "1", "OPENBAR_TEST_SESSION_FILE_ISOLATION": "1",
+        "OPENBAR_TEST_CODEX_FILE_ISOLATION": "1",
+        "OPENBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
             {"url": root.as_uri(), "resolvedURL": root.as_uri(), "isRoot": True},
         ]}),
     }
@@ -128,8 +128,8 @@ for line in sys.stdin:
 
 
 def main():
-    binaries = list(pathlib.Path(".build").glob("*/debug/CodexBarCLI"))
-    assert len(binaries) == 1, "Expected one local debug CodexBarCLI"
+    binaries = list(pathlib.Path(".build").glob("*/debug/OpenBarCLI"))
+    assert len(binaries) == 1, "Expected one local debug OpenBarCLI"
     with tempfile.TemporaryDirectory(prefix="private-dashboard-fixture-") as directory:
         verify(str(binaries[0].resolve()), pathlib.Path(directory))
 

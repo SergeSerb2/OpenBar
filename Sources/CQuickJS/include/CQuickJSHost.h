@@ -1,5 +1,5 @@
-#ifndef CODEXBAR_CQUICKJS_HOST_H
-#define CODEXBAR_CQUICKJS_HOST_H
+#ifndef OPENBAR_CQUICKJS_HOST_H
+#define OPENBAR_CQUICKJS_HOST_H
 
 #include "quickjs.h"
 #include <stdbool.h>

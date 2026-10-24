@@ -19,7 +19,7 @@ def check_memory(binary, root):
     config.write_text(json.dumps({"version": 1, "providers": [
         {"id": "codex", "enabled": True, "source": "cli"}]}))
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    pricing = home / ".cache" / "CodexBar" / "model-pricing"
+    pricing = home / ".cache" / "OpenBar" / "model-pricing"
     pricing.mkdir(parents=True)
     (pricing / "models-dev-v1.json").write_text(json.dumps({
         "version": 1, "fetchedAt": stamp, "catalog": {"providers": {"openai": {
@@ -38,7 +38,7 @@ def check_memory(binary, root):
         reservation.bind(("127.0.0.1", 0))
         port = reservation.getsockname()[1]
     environment = {"PATH": "/usr/bin:/bin", "HOME": str(home),
-                   "CODEX_HOME": str(home / ".codex"), "CODEXBAR_CONFIG": str(config),
+                   "CODEX_HOME": str(home / ".codex"), "OPENBAR_CONFIG": str(config),
                    "XDG_CACHE_HOME": str(home / ".cache")}
     with (root / "server.log").open("w") as log:
         process = subprocess.Popen([str(binary), "serve", "--port", str(port),
@@ -97,5 +97,5 @@ def check_memory(binary, root):
 
 
 if __name__ == "__main__":
-    with tempfile.TemporaryDirectory(prefix="codexbar-serve-memory-") as directory:
+    with tempfile.TemporaryDirectory(prefix="openbar-serve-memory-") as directory:
         check_memory(Path(sys.argv[1]).resolve(), Path(directory))

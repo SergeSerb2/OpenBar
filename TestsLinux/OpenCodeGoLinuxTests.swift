@@ -1,7 +1,7 @@
-import CodexBarCore
+import OpenBarCore
 import Foundation
 import Testing
-@testable import CodexBarCLI
+@testable import OpenBarCLI
 
 #if canImport(SQLite3)
 import SQLite3
@@ -14,8 +14,8 @@ import CSQLite3
 struct OpenCodeGoLinuxTests {
     @Test
     func autoSourceDoesNotRequireWebSupport() async {
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .opencodego))
-        #expect(await CodexBarCLI.sourceModeRequiresWebSupport(.web, provider: .opencodego))
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(.auto, provider: .opencodego))
+        #expect(await OpenBarCLI.sourceModeRequiresWebSupport(.web, provider: .opencodego))
     }
 
     @Test
@@ -23,11 +23,11 @@ struct OpenCodeGoLinuxTests {
         let settings = ProviderSettingsSnapshot.make(
             commandcode: .init(cookieSource: .manual, manualCookieHeader: "session=manual"))
 
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(
             .auto,
             provider: .commandcode,
             settings: settings))
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(
             .web,
             provider: .commandcode,
             settings: settings))

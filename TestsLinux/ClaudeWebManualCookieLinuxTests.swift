@@ -3,8 +3,8 @@ import Foundation
 import FoundationNetworking
 #endif
 import Testing
-@testable import CodexBarCLI
-@testable import CodexBarCore
+@testable import OpenBarCLI
+@testable import OpenBarCore
 
 #if os(Linux)
 /// Manual-cookie transport and routing without browser import or live credentials.
@@ -20,13 +20,13 @@ struct ClaudeWebManualCookieLinuxTests {
             cookieSource: .manual,
             manualCookieHeader: Self.manualHeader))
 
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(.web, provider: .claude, settings: manual))
-        #expect(await !CodexBarCLI.sourceModeRequiresWebSupport(.auto, provider: .claude, settings: manual))
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(.web, provider: .claude, settings: manual))
+        #expect(await !OpenBarCLI.sourceModeRequiresWebSupport(.auto, provider: .claude, settings: manual))
 
         // No manual cookie: explicit web still needs the macOS-only browser import.
-        #expect(await CodexBarCLI.sourceModeRequiresWebSupport(.web, provider: .claude, settings: .make()))
+        #expect(await OpenBarCLI.sourceModeRequiresWebSupport(.web, provider: .claude, settings: .make()))
         for header in ["", "   ", "other=1", "sessionKey=invalid"] {
-            #expect(await CodexBarCLI.sourceModeRequiresWebSupport(
+            #expect(await OpenBarCLI.sourceModeRequiresWebSupport(
                 .web,
                 provider: .claude,
                 settings: ProviderSettingsSnapshot.make(claude: .init(

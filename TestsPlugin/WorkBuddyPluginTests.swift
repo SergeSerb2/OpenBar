@@ -3,7 +3,7 @@ import Foundation
 import FoundationNetworking
 #endif
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 /// Plugin-engine coverage for the bundled WorkBuddy billing script.
 struct WorkBuddyPluginTests {
@@ -178,7 +178,7 @@ struct WorkBuddyPluginTests {
                 fileExists: { _ in false }, directoryContents: { _ in nil }))
         let web = try #require(WorkBuddyProviderDescriptor.spec.webSource)
         let values = try #require(web.resolveValues(context))
-        let bundle = try #require(CodexBarCoreResources.bundle)
+        let bundle = try #require(OpenBarCoreResources.bundle)
         let source = try String(
             contentsOf: #require(bundle.url(forResource: "workbuddy", withExtension: "js")),
             encoding: .utf8)

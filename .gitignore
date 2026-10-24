@@ -1,7 +1,7 @@
 # Xcode user/session
 xcuserdata/
 .swiftpm/xcode/xcshareddata/
-.codexbar/config.json
+.openbar/config.json
 *.env
 *.local
 
@@ -11,10 +11,10 @@ DerivedData
 
 # Bundles / artifacts
 # Main app bundle (any variation)
-CodexBar.app/
-CodexBar *.app/
-CodexBar_*.app/
-Codexbar.app/
+OpenBar.app/
+OpenBar *.app/
+OpenBar_*.app/
+Openbar.app/
 # Release artifacts
 *.ipa
 *.dSYM*

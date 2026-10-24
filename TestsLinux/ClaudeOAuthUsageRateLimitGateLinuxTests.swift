@@ -1,7 +1,7 @@
 #if os(Linux)
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct ClaudeOAuthUsageRateLimitGateLinuxTests {
     @Test

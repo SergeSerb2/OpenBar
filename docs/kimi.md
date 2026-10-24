@@ -8,7 +8,7 @@ read_when:
 
 # Kimi Code Provider
 
-Tracks usage for [Kimi For Coding](https://www.kimi.com/code) in CodexBar.
+Tracks usage for [Kimi For Coding](https://www.kimi.com/code) in OpenBar.
 
 Kimi Code is distinct from the Moonshot/Kimi Open Platform. China-issued Open Platform keys and balance
 belong under **Moonshot / Kimi Open Platform** with the China mainland region selected; they are not Kimi
@@ -50,10 +50,10 @@ Choose one of four authentication methods:
 
 ### Method 1: Kimi Code API Key (Recommended)
 
-Create an API key in the [Kimi Code Console](https://www.kimi.com/code/console), then save it in CodexBar:
+Create an API key in the [Kimi Code Console](https://www.kimi.com/code/console), then save it in OpenBar:
 
 ```bash
-codexbar config set-api-key --provider kimi --api-key "kimi-api-key-here"
+openbar config set-api-key --provider kimi --api-key "kimi-api-key-here"
 ```
 
 Or provide it through the environment:
@@ -62,9 +62,9 @@ Or provide it through the environment:
 export KIMI_CODE_API_KEY="kimi-code-api-key-here"
 ```
 
-CodexBar calls `GET https://api.kimi.com/coding/v1/usages` with the API key. Set
+OpenBar calls `GET https://api.kimi.com/coding/v1/usages` with the API key. Set
 `KIMI_CODE_BASE_URL` only when testing a compatible HTTPS proxy or alternate host with an explicit API key.
-CodexBar never forwards a Kimi Code CLI credential to an endpoint override or to the International host.
+OpenBar never forwards a Kimi Code CLI credential to an endpoint override or to the International host.
 
 Both the older count-based response and the newer `usages` ratio pools are supported. Ratio pools supply
 the 5-hour, weekly, and monthly Total usage windows they provide. When reliable legacy counts describe
@@ -79,18 +79,18 @@ Numeric legacy fields outside the integer range decode safely; unusable request 
 ### Method 2: Kimi Code CLI
 
 In the default China region, if you are signed in with the official Kimi Code CLI, Auto mode can reuse its fresh access token from
-`~/.kimi-code/credentials/kimi-code.json`. CodexBar sends the same device identity headers as the CLI,
+`~/.kimi-code/credentials/kimi-code.json`. OpenBar sends the same device identity headers as the CLI,
 including the local hostname, OS details, and stable `~/.kimi-code/device_id` value. If that device ID is
-missing, CodexBar creates it with private file permissions to match the official client.
+missing, OpenBar creates it with private file permissions to match the official client.
 
-CodexBar treats CLI-owned authentication as read-only: it never uses the refresh token and never rewrites
-the credential file. Kimi rotates refresh tokens, so refreshing only in CodexBar's memory could invalidate
+OpenBar treats CLI-owned authentication as read-only: it never uses the refresh token and never rewrites
+the credential file. Kimi rotates refresh tokens, so refreshing only in OpenBar's memory could invalidate
 the CLI's saved token; writing it back could race with the CLI's own renewal. The official CLI coordinates
 renewal and persists the replacement credential itself.
 
-CLI access tokens are short-lived. For a 15-minute token, CodexBar's 60-second safety margin means it
+CLI access tokens are short-lived. For a 15-minute token, OpenBar's 60-second safety margin means it
 becomes stale after 14 minutes without CLI renewal. Run `kimi` to renew it (sign in if the CLI asks), then
-refresh CodexBar. The next fetch rereads the file; restarting CodexBar is unnecessary. Auto mode tries
+refresh OpenBar. The next fetch rereads the file; restarting OpenBar is unnecessary. Auto mode tries
 configured web authentication when the CLI credential is stale or rejected, and prefers a configured API
 key before the CLI. For unattended use, add a Kimi Code API key in **Settings → Providers → Kimi** or set
 `KIMI_CODE_API_KEY`. Set `KIMI_CODE_HOME` only when the official CLI uses a non-default home directory.
@@ -104,10 +104,10 @@ automatic CLI credential reuse. Configure an International API key or use a `kim
 
 **No setup needed!** If you're already logged in to Kimi in Arc, Chrome, Safari, Edge, Brave, or Chromium:
 
-1. Open CodexBar settings → Providers → Kimi
+1. Open OpenBar settings → Providers → Kimi
 2. Set "Cookie source" to "Automatic"
 3. Enable the Kimi provider toggle
-4. CodexBar will automatically find your session
+4. OpenBar will automatically find your session
 
 Automatic mode prefers the current China Kimi Desktop access token from its primary Local Storage profile.
 Expired or invalid desktop JWTs are skipped; if the server rejects a desktop session, the Web source
@@ -122,27 +122,27 @@ If a Code subscription lapses and the web response omits Code pools, valid membe
 visible without inventing empty Code bars. A response with neither Code usage nor a usable membership
 quota still fails the refresh. The separate `totalQuota` field is not treated as a Code quota window.
 
-**Note**: Requires Full Disk Access to read browser cookies (System Settings → Privacy & Security → Full Disk Access → CodexBar).
+**Note**: Requires Full Disk Access to read browser cookies (System Settings → Privacy & Security → Full Disk Access → OpenBar).
 
 For China, Desktop discovery reads only the exact `https://www.kimi.com` / `access_token` record in
 `~/Library/Application Support/kimi-desktop/Local Storage/leveldb`. The shared reader follows the current
 LevelDB manifest and sequence numbers, honors deletions, and rejects incomplete or changing reads and
 symlinked profile paths. Only a bare, unexpired access JWT with the `kimi.com` audience is accepted.
-CodexBar does not scan historical tokens, import refresh tokens, or fall back to old China Desktop cookies.
+OpenBar does not scan historical tokens, import refresh tokens, or fall back to old China Desktop cookies.
 
 The acquired Desktop session is checked again before each web request. A deleted, replaced, expired,
 or unreadable session stops further requests with that credential. Confirm the intended account in
-Kimi Desktop and refresh CodexBar to acquire it again. Successful Code API or CLI quota results remain
+Kimi Desktop and refresh OpenBar to acquire it again. Successful Code API or CLI quota results remain
 available when this optional membership enrichment is unavailable. These local checks do not verify JWT
 signatures or revoke requests already sent; the Kimi service authenticates the token.
 
 International retains its existing read-only Desktop cookie discovery; International Desktop Local Storage
 is not imported. Its Cookies database uses WAL-aware SQLite reads, with an immutable fallback for idle
-WAL-mode databases that have no sidecars. CodexBar never creates or modifies Desktop database files.
+WAL-mode databases that have no sidecars. OpenBar never creates or modifies Desktop database files.
 
 For the selected region, Automatic mode also reads `access_token` from Chromium browser local storage
 through the shared browser catalog after cookie discovery. Tokens stay bound to the selected Kimi origin;
-expired or malformed tokens are skipped. CodexBar never reads or refreshes browser refresh tokens. Open
+expired or malformed tokens are skipped. OpenBar never reads or refreshes browser refresh tokens. Open
 Kimi in your browser to renew an expired session, or use a Kimi Code API key for unattended use.
 Safari and Firefox local storage are not imported.
 
@@ -150,13 +150,13 @@ Safari and Firefox local storage are not imported.
 
 For advanced users or when automatic import fails:
 
-1. Open CodexBar settings → Providers → Kimi
+1. Open OpenBar settings → Providers → Kimi
 2. Set "Cookie source" to "Manual"
 3. Visit `https://www.kimi.com/code/console` in your browser
 4. Open Developer Tools (F12 or Cmd+Option+I)
 5. Go to **Application** → **Cookies**
 6. Copy the `kimi-auth` cookie value (JWT token). On kimi.ai, copy `access_token` from **Local Storage** instead.
-7. Paste it into the "Auth Token" field in CodexBar
+7. Paste it into the "Auth Token" field in OpenBar
 
 Manual mode never imports Desktop or browser credentials, including when the token field is empty or invalid.
 An explicit cookie environment variable can still supply the web token.
@@ -189,7 +189,7 @@ export KIMI_AUTH_TOKEN="jwt-token-here"
 
 ## Authentication Priority
 
-When multiple sources are available, CodexBar uses this order:
+When multiple sources are available, OpenBar uses this order:
 
 1. API key (`providers[].apiKey` or `KIMI_CODE_API_KEY`) in Auto mode
 2. Fresh Kimi Code CLI access token (`~/.kimi-code/credentials/kimi-code.json`)
@@ -290,19 +290,19 @@ All tiers have a rate limit of 200 requests per 5 hours.
 - If using Automatic mode, log in to Kimi again in your browser
 
 ### "Kimi Desktop session changed before the request was sent"
-- Confirm the intended account is signed in to Kimi Desktop, then refresh CodexBar.
+- Confirm the intended account is signed in to Kimi Desktop, then refresh OpenBar.
 - The next refresh reads the current session again; no restart is needed.
 
 ### "No Kimi session cookies found"
 - You're not logged in to Kimi in any supported browser
-- Grant Full Disk Access to CodexBar in System Settings
+- Grant Full Disk Access to OpenBar in System Settings
 
 ### "Failed to parse Kimi usage data"
 - The API response format may have changed. Please report this issue.
 
 ## Implementation
 
-- **Core files**: `Sources/CodexBarCore/Providers/Kimi/`
-- **UI files**: `Sources/CodexBar/Providers/Kimi/`
-- **Login flow**: `Sources/CodexBar/KimiLoginRunner.swift`
-- **Tests**: `Tests/CodexBarTests/KimiProviderTests.swift`
+- **Core files**: `Sources/OpenBarCore/Providers/Kimi/`
+- **UI files**: `Sources/OpenBar/Providers/Kimi/`
+- **Login flow**: `Sources/OpenBar/KimiLoginRunner.swift`
+- **Tests**: `Tests/OpenBarTests/KimiProviderTests.swift`

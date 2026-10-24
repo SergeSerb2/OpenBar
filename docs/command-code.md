@@ -8,7 +8,7 @@ read_when:
 
 # Command Code
 
-CodexBar surfaces [Command Code](https://commandcode.ai) monthly USD credits next
+OpenBar surfaces [Command Code](https://commandcode.ai) monthly USD credits next
 to your other AI coding providers.
 
 ## Data source
@@ -29,9 +29,9 @@ Select `API key` or `Browser cookies` to pin that source. A rejected key reports
 ### API key
 
 Leave Usage source on **Auto** or select **API key**, then paste a `user_...` key into Settings -> Providers -> Command Code -> API key (stored as `apiKey`
-in the [CodexBar config file](configuration.md#location)), or set `COMMAND_CODE_API_KEY`. `cmd login` stores the key in
-`~/.commandcode/auth.json`, which CodexBar does not read. This path works on Linux without a cookie.
-For the CLI, configure `apiKey` or set `COMMAND_CODE_API_KEY` and run `codexbar usage --provider commandcode --json`.
+in the [OpenBar config file](configuration.md#location)), or set `COMMAND_CODE_API_KEY`. `cmd login` stores the key in
+`~/.commandcode/auth.json`, which OpenBar does not read. This path works on Linux without a cookie.
+For the CLI, configure `apiKey` or set `COMMAND_CODE_API_KEY` and run `openbar usage --provider commandcode --json`.
 Use `--source api` to require a key or `--source web` to use cookies explicitly.
 
 ### Cookies
@@ -59,14 +59,14 @@ $1/month subscription plus processing fees, as listed on the [public pricing pag
 The legacy `individual-go` allowance remains $10.
 
 The credits response reports the monthly grant size (`monthlyCreditsGranted`),
-and CodexBar sizes the monthly row from it. The optional subscription lookup
+and OpenBar sizes the monthly row from it. The optional subscription lookup
 supplies the plan name and the billing-period end, and sizes the grant only
 when the credits response omits it. That lookup can time out while credits
-remain available. CodexBar keeps the last confirmed plan
+remain available. OpenBar keeps the last confirmed plan
 in memory, scoped to the credential that produced it. A kept plan is dropped at `currentPeriodEnd`, a day
 after the last refresh that confirmed it, when a lookup reports the free tier,
 and when a lookup reports a plan this build cannot size. Nothing is written to
-disk, so a one-shot `codexbar usage` run starts with an empty memory.
+disk, so a one-shot `openbar usage` run starts with an empty memory.
 
 Debug builds accept `COMMANDCODE_API_URL` for synthetic tests against a loopback
 origin (`localhost`, `127.0.0.1`, or `::1`). Release builds always use the official
@@ -90,9 +90,9 @@ billing endpoint.
 
 ## Related files
 
-- `Sources/CodexBarCore/Providers/CommandCode/` - descriptor, cookie import,
+- `Sources/OpenBarCore/Providers/CommandCode/` - descriptor, cookie import,
   billing fetcher, snapshot mapping, and plan catalog.
-- `Sources/CodexBar/Providers/CommandCode/` - settings store bridge and
+- `Sources/OpenBar/Providers/CommandCode/` - settings store bridge and
   provider settings UI.
-- `Tests/CodexBarTests/CommandCode*Tests.swift` - parser, cookie, settings,
+- `Tests/OpenBarTests/CommandCode*Tests.swift` - parser, cookie, settings,
   and icon coverage.

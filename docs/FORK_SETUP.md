@@ -6,15 +6,15 @@ read_when:
 
 # Fork Setup & Initial Configuration
 
-> Historical `topoffunnel/CodexBar` instructions. Use the [README](../README.md) and
+> Historical `topoffunnel/OpenBar` instructions. Use the [README](../README.md) and
 > [Development guide](DEVELOPMENT.md) for this repository. The Augment-removal warning below describes an old fork
 > comparison: Augment is registered and supported on current main. See the [Augment guide](augment.md).
 > The upstream/Quotio scripts and monitoring workflow still exist; their presence does not make this old fork
 > remote layout or selective-sync policy a requirement for main-repository development.
 
-**One-time setup for managing your CodexBar fork with multiple upstreams**
+**One-time setup for managing your OpenBar fork with multiple upstreams**
 
-For local Developer ID packaging, set `CODEXBAR_SIGNING=identity` and `APP_IDENTITY` to your installed identity's
+For local Developer ID packaging, set `OPENBAR_SIGNING=identity` and `APP_IDENTITY` to your installed identity's
 full name or certificate SHA-1 hash. The packaging script derives the Team ID and rejects conflicting
 `APP_TEAM_ID` overrides; it does not embed upstream CloudKit resources for another team. The release signing
 script uses the same `APP_IDENTITY`. See [identity signing requirements](DEVELOPMENT.md#local-development-build)
@@ -29,10 +29,10 @@ and [release setup](RELEASING.md) before distributing a fork.
 ```bash
 # Verify your fork is origin
 git remote -v
-# Should show: origin  git@github.com:topoffunnel/CodexBar.git
+# Should show: origin  git@github.com:topoffunnel/OpenBar.git
 
 # Add upstream (steipete's original)
-git remote add upstream https://github.com/steipete/CodexBar.git
+git remote add upstream https://github.com/SergeSerb2/OpenBar.git
 
 # Add quotio (inspiration source)
 git remote add quotio https://github.com/nguyenphutrong/quotio.git
@@ -43,8 +43,8 @@ git fetch --all
 # Verify setup
 git remote -v
 # Should show:
-# origin    git@github.com:topoffunnel/CodexBar.git (fetch/push)
-# upstream  https://github.com/steipete/CodexBar.git (fetch/push)
+# origin    git@github.com:topoffunnel/OpenBar.git (fetch/push)
+# upstream  https://github.com/SergeSerb2/OpenBar.git (fetch/push)
 # quotio    https://github.com/nguyenphutrong/quotio.git (fetch/push)
 ```
 
@@ -94,7 +94,7 @@ chmod +x Scripts/*.sh
 ```
 Files changed:
  .../Providers/Augment/AugmentStatusProbe.swift     | 627 deletions
- Tests/CodexBarTests/AugmentStatusProbeTests.swift  |  88 deletions
+ Tests/OpenBarTests/AugmentStatusProbeTests.swift  |  88 deletions
 ```
 
 **This validates our fork strategy:**
@@ -231,7 +231,7 @@ git commit -m "feat: multi-account management
 Inspired by quotio's account switching pattern:
 https://github.com/nguyenphutrong/quotio/...
 
-Implemented independently using CodexBar architecture."
+Implemented independently using OpenBar architecture."
 ```
 
 ---
@@ -272,7 +272,7 @@ make test
 git push origin upstream-pr/fix-cursor-bonus
 
 # 6. Create PR on GitHub
-# Go to: https://github.com/steipete/CodexBar
+# Go to: https://github.com/SergeSerb2/OpenBar
 # Click "New Pull Request"
 # Select: base: steipete:main <- compare: topoffunnel:upstream-pr/fix-cursor-bonus
 
@@ -283,12 +283,12 @@ git push origin upstream-pr/fix-cursor-bonus
 
 Every fix PR should reference its originating issue (if there is one) in the PR body:
 
-- For issues in `steipete/CodexBar`, use `Closes #N` when the PR fully resolves the issue or `Refs #N`
+- For issues in `SergeSerb2/OpenBar`, use `Closes #N` when the PR fully resolves the issue or `Refs #N`
   when it only relates to the issue.
 - For issues in a contributor fork or another repository, use `Closes owner/repository#N` or
   `Refs owner/repository#N`.
 
-An upstream PR resolves bare `#N` references in `steipete/CodexBar`. Qualify cross-repository references to avoid
+An upstream PR resolves bare `#N` references in `SergeSerb2/OpenBar`. Qualify cross-repository references to avoid
 linking—or with `Closes`, closing—an unrelated upstream issue with the same number.
 
 Verify the cross-reference renders on the PR page before requesting review, so

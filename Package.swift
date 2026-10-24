@@ -4,13 +4,13 @@ import PackageDescription
 
 let sweetCookieKitPath = "../SweetCookieKit"
 let useLocalSweetCookieKit =
-    ProcessInfo.processInfo.environment["CODEXBAR_USE_LOCAL_SWEETCOOKIEKIT"] == "1"
+    ProcessInfo.processInfo.environment["OPENBAR_USE_LOCAL_SWEETCOOKIEKIT"] == "1"
 let sweetCookieKitDependency: Package.Dependency =
     useLocalSweetCookieKit && FileManager.default.fileExists(atPath: sweetCookieKitPath)
     ? .package(path: sweetCookieKitPath)
     : .package(url: "https://github.com/steipete/SweetCookieKit", from: "0.5.9")
 
-let sqlite3LibDir = ProcessInfo.processInfo.environment["CODEXBAR_SQLITE3_LIB_DIR"]?
+let sqlite3LibDir = ProcessInfo.processInfo.environment["OPENBAR_SQLITE3_LIB_DIR"]?
     .trimmingCharacters(in: .whitespacesAndNewlines)
 let sqlite3LinkerSettings: [LinkerSetting] = if let sqlite3LibDir, !sqlite3LibDir.isEmpty {
     [.unsafeFlags(["-L\(sqlite3LibDir)"], .when(platforms: [.linux]))]
@@ -19,25 +19,25 @@ let sqlite3LinkerSettings: [LinkerSetting] = if let sqlite3LibDir, !sqlite3LibDi
 }
 
 let package = Package(
-    name: "CodexBar",
+    name: "OpenBar",
     defaultLocalization: "en",
     platforms: [
         .macOS(.v14),
     ],
     products: {
         var products: [Product] = [
-            .library(name: "CodexBarCore", targets: ["CodexBarCore"]),
-            .executable(name: "CodexBarCLI", targets: ["CodexBarCLI"]),
+            .library(name: "OpenBarCore", targets: ["OpenBarCore"]),
+            .executable(name: "OpenBarCLI", targets: ["OpenBarCLI"]),
             // Offline adaptive-refresh replay harness. Keep the supporting library package-internal.
             .executable(name: "AdaptiveReplayCLI", targets: ["AdaptiveReplayCLI"]),
         ]
 
         #if os(macOS)
         products.append(contentsOf: [
-            .executable(name: "CodexBar", targets: ["CodexBar"]),
-            .executable(name: "CodexBarClaudeWatchdog", targets: ["CodexBarClaudeWatchdog"]),
-            .executable(name: "CodexBarWidget", targets: ["CodexBarWidget"]),
-            .executable(name: "CodexBarClaudeWebProbe", targets: ["CodexBarClaudeWebProbe"]),
+            .executable(name: "OpenBar", targets: ["OpenBar"]),
+            .executable(name: "OpenBarClaudeWatchdog", targets: ["OpenBarClaudeWatchdog"]),
+            .executable(name: "OpenBarWidget", targets: ["OpenBarWidget"]),
+            .executable(name: "OpenBarClaudeWebProbe", targets: ["OpenBarClaudeWebProbe"]),
         ])
         #endif
 
@@ -73,7 +73,7 @@ let package = Package(
                     .brew(["sqlite3"]),
                 ]),
             .target(
-                name: "CodexBarCore",
+                name: "OpenBarCore",
                 dependencies: [
                     "CQuickJS",
                     .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
@@ -91,13 +91,13 @@ let package = Package(
                     .linkedFramework("JavaScriptCore", .when(platforms: [.macOS])),
                 ]),
             .executableTarget(
-                name: "CodexBarCLI",
+                name: "OpenBarCLI",
                 dependencies: [
-                    "CodexBarCore",
+                    "OpenBarCore",
                     .product(name: "Commander", package: "Commander"),
                     .product(name: "Crypto", package: "swift-crypto"),
                 ],
-                path: "Sources/CodexBarCLI",
+                path: "Sources/OpenBarCLI",
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                 ],
@@ -108,9 +108,9 @@ let package = Package(
             // Crash-test subprocess: tests SIGKILL it mid-save to prove the cost store's
             // save cycle is atomic. Not shipped; built only as a test dependency.
             .executableTarget(
-                name: "CodexBarCostStoreCrashProbe",
-                dependencies: ["CodexBarCore"],
-                path: "Sources/CodexBarCostStoreCrashProbe",
+                name: "OpenBarCostStoreCrashProbe",
+                dependencies: ["OpenBarCore"],
+                path: "Sources/OpenBarCostStoreCrashProbe",
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                 ],
@@ -125,7 +125,7 @@ let package = Package(
                     .enableUpcomingFeature("StrictConcurrency"),
                 ]),
             // Offline adaptive-refresh replay harness: pure Foundation,
-            // no CodexBar/CodexBarCore dependency, so it builds anywhere CodexBarCore does.
+            // no OpenBar/OpenBarCore dependency, so it builds anywhere OpenBarCore does.
             .target(
                 name: "AdaptiveReplayKit",
                 dependencies: ["AdaptiveRefreshCore"],
@@ -158,18 +158,18 @@ let package = Package(
                     .enableExperimentalFeature("SwiftTesting"),
                 ]),
             .testTarget(
-                name: "CodexBarPluginTests",
-                dependencies: ["CodexBarCore"],
+                name: "OpenBarPluginTests",
+                dependencies: ["OpenBarCore"],
                 path: "TestsPlugin",
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                     .enableExperimentalFeature("SwiftTesting"),
                 ]),
             .testTarget(
-                name: "CodexBarLinuxTests",
+                name: "OpenBarLinuxTests",
                 dependencies: [
-                    "CodexBarCore",
-                    "CodexBarCLI",
+                    "OpenBarCore",
+                    "OpenBarCLI",
                     .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
                 ],
                 path: "TestsLinux",
@@ -182,22 +182,22 @@ let package = Package(
         #if os(macOS)
         targets.append(contentsOf: [
             .executableTarget(
-                name: "CodexBarClaudeWatchdog",
+                name: "OpenBarClaudeWatchdog",
                 dependencies: [],
-                path: "Sources/CodexBarClaudeWatchdog",
+                path: "Sources/OpenBarClaudeWatchdog",
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                 ]),
             .executableTarget(
-                name: "CodexBar",
+                name: "OpenBar",
                 dependencies: [
                     .product(name: "Sparkle", package: "Sparkle"),
                     .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
                     .product(name: "Vortex", package: "Vortex"),
                     "AdaptiveRefreshCore",
-                    "CodexBarCore",
+                    "OpenBarCore",
                 ],
-                path: "Sources/CodexBar",
+                path: "Sources/OpenBar",
                 resources: [
                     .process("Resources"),
                 ],
@@ -207,9 +207,9 @@ let package = Package(
                     .define("ENABLE_SPARKLE"),
                 ]),
             .executableTarget(
-                name: "CodexBarWidget",
-                dependencies: ["CodexBarCore"],
-                path: "Sources/CodexBarWidget",
+                name: "OpenBarWidget",
+                dependencies: ["OpenBarCore"],
+                path: "Sources/OpenBarWidget",
                 resources: [
                     .process("Resources"),
                 ],
@@ -217,32 +217,32 @@ let package = Package(
                     .enableUpcomingFeature("StrictConcurrency"),
                 ]),
             .executableTarget(
-                name: "CodexBarClaudeWebProbe",
-                dependencies: ["CodexBarCore"],
-                path: "Sources/CodexBarClaudeWebProbe",
+                name: "OpenBarClaudeWebProbe",
+                dependencies: ["OpenBarCore"],
+                path: "Sources/OpenBarClaudeWebProbe",
                 swiftSettings: [
                     .enableUpcomingFeature("StrictConcurrency"),
                 ]),
         ])
 
         targets.append(.testTarget(
-            name: "CodexBarTests",
+            name: "OpenBarTests",
             dependencies: [
-                "CodexBar", "CodexBarCore", "CodexBarCLI", "CodexBarCostStoreCrashProbe", "CodexBarWidget",
+                "OpenBar", "OpenBarCore", "OpenBarCLI", "OpenBarCostStoreCrashProbe", "OpenBarWidget",
                 .product(name: "Sparkle", package: "Sparkle"),
             ],
             path: "Tests",
             exclude: [
                 "AdaptiveReplayCLITests",
                 "AdaptiveReplayKitTests",
-                "CodexBarTests/ProviderPluginDetailsParityTests.swift",
-                "CodexBarTests/ProviderPluginExtensionParityTests.swift",
-                "CodexBarTests/ProviderPluginParityTests.swift",
-                "CodexBarTests/ProviderPluginRuntimeTests.swift",
-                "CodexBarTests/Sub2APIPluginGoldenTests.swift",
+                "OpenBarTests/ProviderPluginDetailsParityTests.swift",
+                "OpenBarTests/ProviderPluginExtensionParityTests.swift",
+                "OpenBarTests/ProviderPluginParityTests.swift",
+                "OpenBarTests/ProviderPluginRuntimeTests.swift",
+                "OpenBarTests/Sub2APIPluginGoldenTests.swift",
             ],
             resources: [
-                .copy("CodexBarTests/Fixtures"),
+                .copy("OpenBarTests/Fixtures"),
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),

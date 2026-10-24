@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct ClaudeOAuthDiagnosticsTests {
     private func credentials(expiry: String) throws -> ClaudeOAuthCredentials {

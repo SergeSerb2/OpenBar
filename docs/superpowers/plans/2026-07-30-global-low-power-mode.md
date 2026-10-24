@@ -8,7 +8,7 @@ read_when:
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a non-destructive global low-power mode that clamps CodexBar's automatic provider, local cost, storage, and OpenAI Web background work while preserving manual refreshes.
+**Goal:** Add a non-destructive global low-power mode that clamps OpenBar's automatic provider, local cost, storage, and OpenAI Web background work while preserving manual refreshes.
 
 **Architecture:** A pure `BackgroundWorkPowerPolicy` owns the 30-minute lower bound. `SettingsStore` persists one default-off toggle, and each automatic scheduling seam asks the shared policy for its effective interval. Manual entry points continue to bypass automatic cooldowns.
 
@@ -30,8 +30,8 @@ read_when:
 ### Task 1: Pure background power policy
 
 **Files:**
-- Create: `Sources/CodexBar/BackgroundWorkPowerPolicy.swift`
-- Create: `Tests/CodexBarTests/BackgroundWorkPowerPolicyTests.swift`
+- Create: `Sources/OpenBar/BackgroundWorkPowerPolicy.swift`
+- Create: `Tests/OpenBarTests/BackgroundWorkPowerPolicyTests.swift`
 
 **Interfaces:**
 - Produces: `BackgroundWorkPowerPolicy.lowPowerMinimumInterval: TimeInterval`
@@ -42,7 +42,7 @@ read_when:
 ```swift
 import Foundation
 import Testing
-@testable import CodexBar
+@testable import OpenBar
 
 struct BackgroundWorkPowerPolicyTests {
     @Test
@@ -94,11 +94,11 @@ Expected: both policy tests pass.
 ### Task 2: Persist and expose the global setting
 
 **Files:**
-- Modify: `Sources/CodexBar/SettingsStoreState.swift`
-- Modify: `Sources/CodexBar/SettingsStore.swift`
-- Modify: `Sources/CodexBar/SettingsStore+Defaults.swift`
-- Modify: `Sources/CodexBar/SettingsStore+MenuObservation.swift`
-- Modify: `Tests/CodexBarTests/SettingsStoreCoverageTests.swift`
+- Modify: `Sources/OpenBar/SettingsStoreState.swift`
+- Modify: `Sources/OpenBar/SettingsStore.swift`
+- Modify: `Sources/OpenBar/SettingsStore+Defaults.swift`
+- Modify: `Sources/OpenBar/SettingsStore+MenuObservation.swift`
+- Modify: `Tests/OpenBarTests/SettingsStoreCoverageTests.swift`
 
 **Interfaces:**
 - Consumes: `SettingsStore.noteBackgroundWorkSettingsChanged()`
@@ -140,9 +140,9 @@ Expected: default, persistence, revision, and effective-web assertions pass.
 ### Task 3: Clamp provider and Adaptive refresh timers
 
 **Files:**
-- Modify: `Sources/CodexBar/UsageStore.swift`
-- Modify: `Sources/CodexBar/UsageStore+AdaptiveRefresh.swift`
-- Modify: `Tests/CodexBarTests/AdaptiveRefreshTimerTests.swift`
+- Modify: `Sources/OpenBar/UsageStore.swift`
+- Modify: `Sources/OpenBar/UsageStore+AdaptiveRefresh.swift`
+- Modify: `Tests/OpenBarTests/AdaptiveRefreshTimerTests.swift`
 
 **Interfaces:**
 - Consumes: `BackgroundWorkPowerPolicy.automaticInterval(_:lowPowerModeEnabled:)`
@@ -167,10 +167,10 @@ Expected: existing timer behavior stays green and low-power cases resolve to 180
 ### Task 4: Clamp local cost and storage scans
 
 **Files:**
-- Modify: `Sources/CodexBar/UsageStore.swift`
-- Modify: `Sources/CodexBar/UsageStore+ProviderStorage.swift`
-- Modify: `Tests/CodexBarTests/UsageStoreTokenRefreshCadenceTests.swift`
-- Modify: `Tests/CodexBarTests/ProviderStorageFootprintTests.swift`
+- Modify: `Sources/OpenBar/UsageStore.swift`
+- Modify: `Sources/OpenBar/UsageStore+ProviderStorage.swift`
+- Modify: `Tests/OpenBarTests/UsageStoreTokenRefreshCadenceTests.swift`
+- Modify: `Tests/OpenBarTests/ProviderStorageFootprintTests.swift`
 
 **Interfaces:**
 - Consumes: `BackgroundWorkPowerPolicy.automaticInterval(_:lowPowerModeEnabled:)`
@@ -196,14 +196,14 @@ Expected: automatic cooldowns clamp and explicit refreshes remain immediate.
 ### Task 5: Apply global saver to OpenAI Web and expose UI
 
 **Files:**
-- Modify: `Sources/CodexBar/UsageStore+OpenAIWeb.swift`
-- Modify: `Sources/CodexBar/UsageStore+RefreshEnrichment.swift`
-- Modify: `Sources/CodexBar/UsageStore+Logging.swift`
-- Modify: `Sources/CodexBar/PreferencesGeneralPane.swift`
-- Modify: `Sources/CodexBar/Providers/Codex/CodexProviderImplementation.swift`
-- Modify: `Sources/CodexBar/Resources/en.lproj/Localizable.strings`
-- Modify: `Sources/CodexBar/Resources/zh-Hans.lproj/Localizable.strings`
-- Modify: `Tests/CodexBarTests/CodexBackgroundRefreshCoalescingTests.swift`
+- Modify: `Sources/OpenBar/UsageStore+OpenAIWeb.swift`
+- Modify: `Sources/OpenBar/UsageStore+RefreshEnrichment.swift`
+- Modify: `Sources/OpenBar/UsageStore+Logging.swift`
+- Modify: `Sources/OpenBar/PreferencesGeneralPane.swift`
+- Modify: `Sources/OpenBar/Providers/Codex/CodexProviderImplementation.swift`
+- Modify: `Sources/OpenBar/Resources/en.lproj/Localizable.strings`
+- Modify: `Sources/OpenBar/Resources/zh-Hans.lproj/Localizable.strings`
+- Modify: `Tests/OpenBarTests/CodexBackgroundRefreshCoalescingTests.swift`
 
 **Interfaces:**
 - Consumes: `SettingsStore.effectiveOpenAIWebBatterySaverEnabled`
@@ -233,7 +233,7 @@ Expected: Web policy and persistence tests pass; UI source compiles.
 
 **Files:**
 - Modify only if needed: `docs/superpowers/specs/2026-07-30-global-low-power-mode-design.zh-CN.md`
-- Create local artifact outside Git: `CodexBar-Low-Power-Local.app`
+- Create local artifact outside Git: `OpenBar-Low-Power-Local.app`
 
 **Interfaces:**
 - Consumes: all prior tasks
@@ -260,8 +260,8 @@ Assemble the app from the exact committed executable and resources, disable Spar
 
 - [ ] **Step 6: Back up and install**
 
-Quit CodexBar, copy the current `/Applications/CodexBar.app` to a timestamped backup, install the local app, launch it, verify the menu appears, enable Low Power Mode, and confirm existing settings remain readable.
+Quit OpenBar, copy the current `/Applications/OpenBar.app` to a timestamped backup, install the local app, launch it, verify the menu appears, enable Low Power Mode, and confirm existing settings remain readable.
 
 - [ ] **Step 7: Push the branch and prepare the upstream contribution**
 
-Push `codex/global-low-power-mode` to `Carl723000/CodexBar`. Prepare a PR referencing #2508 with the root cause, behavior table, tests, and explicit note that the no-Widget packaging workaround is local-only.
+Push `codex/global-low-power-mode` to `Carl723000/OpenBar`. Prepare a PR referencing #2508 with the root cause, behavior table, tests, and explicit note that the no-Widget packaging workaround is local-only.

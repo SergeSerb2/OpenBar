@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct AntigravityQuotaRepresentativeTests {
     private let presentation = AntigravityProviderDescriptor.descriptor.presentation

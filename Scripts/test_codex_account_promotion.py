@@ -26,7 +26,7 @@ def auth(email, workspace):
 def verify(binary, mode):
     with tempfile.TemporaryDirectory(prefix="codex-promotion-proof-") as directory:
         root = Path(directory)
-        app = root / "Library/Application Support/CodexBar"
+        app = root / "Library/Application Support/OpenBar"
         homes = app / "managed-codex-homes"
         live = root / ".codex/auth.json"
         live.parent.mkdir(parents=True)
@@ -67,10 +67,10 @@ def verify(binary, mode):
         before = {path: hashlib.sha256(path.read_bytes()).digest() for path in tracked}
         environment = {
             "HOME": str(root), "CFFIXED_USER_HOME": str(root), "CODEX_HOME": str(live.parent),
-            "CODEXBAR_CONFIG": str(config), "PATH": "/usr/bin:/bin",
-            "CODEXBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1", "CODEXBAR_DISABLE_KEYCHAIN_ACCESS": "1",
-            "CODEXBAR_TEST_CODEX_FILE_ISOLATION": "1", "CODEXBAR_TEST_SESSION_FILE_ISOLATION": "1",
-            "CODEXBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
+            "OPENBAR_CONFIG": str(config), "PATH": "/usr/bin:/bin",
+            "OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS": "1", "OPENBAR_DISABLE_KEYCHAIN_ACCESS": "1",
+            "OPENBAR_TEST_CODEX_FILE_ISOLATION": "1", "OPENBAR_TEST_SESSION_FILE_ISOLATION": "1",
+            "OPENBAR_TEST_CODEX_FILE_FIXTURES": json.dumps({"grants": [
                 {"url": root.as_uri(), "resolvedURL": root.as_uri(), "isRoot": True}]}),
         }
         result = subprocess.run([binary, "codex-accounts", "promote", target["id"], "--json"],
@@ -97,7 +97,7 @@ def verify(binary, mode):
 
 
 if __name__ == "__main__":
-    executable = str(Path(sys.argv[1] if len(sys.argv) > 1 else ".build/debug/CodexBarCLI").resolve())
+    executable = str(Path(sys.argv[1] if len(sys.argv) > 1 else ".build/debug/OpenBarCLI").resolve())
     results = [verify(executable, mode) for mode in
                ["conflict-email", "conflict-provider", "import", "legacy-repair", "refresh",
                 "provider-repair-with-legacy-conflict"]]

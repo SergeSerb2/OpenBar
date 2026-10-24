@@ -4,16 +4,16 @@ read_when:
   - Reviewing the original topoffunnel fork workflow
 ---
 
-# CodexBar Fork - Quick Start Guide
+# OpenBar Fork - Quick Start Guide
 
-> Historical guide for `topoffunnel/CodexBar`, not the current `steipete/CodexBar` setup process. Use the
+> Historical guide for `topoffunnel/OpenBar`, not the current `SergeSerb2/OpenBar` setup process. Use the
 > [README](../README.md), [Development guide](DEVELOPMENT.md), and [release checklist](RELEASING.md) instead.
 > Augment and multi-account support are now part of the main repository. The claim below that Keychain prompts
 > are eliminated is obsolete; current boundaries and troubleshooting are in [Keychain prompts](keychain-prompts.md).
 
 **Fork Maintainer:** Brandon Charleson ([topoffunnel.com](https://topoffunnel.com))  
 **Original Author:** Peter Steinberger ([steipete](https://twitter.com/steipete))  
-**Fork Repository:** https://github.com/topoffunnel/CodexBar
+**Fork Repository:** https://github.com/topoffunnel/OpenBar
 
 ---
 
@@ -54,8 +54,8 @@ swiftlint --strict
 ./Scripts/package_app.sh
 
 # Restart app after rebuild
-pkill -x CodexBar || pkill -f CodexBar.app || true
-cd /Users/steipete/Projects/codexbar && open -n /Users/steipete/Projects/codexbar/CodexBar.app
+pkill -x OpenBar || pkill -f OpenBar.app || true
+open -n ./OpenBar.app
 ```
 
 ### Release
@@ -85,10 +85,10 @@ git push origin feature/my-feature
 ## 📁 Key Files & Directories
 
 ### Source Code
-- `Sources/CodexBar/` - Swift 6 menu bar app
-- `Sources/CodexBarCore/` - Core logic, providers, utilities
-- `Sources/CodexBarCore/Providers/Augment/` - Augment provider implementation
-- `Tests/CodexBarTests/` - XCTest coverage
+- `Sources/OpenBar/` - Swift 6 menu bar app
+- `Sources/OpenBarCore/` - Core logic, providers, utilities
+- `Sources/OpenBarCore/Providers/Augment/` - Augment provider implementation
+- `Tests/OpenBarTests/` - XCTest coverage
 
 ### Scripts
 - `Scripts/compile_and_run.sh` - Main development script
@@ -117,8 +117,8 @@ git push origin feature/my-feature
 7. Push and create PR
 
 ### Debugging Augment Issues
-1. Enable debug logging: `export CODEXBAR_LOG_LEVEL=debug`
-2. Check Console.app for "com.steipete.codexbar"
+1. Enable debug logging: `export OPENBAR_LOG_LEVEL=debug`
+2. Check Console.app for "com.serbinenko.openbar"
 3. Use Settings → Debug → Augment → Show Debug Info
 4. Check `docs/augment.md` troubleshooting section
 
@@ -147,7 +147,7 @@ swift test --filter AugmentTests
 ### App Won't Launch
 ```bash
 # Kill all instances
-pkill -x CodexBar || pkill -f CodexBar.app || true
+pkill -x OpenBar || pkill -f OpenBar.app || true
 
 # Rebuild and relaunch
 ./Scripts/compile_and_run.sh
@@ -172,7 +172,7 @@ swiftlint --strict
 
 ### Keychain Permission Prompts
 - This fork includes fixes to eliminate prompts
-- If you still see prompts, check `Sources/CodexBarCore/Keychain/`
+- If you still see prompts, check `Sources/OpenBarCore/Keychain/`
 - Ensure you're running the latest build
 
 ---
@@ -180,9 +180,9 @@ swiftlint --strict
 ## 📚 Learning Resources
 
 ### Understanding the Codebase
-1. Start with `Sources/CodexBar/CodexbarApp.swift` - App entry point
-2. Review `Sources/CodexBarCore/UsageStore.swift` - Main state management
-3. Check `Sources/CodexBarCore/Providers/` - Provider implementations
+1. Start with `Sources/OpenBar/OpenbarApp.swift` - App entry point
+2. Review `Sources/OpenBarCore/UsageStore.swift` - Main state management
+3. Check `Sources/OpenBarCore/Providers/` - Provider implementations
 4. Read `docs/provider.md` - Provider authoring guide
 
 ### Swift 6 & SwiftUI
@@ -206,11 +206,11 @@ swiftlint --strict
 1. Fork the fork repository
 2. Create feature branch
 3. Make changes with tests
-4. Submit PR to `topoffunnel/CodexBar`
+4. Submit PR to `topoffunnel/OpenBar`
 
 ### To Upstream
 1. Check if feature benefits all users
-2. Create PR to `steipete/CodexBar`
+2. Create PR to `SergeSerb2/OpenBar`
 3. Reference this fork if relevant
 4. Be patient with review process
 
@@ -221,11 +221,11 @@ See `docs/FORK_ROADMAP.md` for contribution strategy.
 ## 📞 Support
 
 ### Fork-Specific Issues
-- GitHub Issues: https://github.com/topoffunnel/CodexBar/issues
+- GitHub Issues: https://github.com/topoffunnel/OpenBar/issues
 - Email: [your-email]@topoffunnel.com
 
 ### Upstream Issues
-- GitHub Issues: https://github.com/steipete/CodexBar/issues
+- GitHub Issues: https://github.com/SergeSerb2/OpenBar/issues
 - Twitter: [@steipete](https://twitter.com/steipete)
 
 ---

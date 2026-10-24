@@ -7,13 +7,13 @@ let package = Package(
         .macOS(.v14),
     ],
     dependencies: [
-        .package(name: "CodexBar", path: "../.."),
+        .package(name: "OpenBar", path: "../.."),
     ],
     targets: [
         .executableTarget(
             name: "StoreStress",
             dependencies: [
-                .product(name: "CodexBarCore", package: "CodexBar"),
+                .product(name: "OpenBarCore", package: "OpenBar"),
             ],
             path: ".",
             exclude: ["Package.swift", "README.md"],

@@ -32,7 +32,7 @@ produces a reset clock; monthly renewal dates remain unavailable.
 
 1. In **Settings → Providers → Manus**, set Cookie source to **Manual**
 2. Open your browser DevTools on `manus.im`, copy the `Cookie:` header from any API request (must contain `session_id=...`)
-3. Paste the header into the cookie field in CodexBar
+3. Paste the header into the cookie field in OpenBar
 
 ### Environment variables (CLI / headless)
 
@@ -55,19 +55,19 @@ The bundled plugin runs on QuickJS and JavaScriptCore and tolerates both a direc
 
 ## Token accounts
 
-Manus supports multiple accounts via the standard token-account mechanism. Add entries to `~/.codexbar/config.json` (`tokenAccounts`) with the full `Cookie:` header (containing `session_id=...`), then switch between accounts from the menu.
+Manus supports multiple accounts via the standard token-account mechanism. Add entries to `~/.openbar/config.json` (`tokenAccounts`) with the full `Cookie:` header (containing `session_id=...`), then switch between accounts from the menu.
 
 ## CLI
 
 ```bash
-codexbar usage --provider manus --verbose
+openbar usage --provider manus --verbose
 ```
 
 ## Troubleshooting
 
 ### "No Manus session token provided"
 
-Log in to [manus.im](https://manus.im) in a supported browser (Safari, Chrome, Firefox), then refresh CodexBar. Alternatively, set `MANUS_SESSION_TOKEN` or `MANUS_COOKIE`, or paste a cookie header in manual mode.
+Log in to [manus.im](https://manus.im) in a supported browser (Safari, Chrome, Firefox), then refresh OpenBar. Alternatively, set `MANUS_SESSION_TOKEN` or `MANUS_COOKIE`, or paste a cookie header in manual mode.
 
 ### "Invalid Manus session token"
 

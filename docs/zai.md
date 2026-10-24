@@ -10,7 +10,7 @@ read_when:
 z.ai and China-mainland GLM Coding Plan are API-token based. No browser cookies.
 
 ## Token sources (fallback order)
-1. Config token (`~/.config/codexbar/config.json` or legacy `~/.codexbar/config.json` → `providers[].apiKey`).
+1. Config token (`~/.config/openbar/config.json` or legacy `~/.openbar/config.json` → `providers[].apiKey`).
 2. `Z_AI_API_KEY` for the explicitly selected region.
 3. China region only: `BIGMODEL_API_KEY`, `ZHIPU_API_KEY`, `ZHIPUAI_API_KEY`, or `GLM_API_KEY`.
 4. China region only, first readable one-line file:
@@ -21,9 +21,9 @@ z.ai and China-mainland GLM Coding Plan are API-token based. No browser cookies.
 BigModel aliases and relay files are never considered for the Global `api.z.ai` route.
 
 ### Config location
-- New installs: `~/.config/codexbar/config.json`
-- Legacy installs: `~/.codexbar/config.json`
-- Override for scripts/tests: `CODEXBAR_CONFIG=/path/to/config.json`
+- New installs: `~/.config/openbar/config.json`
+- Legacy installs: `~/.openbar/config.json`
+- Override for scripts/tests: `OPENBAR_CONFIG=/path/to/config.json`
 
 ## Setup
 
@@ -34,13 +34,13 @@ Set **API region** to **Global (api.z.ai)** or **BigModel CN (open.bigmodel.cn)*
 - CLI personal:
 
   ```bash
-  printf '%s' "$Z_AI_API_KEY" | codexbar config set-api-key --provider zai --stdin
+  printf '%s' "$Z_AI_API_KEY" | openbar config set-api-key --provider zai --stdin
   ```
 
 - CLI team:
 
   ```bash
-  printf '%s' "$Z_AI_API_KEY" | codexbar config set-api-key --provider zai --stdin \
+  printf '%s' "$Z_AI_API_KEY" | openbar config set-api-key --provider zai --stdin \
     --label Team \
     --usage-scope team \
     --organization-id org_... \
@@ -50,8 +50,8 @@ Set **API region** to **Global (api.z.ai)** or **BigModel CN (open.bigmodel.cn)*
 - Check:
 
   ```bash
-  codexbar config validate
-  codexbar usage --provider zai --account Team
+  openbar config validate
+  openbar usage --provider zai --account Team
   ```
 
 Personal config can use `providers[].apiKey`. Team config uses `tokenAccounts`:
@@ -83,7 +83,7 @@ Personal config can use `providers[].apiKey`. Team config uses `tokenAccounts`:
 Keep `organizationId` and `workspaceID` single-line. Do not paste display names, URLs, or multiple IDs.
 
 ## Finding the BigModel team IDs
-For BigModel China team usage, CodexBar needs the `Bigmodel-Organization` and `Bigmodel-Project` request headers:
+For BigModel China team usage, OpenBar needs the `Bigmodel-Organization` and `Bigmodel-Project` request headers:
 
 1. Open the BigModel API-key page and create/copy the API key:
    - `https://bigmodel.cn/usercenter/proj-mgmt/apikeys`
@@ -104,7 +104,7 @@ Copy each value once, on one line. Multi-line or duplicated IDs can make the API
 - BigModel (China mainland) host: `https://open.bigmodel.cn`
 - Override host via Providers → z.ai → *API region* or `Z_AI_API_HOST=open.bigmodel.cn`.
 - Override the full quota URL (e.g. coding plan endpoint) via `Z_AI_QUOTA_URL=https://open.bigmodel.cn/api/coding/paas/v4`.
-- Endpoint overrides must be explicit HTTPS URLs or bare hosts/paths that CodexBar normalizes to HTTPS. Explicit
+- Endpoint overrides must be explicit HTTPS URLs or bare hosts/paths that OpenBar normalizes to HTTPS. Explicit
   `http://` overrides fail closed before the bearer token is attached to a request. If both z.ai overrides are set,
   `Z_AI_QUOTA_URL` has priority for quota requests; a stale lower-priority `Z_AI_API_HOST` is ignored for that quota
   path, but direct model-usage requests still validate `Z_AI_API_HOST` before sending bearer auth.
@@ -123,7 +123,7 @@ Copy each value once, on one line. Multi-line or duplicated IDs can make the API
 - Team quota scope appends `type=2`; team hourly model usage appends `type=3`. Both send the BigModel selectors:
   - `Bigmodel-Organization: <org id>`
   - `Bigmodel-Project: <project id>`
-- Live API checks return success with empty limits when one of the selectors is missing, so CodexBar treats both
+- Live API checks return success with empty limits when one of the selectors is missing, so OpenBar treats both
   Organization ID and Project ID as required for team usage.
 
 ## Usage dashboard
@@ -131,7 +131,7 @@ Copy each value once, on one line. Multi-line or duplicated IDs can make the API
 - Global: `https://z.ai/manage-apikey/coding-plan/personal/my-plan`
 - BigModel China: `https://bigmodel.cn/coding-plan/personal/usage`
 - BigModel China team: `https://bigmodel.cn/coding-plan/team/usage-stats`
-- CodexBar's Usage Dashboard action follows the configured API region.
+- OpenBar's Usage Dashboard action follows the configured API region.
 
 ## Parsing + mapping
 - Response fields:
@@ -155,8 +155,8 @@ Copy each value once, on one line. Multi-line or duplicated IDs can make the API
   - Hourly and daily model token totals use compact M/B labels from one million upward; smaller totals remain exact. Chart points retain their full numeric values.
 
 ## Key files
-- `Sources/CodexBarCore/Resources/Plugins/zai.js` (quota parsing and window mapping)
-- `Sources/CodexBarCore/Providers/Zai/ZaiProviderDescriptor.swift`
-- `Sources/CodexBarCore/Providers/Zai/ZaiSettingsReader.swift`
-- `Sources/CodexBar/ZaiTokenStore.swift` (legacy migration helper)
-- `Tests/CodexBarTests/ProviderPluginDetailsParityTests.swift` (quota fixtures, including credit limits)
+- `Sources/OpenBarCore/Resources/Plugins/zai.js` (quota parsing and window mapping)
+- `Sources/OpenBarCore/Providers/Zai/ZaiProviderDescriptor.swift`
+- `Sources/OpenBarCore/Providers/Zai/ZaiSettingsReader.swift`
+- `Sources/OpenBar/ZaiTokenStore.swift` (legacy migration helper)
+- `Tests/OpenBarTests/ProviderPluginDetailsParityTests.swift` (quota fixtures, including credit limits)

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import CodexBarCore
+@testable import OpenBarCore
 
 struct CostUsageTemporalCompletenessTests {
     @Test(arguments: [0.0, 4.0])

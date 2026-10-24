@@ -12,14 +12,14 @@ PREAMBLE = '''#!/bin/sh
 [ "$*" = "cost --provider codex --json" ] || exit 64
 [ -s "$CODEX_HOME/sessions/$(date +%Y/%m/%d)/rollout-test.jsonl" ] || exit 65
 [ -d "$HOME" ] || exit 66
-[ "$CODEXBAR_CONFIG" = "$(dirname "$HOME")/config.json" ] || exit 67
+[ "$OPENBAR_CONFIG" = "$(dirname "$HOME")/config.json" ] || exit 67
 '''
 
 
 class LinuxCLICodexCostSmokeTests(unittest.TestCase):
     def check(self, body):
         with tempfile.TemporaryDirectory() as directory:
-            binary = Path(directory) / 'CodexBarCLI'
+            binary = Path(directory) / 'OpenBarCLI'
             binary.write_text(PREAMBLE + body)
             binary.chmod(0o755)
             return subprocess.run(['bash', str(SCRIPT), str(binary)],

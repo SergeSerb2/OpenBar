@@ -1,5 +1,5 @@
 #if canImport(Glibc)
-import CodexBarCore
+import OpenBarCore
 import Foundation
 import Testing
 
@@ -7,7 +7,7 @@ struct CLIServeHeapTrimmerTests {
     @Test
     func `serve releases transient cost scan memory while remaining healthy`() async throws {
         let binary = URL(fileURLWithPath: CommandLine.arguments[0])
-            .deletingLastPathComponent().appendingPathComponent("CodexBarCLI")
+            .deletingLastPathComponent().appendingPathComponent("OpenBarCLI")
         let script = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Scripts/test_linux_serve_memory.py")
