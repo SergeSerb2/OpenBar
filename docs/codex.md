@@ -241,12 +241,17 @@ and stable account numbers distinguish rows while usable workspace labels remain
 ### OpenAI web dashboard (optional, off by default)
 - Enable **Preferences → Providers → Codex → OpenAI web extras** for code review remaining, usage breakdown, and credits history. It loads `chatgpt.com` in a hidden WebView and can materially increase battery/network usage.
 - **OpenAI web battery saver** defaults off. It reduces background/settings-driven refreshes while preserving explicit manual refreshes.
-- Renewal/expiration dates load after dashboard usage: the subscription API is tried first, then ChatGPT's billing request in the same account-scoped session supplies only the date and renewal flag, within eight seconds. Unavailable/malformed responses retain prior dates; valid empty responses clear them. Cancelled, replaced, disabled, or account-mismatched refreshes cannot attach dates. CLI web capture stays within its remaining fetch deadline.
+- Renewal/expiration dates load after dashboard usage: the subscription API is tried first, then ChatGPT's billing request in the same account-scoped session supplies only the date and renewal flag, within eight seconds. That billing fallback loads chatgpt.com in a hidden WebView, so the app uses it at most once per dashboard page-scrape interval (six hours, or the web refresh interval if longer); a manual refresh can always use it. Unavailable/malformed responses retain prior dates; valid empty responses clear them. Cancelled, replaced, disabled, or account-mismatched refreshes cannot attach dates. CLI web capture stays within its remaining fetch deadline.
+- **Buy Credits…** opens the ChatGPT credits page in a window that uses the account's WebKit store. It clicks the
+  page's single, enabled "Add more" control outside any dialog or form, once, to open the purchase dialog. It never
+  chooses an amount, clicks Next, or confirms a purchase; if no single "Add more" control appears, it clicks nothing.
 - Preferences → Providers → Codex → OpenAI cookies (Automatic or Manual).
 - URL: `https://chatgpt.com/codex/cloud/settings/analytics#usage`.
 - Uses an off-screen `WKWebView` with a per-account `WKWebsiteDataStore`.
   - Store key: deterministic UUID from the normalized email.
 - WebKit store can hold multiple accounts concurrently.
+- Removing a managed account deletes its WebKit store (cookies and site data first, then the store on disk once
+  WebKit releases its web views). Other accounts' stores are not touched.
 - Active page preparation and JavaScript evaluations share the refresh deadline. Expired pages are terminated and discarded; verified API usage remains available. Timeout diagnostics do not start new JavaScript after the deadline.
 - A browser session rejected for an account mismatch or a login requirement is removed only from the affected store. Imports into the same store finish validation and cleanup before the next import writes cookies; other accounts remain independent.
 - WebView acquisitions retain ownership during page preparation. Store eviction invalidates its pending preparations; evict-all invalidates all. Stale success/failure/timeout retries cannot displace replacements. Ordinary lease release leaves concurrent temporary views valid. Leases retain their cleanup owner independently of the cache and release once: validated pages allow brief reuse; other releases schedule deferred cleanup, including temporary views.
@@ -254,7 +259,9 @@ and stable account numbers distinguish rows while usable workspace labels remain
   1) Safari: `~/Library/Cookies/Cookies.binarycookies`
   2) Chrome/Chromium forks: `~/Library/Application Support/Google/Chrome/*/Cookies`
   3) Firefox: `~/Library/Application Support/Firefox/Profiles/*/cookies.sqlite`
-  - Domains loaded: `chatgpt.com`, `openai.com`.
+  - Domains loaded: `chatgpt.com`, `openai.com`, and their subdomains. Other hosts that only contain those names
+    (for example `chatgpt.com.example.net` or `notopenai.com`) are dropped.
+  - The cached cookie header holds only `chatgpt.com` cookies.
   - No cookie-name filter; we import all matching domain cookies.
 - Cached cookies: Keychain cache `com.serbinenko.openbar.cache` (account `cookie.codex`, source + timestamp).
   Reused before re-importing from browsers.

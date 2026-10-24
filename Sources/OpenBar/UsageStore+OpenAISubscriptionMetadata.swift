@@ -26,7 +26,8 @@ extension UsageStore {
             self.scheduleOpenAISubscriptionMetadataEnrichment(
                 dashboard: dashboard,
                 targetEmail: targetEmail,
-                expectedGuard: context.expectedGuard)
+                expectedGuard: context.expectedGuard,
+                force: context.force)
         }
     }
 
@@ -53,7 +54,8 @@ extension UsageStore {
     func scheduleOpenAISubscriptionMetadataEnrichment(
         dashboard: OpenAIDashboardSnapshot,
         targetEmail: String?,
-        expectedGuard: CodexAccountScopedRefreshGuard?)
+        expectedGuard: CodexAccountScopedRefreshGuard?,
+        force: Bool = false)
     {
         guard self.startupBehavior.automaticallyStartsBackgroundWork ||
             self._test_openAISubscriptionMetadataLoaderOverride != nil else { return }
@@ -62,6 +64,7 @@ extension UsageStore {
         self.openAISubscriptionMetadataEnrichmentToken = token
         let expectedGuard = expectedGuard ?? self.currentCodexOpenAIWebRefreshGuard()
         let cacheScope = self.codexCookieCacheScopeForOpenAIWeb()
+        let allowBillingPageFallback = self.takeOpenAISubscriptionBillingFallbackAllowance(force: force)
         let log: (String) -> Void = { [weak self] line in self?.logOpenAIWeb(line) }
         self.openAISubscriptionMetadataEnrichmentTask = Task(priority: .utility) { @MainActor [weak self] in
             guard let self else { return }
@@ -79,6 +82,7 @@ extension UsageStore {
                 await OpenAIDashboardFetcher().fetchSubscriptionMetadata(
                     accountEmail: targetEmail,
                     cacheScope: cacheScope,
+                    allowBillingPageFallback: allowBillingPageFallback,
                     logger: log)
             }
             await self.applyOpenAISubscriptionMetadataEnrichment(
@@ -88,6 +92,40 @@ extension UsageStore {
                 expectedGuard: expectedGuard,
                 token: token)
         }
+    }
+
+    /// The billing fallback hydrates chatgpt.com in a hidden WebView (usage page, then billing page), so it gets the
+    /// same budget as the dashboard page scrape: once per page-scrape interval, unless the user forces a refresh.
+    /// The allowance is used when granted, so an account whose subscription API keeps failing cannot retry it on
+    /// every refresh.
+    private func takeOpenAISubscriptionBillingFallbackAllowance(force: Bool) -> Bool {
+        let now = Date()
+        let allowed = Self.shouldAllowOpenAISubscriptionBillingFallback(
+            force: force,
+            userInitiated: ProviderInteractionContext.current == .userInitiated,
+            lastFallbackAt: self.lastOpenAISubscriptionBillingFallbackAt,
+            now: now,
+            refreshInterval: max(
+                self.openAIWebRefreshIntervalSeconds(),
+                Self.openAIDashboardPageScrapeMinimumInterval))
+        if allowed {
+            self.lastOpenAISubscriptionBillingFallbackAt = now
+        }
+        return allowed
+    }
+
+    nonisolated static func shouldAllowOpenAISubscriptionBillingFallback(
+        force: Bool,
+        userInitiated: Bool,
+        lastFallbackAt: Date?,
+        now: Date,
+        refreshInterval: TimeInterval) -> Bool
+    {
+        if force, userInitiated {
+            return true
+        }
+        guard let lastFallbackAt else { return true }
+        return now.timeIntervalSince(lastFallbackAt) >= refreshInterval
     }
 
     private func applyOpenAISubscriptionMetadataEnrichment(

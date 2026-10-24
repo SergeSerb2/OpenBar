@@ -19,6 +19,8 @@ public enum OpenAIDashboardWebsiteDataStore {
     /// Cached data store instances keyed by normalized email and optional Codex source scope.
     /// Using the same instance ensures stable object identity for WebView cache lookups.
     private static var cachedStores: [String: WKWebsiteDataStore] = [:]
+    private static let removeStoreAttempts = 6
+    private static let log = OpenBarLog.logger(LogCategories.provider(.openai, scope: "webview"))
 
     public static func store(
         forAccountEmail email: String?,
@@ -64,6 +66,45 @@ public enum OpenAIDashboardWebsiteDataStore {
         // Remove from cache so a fresh instance is created on next access
         if let normalized = normalizeEmail(email) {
             self.cachedStores.removeValue(forKey: self.storageKey(normalizedEmail: normalized, scope: scope))
+        }
+    }
+
+    /// Deletes the persistent store for one account email and scope: its cookies and site data first, then the store
+    /// itself. Other emails and scopes use other identifiers, and an unknown email never maps to `.default()` here.
+    public static func removeStore(
+        forAccountEmail email: String?,
+        scope: CookieHeaderCache.Scope? = nil) async
+    {
+        guard let normalized = normalizeEmail(email) else { return }
+        let storageKey = self.storageKey(normalizedEmail: normalized, scope: scope)
+        if let store = self.cachedStores.removeValue(forKey: storageKey) {
+            OpenAIDashboardWebViewCache.shared.evict(websiteDataStore: store)
+            // WebKit deletes a store only after every web view using it is gone, so clear its data right away.
+            await withCheckedContinuation { cont in
+                store.fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
+                    store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), for: records) {
+                        cont.resume()
+                    }
+                }
+            }
+        }
+
+        let identifier = self.identifier(forStorageKey: storageKey)
+        guard await WKWebsiteDataStore.allDataStoreIdentifiers.contains(identifier) else { return }
+        // Evicted web views are torn down after a short delay (longer on Intel), so retry while the store is in use.
+        for attempt in 1...Self.removeStoreAttempts {
+            do {
+                try await WKWebsiteDataStore.remove(forIdentifier: identifier)
+                return
+            } catch {
+                guard attempt < Self.removeStoreAttempts else {
+                    Self.log.error("OpenAI web data store removal failed", metadata: [
+                        "error": error.localizedDescription,
+                    ])
+                    return
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
         }
     }
 
