@@ -26,7 +26,7 @@ struct ServeOptions: CommanderParsable {
 
     @Option(
         name: .long("request-timeout"),
-        help: "Total per-request deadline in seconds; 0 disables (default: 30)")
+        help: "Response generation deadline in seconds; 0 disables (default: 30)")
     var requestTimeout: Double?
 
     @Option(

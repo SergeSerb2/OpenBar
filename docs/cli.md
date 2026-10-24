@@ -164,7 +164,8 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   - `--host <host>` accepts `localhost` or an IPv4 address and defaults to `127.0.0.1`; `localhost` is normalized to `127.0.0.1`. Binding a non-loopback host requires a dashboard token **and** `--allow-plain-http` (see `docs/dashboard-api.md` for the threat model).
   - `--port <port>` defaults to `8080`.
   - `--refresh-interval <seconds>` defaults to `60` and controls the in-memory response cache TTL.
-  - `--request-timeout <seconds>` defaults to `30` and bounds each request before returning `504 Gateway Timeout`; use `0` to keep waiting indefinitely. Slow builds continue past the deadline, commit their finished result to the cache, and feed any same-config request already waiting so a 504 self-heals on retry.
+  - `--request-timeout <seconds>` defaults to `30` and bounds response generation before returning `504 Gateway Timeout`; use `0` to keep waiting indefinitely. Slow builds continue past the deadline, commit their finished result to the cache, and feed any same-config request already waiting so a 504 self-heals on retry.
+  - Socket I/O has separate fixed limits: five seconds of idle time while reading a request head, ten seconds for the whole request head, and five seconds for the whole response write. Expired connections close and release their slots, including with `--request-timeout 0`.
   - `--dashboard-token <token>` sets the static bearer token for `GET /dashboard/v1/snapshot`. Prefer the `OPENBAR_DASHBOARD_TOKEN` environment variable (it wins over the flag; a flag value leaks via `ps`). Empty or whitespace-only tokens are startup errors. Without a token the snapshot route fails closed with `401`.
   - On a **non-loopback** host the token gates **all data routes** — `/usage`, `/cost`, and `/dashboard/v1/snapshot` all require `Authorization: Bearer YOUR_TOKEN`, so account data is never exposed to the network unauthenticated. The static web UI at `/` and `/health` are always open. On the default loopback bind, `/usage` and `/cost` stay unauthenticated.
   - `--allow-plain-http` is the explicit acknowledgment that the bearer token crosses the network **in cleartext on every request** when serving on a non-loopback host. `serve` refuses to start on a non-loopback host without it.
@@ -347,7 +348,7 @@ openbar guard --provider codex --min-remaining 20 --window weekly --json
 openbar cost --provider cursor   # Cursor dashboard cost (API-rate + Cursor-metered)
 openbar dashboard | jq '.providers[] | {id, windows, error}'
 openbar serve --port 8080        # localhost HTTP JSON server
-openbar serve --request-timeout 0 # disable serve request deadlines
+openbar serve --request-timeout 0 # disable response generation deadlines
 OPENBAR_DASHBOARD_TOKEN=YOUR_TOKEN openbar serve # token-gated dashboard snapshot
 OPENBAR_DASHBOARD_TOKEN=... openbar serve --host 0.0.0.0 --allow-plain-http # LAN, cleartext accepted
 COPILOT_API_TOKEN=... openbar --provider copilot --format json --pretty
