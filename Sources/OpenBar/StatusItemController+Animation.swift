@@ -278,7 +278,8 @@ extension StatusItemController {
                 creditsRemaining: nil,
                 stale: self.store.errors[selected] != nil,
                 style: .combined,
-                hideCritters: true)
+                hideCritters: true,
+                laneValues: showUsed ? .used : .remaining)
             self.statusItem.length = NSStatusItem.variableLength
             self.setButtonContent(
                 image: image,
@@ -410,9 +411,18 @@ extension StatusItemController {
         var credits = self.menuBarCreditsRemainingForIcon(provider: provider, snapshot: snapshot)
         var stale = self.menuBarIsStale(for: provider)
         var morphProgress: Double?
+        var laneValues: MeterBarsGlyph.LaneValues = showUsed ? .used : .remaining
 
         let needsAnimation = merged ? self.needsMenuBarIconAnimation() : self.shouldAnimate(provider: provider)
-        if let phase, needsAnimation {
+        if phase != nil, needsAnimation, LoadingPattern.isMotionReduced {
+            // Reduce Motion: hold the no-data rails still instead of animating them.
+            primary = nil
+            weekly = nil
+            credits = nil
+            stale = false
+            laneValues = .unrated
+        } else if let phase, needsAnimation {
+            laneValues = .unrated
             var pattern = self.animationPattern
             // Provider-specific by design: Claude's star glyph cannot render the icon-only unbraid transition.
             if pattern == .unbraid, (merged && style == .combined) || (!merged && provider == .claude) {
@@ -443,6 +453,10 @@ extension StatusItemController {
         let tilt = merged && style == .combined ? 0 : self.tiltAmount(for: provider) * .pi / 28
         let activity = merged ? "anim=\(needsAnimation ? 1 : 0)" : "loading=\(isLoading ? 1 : 0)"
         let statusIndicator = self.store.statusIndicator(for: provider)
+        let displayOptions = MeterBarsGlyph.DisplayOptions.current
+        Self.appliedGlyphDisplayOptions = displayOptions
+        let displaySignature = "display=\(displayOptions.increasedContrast ? "ic" : "-")"
+            + "\(displayOptions.reduceTransparency ? "rt" : "-")"
         // Brand + percent returns above; remaining paths are image-only apart from the debug marker.
         let canSkipCachedRender = self.prepareButtonForImageOnlyCacheHit(button)
         if let morphProgress {
@@ -452,6 +466,7 @@ extension StatusItemController {
                 "style=\(String(describing: style))",
                 "morph=\(Self.iconSignatureValue(morphProgress))",
                 "status=\(statusIndicator.rawValue)",
+                displaySignature,
                 "warningFlash=\(warningFlash ? "1" : "0")",
                 activity,
                 "hideCritters=\(self.settings.menuBarHidesCritters ? "1" : "0")",
@@ -481,6 +496,8 @@ extension StatusItemController {
                 "credits=\(Self.iconSignatureValue(credits))",
                 "stale=\(stale ? "1" : "0")",
                 "status=\(statusIndicator.rawValue)",
+                "lanes=\(laneValues)",
+                displaySignature,
                 "blink=\(Self.iconSignatureValue(Double(blink)))",
                 "wiggle=\(Self.iconSignatureValue(Double(wiggle)))",
                 "tilt=\(Self.iconSignatureValue(Double(tilt)))",
@@ -505,7 +522,9 @@ extension StatusItemController {
                 tilt: tilt,
                 statusIndicator: statusIndicator,
                 hideCritters: self.settings.menuBarHidesCritters,
-                quotaLayoutPolicy: .provider(provider, snapshot: snapshot))
+                quotaLayoutPolicy: .provider(provider, snapshot: snapshot),
+                laneValues: laneValues,
+                displayOptions: displayOptions)
             self.setButtonContent(
                 image: warningFlash ? Self.quotaWarningFlashImage(base: image) : image,
                 title: nil,
@@ -514,6 +533,15 @@ extension StatusItemController {
         }
         self.noteIconPerfRender(skipped: false)
         return false
+    }
+
+    /// Accessibility display options the status glyphs were last drawn with.
+    private static var appliedGlyphDisplayOptions: MeterBarsGlyph.DisplayOptions?
+
+    /// True when Increase Contrast or Reduce Transparency changed since the glyphs were last drawn, so an
+    /// accessibility display notification must redraw them even though no usage input changed.
+    var menuBarGlyphDisplayOptionsChanged: Bool {
+        Self.appliedGlyphDisplayOptions.map { $0 != .current } ?? false
     }
 
     private func loadingBlinkAmount(for provider: UsageProvider, style: IconStyle, phase: Double?) -> CGFloat {
@@ -639,16 +667,19 @@ extension StatusItemController {
         self.applyIcon(phase: phase, bypassMergedMenuTrackingDeferral: true)
     }
 
+    /// The only color OpenBar puts in the menu bar: the glyph in the `critical` tone on a soft plate of the
+    /// same tone. Drawn on demand, so the tone resolves for the menu bar's appearance (light, dark, Increase
+    /// Contrast) at every draw and needs no refresh when the appearance changes.
     static func quotaWarningFlashImage(base: NSImage) -> NSImage {
-        let image = NSImage(size: base.size)
-        image.lockFocus()
-        let rect = NSRect(origin: .zero, size: base.size)
-        NSColor.systemRed.withAlphaComponent(0.22).setFill()
-        NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 4, yRadius: 4).fill()
-        base.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
-        NSColor.systemRed.withAlphaComponent(0.28).setFill()
-        NSBezierPath(rect: rect).fill()
-        image.unlockFocus()
+        let tone = OpenBarPalette.critical.nsColor
+        let tinted = MenuBarLayoutRenderer.attachmentImage(base, tint: tone, isMonochrome: false)
+        let image = NSImage(size: base.size, flipped: false) { rect in
+            let increasedContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+            tone.withAlphaComponent(increasedContrast ? 0.3 : 0.2).setFill()
+            NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 4, yRadius: 4).fill()
+            tinted.draw(in: rect)
+            return true
+        }
         image.isTemplate = false
         return image
     }
@@ -1363,38 +1394,26 @@ extension StatusItemController {
 
         let image = NSImage(size: brand.size)
         image.lockFocus()
-        brand.draw(
-            at: .zero,
-            from: NSRect(origin: .zero, size: brand.size),
-            operation: .sourceOver,
-            fraction: 1.0)
-        Self.drawBrandStatusOverlay(indicator: statusIndicator, size: brand.size)
+        if let context = NSGraphicsContext.current?.cgContext {
+            // The same top-right marks as the Meter bars glyph, with a halo cleared out of the logo.
+            let mark = MeterBarsGlyph.Mark(indicator: statusIndicator)
+            let canvas = MeterBarsGlyph.GlyphCanvas(cgContext: context, scale: 2, size: brand.size)
+            let origin = CGPoint(x: brand.size.width - OpenBarGlyphMetrics.canvasWidth, y: 0)
+            context.saveGState()
+            if let halo = MeterBarsGlyph.haloPath(mark, origin: origin, canvas: canvas) {
+                let clip = CGMutablePath()
+                clip.addRect(CGRect(origin: .zero, size: brand.size))
+                clip.addPath(halo)
+                context.addPath(clip)
+                context.clip(using: .evenOdd)
+            }
+            brand.draw(at: .zero, from: NSRect(origin: .zero, size: brand.size), operation: .sourceOver, fraction: 1)
+            context.restoreGState()
+            MeterBarsGlyph.drawMark(mark, origin: origin, canvas: canvas)
+        }
         image.unlockFocus()
         image.isTemplate = brand.isTemplate
         return image
-    }
-
-    private nonisolated static func drawBrandStatusOverlay(
-        indicator: ProviderStatusIndicator, size: NSSize)
-    {
-        guard indicator.hasIssue else { return }
-
-        let color = NSColor.labelColor
-        switch indicator {
-        case .minor, .maintenance:
-            let dotSize = CGSize(width: 4, height: 4)
-            let dotOrigin = CGPoint(x: size.width - dotSize.width - 2, y: 2)
-            color.setFill()
-            NSBezierPath(ovalIn: CGRect(origin: dotOrigin, size: dotSize)).fill()
-        case .major, .critical, .unknown:
-            color.setFill()
-            let lineRect = CGRect(x: size.width - 6, y: 4, width: 2, height: 6)
-            NSBezierPath(roundedRect: lineRect, xRadius: 1, yRadius: 1).fill()
-            let dotRect = CGRect(x: size.width - 6, y: 2, width: 2, height: 2)
-            NSBezierPath(ovalIn: dotRect).fill()
-        case .none:
-            break
-        }
     }
 
     private func advanceAnimationPattern() {

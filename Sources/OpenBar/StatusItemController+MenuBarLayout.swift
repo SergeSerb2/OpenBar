@@ -317,7 +317,10 @@ extension StatusItemController {
     }
 
     @objc func refreshStatusItemContentForColorMode() {
-        guard self.settings.menuBarColorByProvider, !self.hasPreparedForAppShutdown else { return }
+        // The Meter bars glyph also redraws when Increase Contrast or Reduce Transparency changed.
+        guard self.settings.menuBarColorByProvider || self.menuBarGlyphDisplayOptionsChanged,
+              !self.hasPreparedForAppShutdown
+        else { return }
 
         if self.shouldMergeIcons {
             _ = self.applyIcon(phase: nil, bypassMergedMenuTrackingDeferral: true)
