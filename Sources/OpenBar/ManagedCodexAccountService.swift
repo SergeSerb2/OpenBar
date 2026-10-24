@@ -317,15 +317,17 @@ final class ManagedCodexAccountService {
         return account
     }
 
-    func removeManagedAccount(id: UUID) async throws {
+    /// Returns the removed account, or nil when no account has that ID.
+    @discardableResult
+    func removeManagedAccount(id: UUID) async throws -> ManagedCodexAccount? {
         try ManagedCodexAccountLock.withLock(at: self.store.lockURL) {
             try self.removeManagedAccountLocked(id: id)
         }
     }
 
-    private func removeManagedAccountLocked(id: UUID) throws {
+    private func removeManagedAccountLocked(id: UUID) throws -> ManagedCodexAccount? {
         let snapshot = try self.store.loadAccounts()
-        guard let account = snapshot.account(id: id) else { return }
+        guard let account = snapshot.account(id: id) else { return nil }
 
         let remaining = snapshot.accounts.filter { $0.id != id }
         try FileManagedCodexAccountStore.$mutation.withValue(.remove) {
@@ -338,6 +340,7 @@ final class ManagedCodexAccountService {
         if homeStillReferenced == false {
             try? self.removeManagedHomeIfSafe(atPath: account.managedHomePath, mutation: .remove)
         }
+        return account
     }
 
     private func removeManagedHomeIfSafe(atPath path: String, mutation: FileManagedCodexAccountStore.Mutation) throws {

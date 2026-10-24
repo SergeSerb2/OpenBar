@@ -55,7 +55,16 @@ final class ManagedCodexAccountCoordinator {
             self.removingManagedAccountID = nil
         }
 
-        try await self.service.removeManagedAccount(id: id)
+        let removed = try await self.service.removeManagedAccount(id: id)
         self.onManagedAccountsDidChange?()
+        if let removed {
+            // The account's ChatGPT web session lives in its own WebKit store. Deleting it can wait for WebKit to
+            // release evicted web views, so it does not hold up the account list.
+            Task {
+                await OpenAIDashboardWebsiteDataStore.removeStore(
+                    forAccountEmail: removed.email,
+                    scope: .managedAccount(removed.id))
+            }
+        }
     }
 }
