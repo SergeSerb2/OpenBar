@@ -597,25 +597,48 @@ if [[ -f "$ICON_TARGET" ]]; then
   cp "$ICON_TARGET" "$APP/Contents/Resources/Icon.icns"
 fi
 
-# Bundle app resources (provider icons, etc.).
-APP_RESOURCES_DIR="$ROOT/Sources/OpenBar/Resources"
-if [[ -d "$APP_RESOURCES_DIR" ]]; then
-  cp -R "$APP_RESOURCES_DIR/." "$APP/Contents/Resources/"
+# SwiftPM resource bundles (e.g. KeyboardShortcuts) are emitted next to the built binary.
+# Copy the app's runtime dependencies only. SwiftPM also emits test fixtures and the
+# widget's resource bundle here; the latter already lives inside the widget extension.
+SWIFTPM_BUNDLES=(
+  "${PREFERRED_BUILD_DIR}/OpenBar_OpenBar.bundle"
+  "${PREFERRED_BUILD_DIR}/OpenBar_OpenBarCore.bundle"
+  "${PREFERRED_BUILD_DIR}/KeyboardShortcuts_KeyboardShortcuts.bundle"
+  "${PREFERRED_BUILD_DIR}/SweetCookieKit_SweetCookieKit.bundle"
+  "${PREFERRED_BUILD_DIR}/swift-crypto_Crypto.bundle"
+)
+if [[ ${#SWIFTPM_BUNDLES[@]} -gt 0 ]]; then
+  for bundle in "${SWIFTPM_BUNDLES[@]}"; do
+    [[ -d "$bundle" ]] || continue
+    bundle_name="$(basename "$bundle")"
+    cp -R "$bundle" "$APP/Contents/Resources/"
+  done
 fi
+
+# Preserve main-bundle lookups and its localization inventory without duplicating
+# every asset and translation already shipped in the app's SwiftPM bundle.
+APP_RESOURCE_BUNDLE="$APP/Contents/Resources/OpenBar_OpenBar.bundle"
+APP_RESOURCE_PREFIX="OpenBar_OpenBar.bundle"
+if [[ -d "$APP_RESOURCE_BUNDLE/Contents/Resources" ]]; then
+  APP_RESOURCE_PREFIX="$APP_RESOURCE_PREFIX/Contents/Resources"
+fi
+APP_RESOURCES_DIR="$ROOT/Sources/OpenBar/Resources"
+for resource in "$APP_RESOURCES_DIR/"*; do
+  resource_name="$(basename "$resource")"
+  resource_target="$APP_RESOURCE_PREFIX/$resource_name"
+  if [[ ! -e "$APP/Contents/Resources/$resource_target" ]]; then
+    echo "ERROR: Missing app resource in SwiftPM bundle: $resource_name" >&2
+    exit 1
+  fi
+  ln -s "$resource_target" "$APP/Contents/Resources/$resource_name"
+done
 if [[ ! -f "$APP/Contents/Resources/Icon-classic.icns" ]]; then
   echo "ERROR: Missing Icon-classic.icns in app bundle resources." >&2
   exit 1
 fi
-
-# SwiftPM resource bundles (e.g. KeyboardShortcuts) are emitted next to the built binary.
-shopt -s nullglob
-SWIFTPM_BUNDLES=("${PREFERRED_BUILD_DIR}/"*.bundle)
-shopt -u nullglob
-if [[ ${#SWIFTPM_BUNDLES[@]} -gt 0 ]]; then
-  for bundle in "${SWIFTPM_BUNDLES[@]}"; do
-    bundle_name="$(basename "$bundle")"
-    cp -R "$bundle" "$APP/Contents/Resources/"
-  done
+if cmp -s "$APP/Contents/Resources/Icon.icns" "$APP/Contents/Resources/Icon-classic.icns"; then
+  rm "$APP/Contents/Resources/Icon.icns"
+  ln -s Icon-classic.icns "$APP/Contents/Resources/Icon.icns"
 fi
 if [[ ! -d "$APP/Contents/Resources/KeyboardShortcuts_KeyboardShortcuts.bundle" ]]; then
   echo "ERROR: Missing KeyboardShortcuts SwiftPM resource bundle (Settings → Keyboard shortcut will crash)." >&2
