@@ -131,9 +131,10 @@ extension CostUsageScanner {
         var unkeyedRows: [ClaudeUsageRow] = []
 
         let maxLineBytes = 512 * 1024
-        // Keep the full line so usage at the tail isn't dropped on large tool outputs.
+        // Oversized lines are reread through a bounded accounting projection below.
         let prefixBytes = maxLineBytes
         let costScale = 1_000_000_000.0
+        var projectionError: Error?
 
         let parsedBytes: Int64
         do {
@@ -144,14 +145,21 @@ extension CostUsageScanner {
                 prefixBytes: prefixBytes,
                 checkCancellation: checkCancellation,
                 onLine: { line in
-                    guard !line.bytes.isEmpty else { return }
-                    guard !line.wasTruncated else { return }
+                    guard !line.bytes.isEmpty, projectionError == nil else { return }
+                    let bytes: Data
+                    do {
+                        bytes = try line.wasTruncated ? Self.projectClaudeUsageLine(
+                            fileURL: fileURL, line: line, checkCancellation: checkCancellation) : line.bytes
+                    } catch {
+                        projectionError = error
+                        return
+                    }
                     // JSON whitespace around ':' is valid; the decoder checks the actual type below.
-                    guard line.bytes.containsAscii(#""assistant""#) else { return }
-                    guard line.bytes.containsAscii(#""usage""#) else { return }
-                    let couldContainMetadata = providerFilter != .all && Self.couldContainVertexAIMetadata(line.bytes)
+                    guard bytes.containsAscii(#""assistant""#) else { return }
+                    guard bytes.containsAscii(#""usage""#) else { return }
+                    let couldContainMetadata = providerFilter != .all && Self.couldContainVertexAIMetadata(bytes)
                     if providerFilter == .vertexAIOnly, !couldContainMetadata,
-                       !line.bytes.containsAscii("@"), !line.bytes.containsAscii("_vrtx_")
+                       !bytes.containsAscii("@"), !bytes.containsAscii("_vrtx_")
                     { return }
 
                     autoreleasepool {
@@ -159,7 +167,7 @@ extension CostUsageScanner {
                         recordClaudeScanWork(.claudeLineDecode)
                         #endif
                         guard
-                            let obj = try? ClaudeJSONObject.decode(line.bytes),
+                            let obj = try? ClaudeJSONObject.decode(bytes),
                             let type = obj["type"] as? String,
                             type == "assistant"
                         else { return }
@@ -254,9 +262,49 @@ extension CostUsageScanner {
         } catch {
             parsedBytes = startOffset
         }
+        // Do not publish rows or checkpoints when an oversized record could not be accounted for.
+        if let projectionError { throw projectionError }
 
         let rows = Self.orderedClaudeRows(keyed: keyedRows, unkeyed: unkeyedRows)
         return ClaudeParseResult(rows: rows, parsedBytes: parsedBytes)
+    }
+
+    private static func projectClaudeUsageLine(
+        fileURL: URL,
+        line: CostUsageJsonl.Line,
+        checkCancellation: CancellationCheck?) throws -> Data
+    {
+        let accountingKeys: Set = [
+            "type", "timestamp", "sessionId", "session_id", "requestId", "request_id", "id", "model",
+            "isSidechain", "stop_reason", "input_tokens", "output_tokens", "cache_creation_input_tokens",
+            "cache_read_input_tokens", "ephemeral_1h_input_tokens",
+        ]
+        // Preserve every container/key for recursive Vertex metadata detection, but discard irrelevant
+        // scalar payloads such as response text and tool arguments before the JSON decoder sees them.
+        var projection = SessionToolJSONProjection(
+            keepingValue: { accountingKeys.contains($0) || Self.vertexProviderKeys.contains($0.lowercased()) },
+            preservesContainers: true,
+            rejectsTokenOverflow: true)
+        let handle = try FileHandle(forReadingFrom: fileURL)
+        defer { try? handle.close() }
+        try handle.seek(toOffset: UInt64(line.startOffset))
+        var remaining = line.endOffset - line.startOffset
+        while remaining > 0 {
+            try checkCancellation?()
+            let chunk = try handle.read(upToCount: Int(min(65536, remaining))) ?? Data()
+            guard !chunk.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
+            for byte in chunk {
+                projection.consume(byte)
+            }
+            remaining -= Int64(chunk.count)
+        }
+        guard let bytes = projection.finish() else {
+            throw NSError(domain: "OpenBar.CostUsage", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "Claude history is incomplete: a record exceeds accounting bounds. "
+                    + "Reduce its metadata size and refresh; the source has not been checkpointed.",
+            ])
+        }
+        return bytes
     }
 
     private static func claudeOneHourCacheCreationTokens(usage: ClaudeJSONObject, total: Int) -> Int {

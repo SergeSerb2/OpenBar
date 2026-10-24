@@ -8,6 +8,20 @@ struct SessionToolJSONProjection {
         "completed_at_ms", "status", "exit_code", "duration", "secs", "nanos", "server", "tool",
         "namespace", "command", "result", "isError", "error", "success", "kind", "durationMs",
     ]
+    private let keepsValue: (String) -> Bool
+    private let preservesContainers: Bool
+    private let rejectsTokenOverflow: Bool
+
+    init(
+        keepingValue: @escaping (String) -> Bool = { Self.keys.contains($0) },
+        preservesContainers: Bool = false,
+        rejectsTokenOverflow: Bool = false)
+    {
+        self.keepsValue = keepingValue
+        self.preservesContainers = preservesContainers
+        self.rejectsTokenOverflow = rejectsTokenOverflow
+    }
+
     private struct Container {
         let isObject: Bool
         var expectsKey: Bool
@@ -105,8 +119,12 @@ struct SessionToolJSONProjection {
             self.containers[self.containers.count - 1].expectsKey = false
             self.emit(self.token)
             // Set only after ':'; the key/colon itself must remain in valid JSON.
-            self.pendingSkip = !Self.keys.contains(key)
+            self.pendingSkip = !self.keepsValue(key)
         } else {
+            if self.tokenOverflow, self.rejectsTokenOverflow {
+                self.invalid = true
+                return
+            }
             // Oversized strings still carry presence: null would erase a recorded tool error.
             self.emit(self.tokenOverflow ? Array((isString ? "\"\"" : "null").utf8) : self.token)
         }
@@ -121,10 +139,12 @@ struct SessionToolJSONProjection {
             return
         }
         if self.skipNextValue, byte == 123 || byte == 91 {
-            self.emit(Array("null".utf8))
             self.skipNextValue = false
-            self.skippedDepth = 1
-            return
+            if !self.preservesContainers {
+                self.emit(Array("null".utf8))
+                self.skippedDepth = 1
+                return
+            }
         }
         self.emit([byte])
         switch byte {
