@@ -488,7 +488,7 @@ h1, h2, h3, h4 {
 .ob-menu {
   position: absolute;
   top: 2.15rem;
-  right: 6.6rem;
+  inset-inline-end: 6.6rem;
   width: 310px;
   padding: 6px 0 5px;
   border-radius: 12px;
@@ -500,6 +500,7 @@ h1, h2, h3, h4 {
   transform: scale(1.12);
   transform-origin: top right;
 }
+[dir="rtl"] .ob-menu { transform-origin: top left; }
 
 .ob-rail {
   display: flex;
@@ -531,10 +532,13 @@ h1, h2, h3, h4 {
   bottom: 3px;
   height: 2px;
   border-radius: 1px;
-  background: linear-gradient(90deg, var(--brand, #cc7c5e) var(--week), var(--track) var(--week));
+  background: linear-gradient(var(--strip-direction, 90deg), var(--brand, #cc7c5e) var(--week), var(--track) var(--week));
 }
+[dir="rtl"] .ob-seg { --strip-direction: 270deg; }
 .ob-seg.is-selected { background: var(--accent-fill); color: #fff; }
-.ob-seg.is-selected::after { background: linear-gradient(90deg, #fff var(--week), rgba(255, 255, 255, 0.3) var(--week)); }
+.ob-seg.is-selected::after {
+  background: linear-gradient(var(--strip-direction, 90deg), #fff var(--week), rgba(255, 255, 255, 0.3) var(--week));
+}
 
 .ob-logo {
   display: block;
@@ -627,7 +631,7 @@ h1, h2, h3, h4 {
 .meter em {
   position: absolute;
   top: -2px;
-  left: calc(var(--pace) - 1px);
+  inset-inline-start: calc(var(--pace) - 1px);
   width: 2px;
   height: 10px;
   border-radius: 1px;
@@ -668,7 +672,7 @@ h1, h2, h3, h4 {
 /* Desktop widget, medium family (329 x 155 pt). */
 .desk-widget {
   position: absolute;
-  left: 2.5rem;
+  inset-inline-start: 2.5rem;
   bottom: 2.5rem;
   display: flex;
   width: 329px;
@@ -713,7 +717,7 @@ h1, h2, h3, h4 {
 
 @container (max-width: 760px) {
   .desk-widget { display: none; }
-  .ob-menu { right: 50%; transform: translateX(50%) scale(1); transform-origin: top center; }
+  .ob-menu { inset-inline: 0; margin-inline: auto; transform: none; }
 }
 
 @media (max-width: 760px) {
@@ -1052,7 +1056,10 @@ h1, h2, h3, h4 {
 .widget-tile.is-small { width: 7.6rem; }
 .widget-tile.is-medium { width: 15.6rem; }
 .widget-tile.is-large { width: 15.6rem; }
-.widget-preview img { display: block; width: 100%; height: auto; border-radius: 16px; }
+.widget-preview img { display: block; width: 100%; height: auto; }
+.widget-preview .widget-dark,
+:root[data-theme="dark"] .widget-preview .widget-light { display: none; }
+:root[data-theme="dark"] .widget-preview .widget-dark { display: block; }
 .mac-widget-gallery-wrap.has-scroll-fade::after {
   content: "";
   position: absolute;
