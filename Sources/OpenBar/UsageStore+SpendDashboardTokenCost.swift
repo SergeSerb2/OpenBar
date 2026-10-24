@@ -224,12 +224,13 @@ extension UsageStore {
         accounting: PiSnapshotAccounting? = nil)
     {
         self.spendDashboardTokenPublicationRevisions[provider.instanceID, default: 0] &+= 1
+        // The dashboard charts days and hours; only menu quota windows read exact slices.
         self.spendDashboardTokenPublications[provider.instanceID] = TokenSnapshotPublication(
-            snapshot: snapshot,
+            snapshot: snapshot?.withoutQuotaSlices(),
             publicationRevision: self.spendDashboardTokenSnapshotPublicationRevision(for: provider),
             providerConfigRevision: self.settings.providerConfigRevision(for: provider),
             scopeSignature: self.spendDashboardTokenSnapshotScopeSignature(for: provider),
-            accounting: accounting)
+            accounting: accounting?.withoutQuotaSlices)
         self.synchronizeSharedSpendDashboardAfterTokenPublication(for: provider)
     }
 

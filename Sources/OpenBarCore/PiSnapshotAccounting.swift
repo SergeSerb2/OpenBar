@@ -22,6 +22,11 @@ package enum PiSnapshotAccounting: Sendable, Equatable, Codable {
         }
     }
 
+    package var withoutQuotaSlices: Self {
+        guard case let .includesPi(scope, native) = self else { return self }
+        return .includesPi(scope: scope, native: native.withoutQuotaSlices())
+    }
+
     package var withoutNativeProjection: Self {
         guard case let .includesPi(scope, _) = self else { return self }
         return .includesPiWithoutNative(scope: scope)

@@ -195,9 +195,9 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable, Codable {
     /// Hour-aligned buckets for spend charts and legacy quota history.
     public let hourly: [CostUsageHourlyEntry]
     /// Exact event-time slices for quota-window projection. Empty for legacy/coarse providers.
-    public let quotaSlices: [CostUsageTimedEntry]
+    public internal(set) var quotaSlices: [CostUsageTimedEntry]
     public let updatedAt: Date
-    let quotaProjectionMemo = CostUsageQuotaProjectionMemo()
+    var quotaProjectionMemo = CostUsageQuotaProjectionMemo()
 
     private enum CodingKeys: String, CodingKey {
         case sessionTokens
@@ -269,6 +269,15 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable, Codable {
         self.hourly = hourly
         self.quotaSlices = quotaSlices
         self.updatedAt = updatedAt
+    }
+
+    /// The same snapshot without exact quota slices, for readers that never project quota windows.
+    package func withoutQuotaSlices() -> Self {
+        guard !self.quotaSlices.isEmpty else { return self }
+        var result = self
+        result.quotaSlices = []
+        result.quotaProjectionMemo = CostUsageQuotaProjectionMemo()
+        return result
     }
 
     /// The same value, with each session source that a decoded snapshot repeats stored once.
