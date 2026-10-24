@@ -1,4 +1,5 @@
 import AppKit
+import OpenBarCore
 import SwiftUI
 
 @MainActor
@@ -79,11 +80,11 @@ struct TokenAccountDirectoryPicker: View {
             if let path = self.path {
                 Text(path).lineLimit(1).truncationMode(.middle).help(path)
                 if !Self.isAvailable(path) {
-                    Text(L("Unavailable")).foregroundStyle(.orange)
+                    SettingsStatusMessage(L("Unavailable"), tone: .warning)
                 }
             }
         }
-        .font(.footnote)
+        .font(OpenBarTheme.Fonts.meta)
         .controlSize(.small)
         .help(L("cost_estimate_hint"))
     }

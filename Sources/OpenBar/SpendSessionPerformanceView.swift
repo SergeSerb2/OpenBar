@@ -18,7 +18,7 @@ struct SpendSessionPerformanceView: View {
                     Text(L("spend_performance_turn_count", openBarLocalizedInteger(self.summary.sampleCount)))
                         .monospacedDigit()
                 }
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
             }
         }
@@ -42,12 +42,12 @@ private struct SpendPerformanceMetricStrip: View {
             HStack(alignment: .top, spacing: 18) {
                 ForEach(self.metrics) { metric in
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(metric.label).font(.caption).foregroundStyle(.secondary)
+                        Text(metric.label).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                         Text(metric.value)
                             .font(.system(.body, design: .rounded, weight: .semibold))
                             .foregroundStyle(.primary)
                         if let note = metric.note {
-                            Text(note).font(.caption2).foregroundStyle(.secondary)
+                            Text(note).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                         }
                     }
                     .fixedSize()
@@ -65,10 +65,10 @@ private struct SpendPerformanceMetricStrip: View {
                             Text(metric.value).fontWeight(.semibold).foregroundStyle(.primary)
                         }
                         if let note = metric.note {
-                            Text(note).font(.caption2).foregroundStyle(.secondary)
+                            Text(note).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                         }
                     }
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .help(metric.help ?? "")
                     .accessibilityElement(children: .combine)
                 }
@@ -93,7 +93,7 @@ struct SpendSessionPerformanceDetailsView: View {
                         Text(metric.label).foregroundStyle(.secondary)
                         Text(metric.value).fontWeight(.medium).foregroundStyle(.primary)
                         if let note = metric.note {
-                            Text(note).font(.caption2).foregroundStyle(.secondary)
+                            Text(note).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -117,7 +117,7 @@ struct SpendSessionPerformanceDetailsView: View {
             SpendPerformanceModelComparison(groups: self.summary.details.groups)
         }
         .padding(.top, 8)
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.caption)
         .monospacedDigit()
         .fixedSize(horizontal: false, vertical: true)
     }
@@ -143,7 +143,7 @@ private struct SpendPerformanceModelComparison: View {
                 Text(L("spend_performance_duration"))
             }
             .foregroundStyle(.secondary)
-            .font(.caption2)
+            .font(OpenBarTheme.Fonts.caption)
             .fixedSize()
             ForEach(Array(self.groups.enumerated()), id: \.offset) { _, group in
                 GridRow(alignment: .top) {
@@ -153,7 +153,7 @@ private struct SpendPerformanceModelComparison: View {
                             .fixedSize(horizontal: false, vertical: true)
                         Text(group.reasoningEffort ?? L("Unknown reasoning effort"))
                             .foregroundStyle(.secondary)
-                            .font(.caption2)
+                            .font(OpenBarTheme.Fonts.caption)
                     }
                     .frame(minWidth: 68, maxWidth: 145, alignment: .leading)
                     Text(openBarLocalizedInteger(group.sampleCount))
@@ -163,7 +163,7 @@ private struct SpendPerformanceModelComparison: View {
                         if group.firstTokenSampleCount < group.sampleCount {
                             Text(openBarLocalizedInteger(group.firstTokenSampleCount) + "/" +
                                 openBarLocalizedInteger(group.sampleCount))
-                                .font(.caption2)
+                                .font(OpenBarTheme.Fonts.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }

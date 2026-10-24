@@ -8,7 +8,7 @@ struct SpendTimeZoneControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(L("Statistics time zone"))
-                .font(.subheadline.weight(.medium))
+                .font(OpenBarTheme.Fonts.laneTitle)
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
                     self.picker
@@ -20,7 +20,7 @@ struct SpendTimeZoneControls: View {
                 }
             }
             Text(L("Daily usage uses a fixed time zone. Changing it may move usage to a different day."))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }

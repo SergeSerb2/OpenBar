@@ -1,29 +1,7 @@
 import AppKit
 import KeyboardShortcuts
+import OpenBarCore
 import SwiftUI
-
-/// Colored rounded-square symbol used for app panes in the settings sidebar,
-/// mirroring the System Settings sidebar style.
-struct SettingsIconChip: View {
-    static let side: CGFloat = 20
-
-    let systemImage: String
-    let color: Color
-
-    var body: some View {
-        Image(systemName: self.systemImage)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: Self.side, height: Self.side)
-            .background(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [self.color.opacity(0.85), self.color],
-                        startPoint: .top,
-                        endPoint: .bottom)))
-            .accessibilityHidden(true)
-    }
-}
 
 /// Two-line label for grouped-form rows that genuinely need a supporting sentence.
 struct SettingsRowLabel: View {
@@ -42,7 +20,7 @@ struct SettingsRowLabel: View {
                 .foregroundStyle(self.isEnabled ? .primary : .secondary)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -51,8 +29,9 @@ struct SettingsRowLabel: View {
 }
 
 /// Section footer for grouped forms. macOS renders bare footer text trailing-aligned
-/// at body size, which reads badly for long captions; this pins it leading at footnote
-/// size in secondary color, matching System Settings captions.
+/// at body size, which reads badly for long captions; this pins it leading in the
+/// `caption` role. Secondary rather than the spec's tertiary: tertiary measures about
+/// 1.9:1 (light) and 2.3:1 (dark) on the window background, too faint for guidance text.
 struct SettingsSectionFooter<Content: View>: View {
     private let content: Content
 
@@ -62,7 +41,7 @@ struct SettingsSectionFooter<Content: View>: View {
 
     var body: some View {
         self.content
-            .font(.footnote)
+            .font(OpenBarTheme.Fonts.caption)
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
@@ -73,6 +52,30 @@ struct SettingsSectionFooter<Content: View>: View {
 extension SettingsSectionFooter where Content == Text {
     init(_ text: String) {
         self.init { Text(text) }
+    }
+}
+
+/// Inline warning or error in Settings (docs/design §2.2): the tone's symbol in its color, then the words in the
+/// label color, so color is never the only signal and long messages stay readable.
+struct SettingsStatusMessage: View {
+    let text: String
+    let tone: OpenBarQuotaTone
+
+    init(_ text: String, tone: OpenBarQuotaTone) {
+        self.text = text
+        self.tone = tone
+    }
+
+    var body: some View {
+        Label {
+            Text(self.text)
+                .foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: self.tone.symbolName ?? "info.circle")
+                .foregroundStyle(OpenBarTheme.Colors.tone(self.tone) ?? .secondary)
+                .accessibilityHidden(true)
+        }
     }
 }
 
@@ -188,7 +191,7 @@ struct PreferenceToggleRow: View {
 
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -219,11 +222,11 @@ struct SettingsSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             if let title, !title.isEmpty {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
             }
             if let caption {
                 Text(caption)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }

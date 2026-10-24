@@ -49,6 +49,7 @@ struct ProviderAccountUsageOverviewView: View {
             .disabled(!self.overview.canRefresh)
         } header: {
             Text(L("All accounts"))
+                .settingsHeroFollowingHeader()
         } footer: {
             SettingsSectionFooter(self.overview.rows.count > self.overview.refreshLimit
                 ? L(
@@ -62,7 +63,7 @@ struct ProviderAccountUsageOverviewView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(row.title)
-                            .font(.headline)
+                            .font(OpenBarTheme.Fonts.cardTitle)
                             .textSelection(.enabled)
                         HStack(spacing: 8) {
                             if row.isFollowed {
@@ -72,7 +73,7 @@ struct ProviderAccountUsageOverviewView: View {
                                 Text(L("System"))
                             }
                         }
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
@@ -103,9 +104,8 @@ struct ProviderAccountUsageOverviewView: View {
                     isEnabled: self.isEnabled,
                     isRefreshing: row.isRefreshing)
                 if let error = row.error {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    SettingsStatusMessage(error, tone: .critical)
+                        .font(OpenBarTheme.Fonts.meta)
                         .textSelection(.enabled)
                 }
             }

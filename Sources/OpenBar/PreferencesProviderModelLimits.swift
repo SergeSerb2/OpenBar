@@ -43,7 +43,7 @@ struct ProviderSettingsModelLimitsRowView: View {
                     Text(L("RPM (optional)")).frame(width: 110, alignment: .leading)
                     Color.clear.frame(width: 16, height: 1)
                 }
-                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             ForEach(self.$rows) { $row in
                 VStack(alignment: .leading, spacing: 3) {
@@ -68,7 +68,7 @@ struct ProviderSettingsModelLimitsRowView: View {
                     }
                     if row.value == nil {
                         Text(L("Enter a model and positive limits, such as 40M TPM and 15k RPM."))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                 }
             }

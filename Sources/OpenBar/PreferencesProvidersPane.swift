@@ -28,6 +28,7 @@ struct ProvidersPane: View {
     @State private var activeConfirmation: ProviderSettingsConfirmationState?
     @State private var codexAccountsNotice: CodexAccountsSectionNotice?
     @State private var isAuthenticatingLiveCodexAccount = false
+    @Environment(\.settingsPreviewNow) private var previewNow
 
     init(
         // Provider-specific by design: Codex is the historical settings selection when no provider is supplied.
@@ -53,8 +54,9 @@ struct ProvidersPane: View {
     }
 
     var body: some View {
+        let now = self.previewNow ?? Date()
         let unfilteredModel = UsageMenuCardView.Model.make(self.store.menuCardInput(
-            for: self.provider, context: .settings))
+            for: self.provider, context: .settings, now: now))
         // Provider-specific by design: only Codex has managed OAuth account snapshots for this shared settings view.
         let overview = self.provider == .codex ? self.store.codexAccountUsageOverview { accountIDs in
             Task { @MainActor in
@@ -64,7 +66,7 @@ struct ProvidersPane: View {
             }
         } : nil
         let visibilityModel = UsageMenuCardView.Model.make(self.store.menuCardInput(
-            for: self.provider, context: .settings, optionalUsageOverride: true))
+            for: self.provider, context: .settings, now: now, optionalUsageOverride: true))
         let usageItems = ((overview?.usageItems ?? []) + visibilityModel.usageItemDescriptors(
             includingHidden: self.settings.hiddenUsageItemIDs(for: self.provider),
             hidePersonalInfo: self.settings.hidePersonalInfo))
@@ -211,7 +213,7 @@ struct ProvidersPane: View {
         let availability = self.store.knownLimitsAvailability(for: provider)
             ?? UsageLimitsAvailability.resolve(provider: provider, snapshot: snapshot)
         if availability.isUnavailable { return L("Limits not available") }
-        return snapshot?.updatedAt.relativeDescription() ?? L("usage_not_fetched_yet")
+        return snapshot?.updatedAt.relativeDescription(now: self.previewNow ?? Date()) ?? L("usage_not_fetched_yet")
     }
 
     func providerSubtitle(_ provider: UsageProvider) -> String {

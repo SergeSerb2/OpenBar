@@ -30,7 +30,7 @@ struct ProviderAccentColorSettingsView: View {
                 TextField(L("provider_accent_color_title"), text: self.$hexText)
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
-                    .font(.body.monospaced())
+                    .font(OpenBarTheme.Fonts.code)
                     .frame(width: Self.hexFieldWidth)
                     .focused(self.$isHexFieldFocused)
                     .onSubmit { self.commitHexText() }

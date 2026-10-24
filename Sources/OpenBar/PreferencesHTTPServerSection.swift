@@ -33,7 +33,7 @@ struct HTTPServerSection: View {
             }
             if !self.draft.isLoopback {
                 Text(L("http_server_warning"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 Toggle(L("http_server_plain_http"), isOn: self.$draft.allowPlainHTTP)
             }
@@ -45,7 +45,7 @@ struct HTTPServerSection: View {
                 }
                 if self.controller.configuration.bindHost == "0.0.0.0" {
                     Text(L("http_server_wildcard"))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                 }
             }
             Button(L("apply")) {

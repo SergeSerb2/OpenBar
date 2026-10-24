@@ -72,7 +72,7 @@ struct SpendDashboardSummary: View {
         Text(
             "\(spendDashboardCoverageChipText(self.group.coverage)) · "
                 + spendDashboardProvenanceText(self.group.provenance))
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.meta)
             .foregroundStyle(.secondary)
     }
 
@@ -95,11 +95,13 @@ struct SpendDashboardSummary: View {
                     .accessibilityIdentifier("spend-dashboard-clear-selected-day")
                 }
             }
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.meta)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(.quaternary.opacity(0.5), in: Capsule())
+            .padding(.horizontal, OpenBarSpacing.regular)
+            .padding(.vertical, OpenBarSpacing.tight)
+            .background(SettingsFillBackground(shape: RoundedRectangle(
+                cornerRadius: OpenBarRadius.chip,
+                style: .continuous)))
         }
     }
 }
@@ -111,13 +113,12 @@ private struct SpendSummaryValue: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(self.title)
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
             Text(self.value)
-                .font(.system(.title2, design: .rounded, weight: .semibold))
-                .monospacedDigit()
+                .font(OpenBarTheme.Fonts.hero)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -130,11 +131,10 @@ private struct SpendTokenMixValue: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(self.title)
-                .font(.caption2)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
             Text(self.value)
-                .font(.subheadline.weight(.medium))
-                .monospacedDigit()
+                .font(OpenBarTheme.Fonts.laneValue)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -134,21 +134,16 @@ struct ProviderDetailView<SupplementaryContent: View>: View {
 
     var body: some View {
         Form {
-            Section {
+            // The header sits on the window background above the groups, like a System Settings pane hero: it is
+            // the header of a section without rows, so the grouped form draws no box around it.
+            Section {} header: {
                 ProviderDetailHeaderRow(
                     provider: self.provider,
                     store: self.store,
                     isEnabled: self.$isEnabled,
                     subtitle: self.subtitle,
                     onRefresh: self.onRefresh)
-
-                ProviderDetailInfoRows(
-                    provider: self.provider,
-                    store: self.store,
-                    isEnabled: self.isEnabled,
-                    versionText: Self.versionText(provider: self.provider, store: self.store),
-                    model: self.model,
-                    showsAccountInfo: self.accountUsageOverview == nil)
+                    .foregroundStyle(.primary)
             }
 
             if let overview = self.accountUsageOverview {
@@ -169,7 +164,7 @@ struct ProviderDetailView<SupplementaryContent: View>: View {
                 }
                 if let diagnostic = self.openAIWebDiagnostic {
                     Section {
-                        Text(diagnostic).font(.footnote).foregroundStyle(.secondary)
+                        Text(diagnostic).font(OpenBarTheme.Fonts.meta).foregroundStyle(.secondary)
                     } header: {
                         Text(L("OpenAI web extras"))
                     }
@@ -183,8 +178,22 @@ struct ProviderDetailView<SupplementaryContent: View>: View {
                         isEnabled: self.isEnabled,
                         isRefreshing: self.store.refreshingProviders.contains(self.provider.instanceID))
                 } header: {
+                    // The grouped form demotes the header that follows the row-less hero section; keep it a
+                    // normal section title.
                     Text(L("Usage"))
+                        .settingsHeroFollowingHeader()
                 }
+            }
+
+            // Source, version, status, and account details follow the usage preview.
+            Section {
+                ProviderDetailInfoRows(
+                    provider: self.provider,
+                    store: self.store,
+                    isEnabled: self.isEnabled,
+                    versionText: Self.versionText(provider: self.provider, store: self.store),
+                    model: self.model,
+                    showsAccountInfo: self.accountUsageOverview == nil)
             }
 
             if !self.usageItems.isEmpty {
@@ -275,8 +284,7 @@ struct ProviderDetailView<SupplementaryContent: View>: View {
                 }
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
     }
 }
 
@@ -302,7 +310,7 @@ struct ProviderUsageItemVisibilitySettingsView: View {
                         Text(item.title)
                         if item.requiresOptionalUsage, !self.settings.showOptionalCreditsAndExtraUsage {
                             Text(L("Hidden by the global optional credits, spending & billing setting."))
-                                .font(.caption)
+                                .font(OpenBarTheme.Fonts.meta)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -332,34 +340,37 @@ struct ProviderDetailHeaderRow: View {
     let onRefresh: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: OpenBarSpacing.section) {
             ProviderDetailBrandIcon(provider: self.provider)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: OpenBarSpacing.hairline) {
                 Text(self.store.metadata(for: self.provider).displayName)
-                    .font(.title3.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.title)
+                    .lineLimit(1)
 
                 Text(self.detailSubtitle)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
             }
 
-            Spacer(minLength: 12)
+            Spacer(minLength: OpenBarSpacing.section)
 
             Button {
                 self.onRefresh()
             } label: {
                 Image(systemName: "arrow.clockwise")
+                    .foregroundStyle(.secondary)
             }
             .buttonStyle(.borderless)
             .help(L("Refresh"))
+            .accessibilityLabel(L("Refresh"))
 
             Toggle(L("Enabled"), isOn: self.$isEnabled)
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .controlSize(.small)
         }
-        .padding(.vertical, 2)
     }
 
     private var detailSubtitle: String {
@@ -379,20 +390,30 @@ struct ProviderDetailHeaderRow: View {
 private struct ProviderDetailBrandIcon: View {
     let provider: UsageProvider
 
+    /// 24-pt template logo on a 40-pt card-fill tile (docs/design §9.4).
     var body: some View {
-        if let brand = ProviderBrandIcon.image(for: self.provider) {
-            Image(nsImage: brand)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 28, height: 28)
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-        } else {
-            Image(systemName: "circle.dotted")
-                .font(.system(size: 24, weight: .regular))
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
+        Group {
+            if let brand = ProviderBrandIcon.image(for: self.provider) {
+                Image(nsImage: brand)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: "circle.dotted")
+                    .resizable()
+                    .scaledToFit()
+            }
         }
+        .frame(
+            width: OpenBarSettingsMetrics.providerHeaderLogoSize,
+            height: OpenBarSettingsMetrics.providerHeaderLogoSize)
+        .foregroundStyle(.primary)
+        .frame(
+            width: OpenBarSettingsMetrics.providerHeaderTileSize,
+            height: OpenBarSettingsMetrics.providerHeaderTileSize)
+        .background(SettingsFillBackground(shape: RoundedRectangle(
+            cornerRadius: OpenBarRadius.rail,
+            style: .continuous)))
+        .accessibilityHidden(true)
     }
 }
 
@@ -404,6 +425,7 @@ struct ProviderDetailInfoRows: View {
     let versionText: String?
     let model: UsageMenuCardView.Model
     var showsAccountInfo: Bool = true
+    @Environment(\.settingsPreviewNow) private var previewNow
 
     var body: some View {
         if self.showsAccountInfo {
@@ -442,7 +464,7 @@ struct ProviderDetailInfoRows: View {
 
     private var updatedText: String {
         if let updated = self.store.snapshot(for: self.provider.instanceID)?.updatedAt {
-            return UsageFormatter.updatedString(from: updated)
+            return UsageFormatter.updatedString(from: updated, now: self.previewNow ?? Date())
         }
         if self.store.refreshingProviders.contains(self.provider.instanceID) {
             return L("Refreshing")
@@ -541,21 +563,27 @@ struct ProviderMetricsInlineView: View {
 
         if contentState.showsPlaceholder {
             Text(self.placeholderText)
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
         } else {
-            ForEach(self.model.metrics, id: \.id) { metric in
-                ProviderMetricInlineRow(
-                    metric: metric,
-                    title: ProviderDetailView<EmptyView>.metricTitle(provider: self.provider, metric: metric),
-                    progressColor: self.model.progressColor)
+            if contentState.hasMetrics {
+                // Lanes use the menu card anatomy, two per row when the form is wide enough.
+                ProviderUsageLaneLayout(columnSpacing: OpenBarSpacing.page, rowSpacing: OpenBarSpacing.section) {
+                    ForEach(self.model.metrics, id: \.id) { metric in
+                        ProviderMetricInlineRow(
+                            metric: metric,
+                            title: ProviderDetailView<EmptyView>.metricTitle(provider: self.provider, metric: metric),
+                            progressColor: self.model.progressColor)
+                    }
+                }
+                .padding(.vertical, OpenBarSpacing.hairline)
             }
 
             if contentState.hasUsageNotes {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(self.model.usageNotes.enumerated()), id: \.offset) { _, note in
                         Text(note)
-                            .font(.footnote)
+                            .font(OpenBarTheme.Fonts.meta)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -632,38 +660,34 @@ struct ProviderTokenUsageInlineView: View {
     }
 }
 
+/// One usage lane in the menu card anatomy (docs/design §9.2): title and value, the meter, then reset and pace.
+/// A low lane shows its tone symbol and color on the value; the meter keeps the provider color.
 private struct ProviderMetricInlineRow: View {
     let metric: UsageMenuCardView.Model.Metric
     let title: String
     let progressColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OpenBarMenuMetrics.laneInnerSpacing) {
             switch ProviderDetailView<EmptyView>.metricInlinePresentation(self.metric) {
             case let .status(statusText):
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
                     Text(self.title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(OpenBarTheme.Fonts.laneTitle)
                         .lineLimit(1)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: OpenBarSpacing.regular)
                     Text(statusText)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
             case .progress:
-                let presentation = self.metric.linePresentation(title: self.title)
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(presentation.titleText)
-                        .font(.subheadline.weight(.semibold))
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                    Text(self.title)
+                        .font(OpenBarTheme.Fonts.laneTitle)
                         .lineLimit(1)
                         .layoutPriority(1)
-                    Spacer(minLength: 8)
-                    if let resetText = presentation.resetText {
-                        Text(resetText)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    Spacer(minLength: OpenBarSpacing.regular)
+                    self.valueLabel
                 }
 
                 UsageProgressBar(
@@ -677,22 +701,118 @@ private struct ProviderMetricInlineRow: View {
                     workdayTickAppearance: self.metric.workdayTickAppearance)
                     .frame(maxWidth: .infinity)
 
-                if let metaText = presentation.metaText {
-                    Text(metaText)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                let presentation = self.metric.linePresentation(title: self.title)
+                if presentation.resetText != nil || presentation.metaText != nil {
+                    // Reset left and pace right when both fit; otherwise they stack and wrap instead of truncating.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                            self.detailTexts(presentation, stacked: false)
+                        }
+                        VStack(alignment: .leading, spacing: OpenBarSpacing.hairline) {
+                            self.detailTexts(presentation, stacked: true)
+                        }
+                    }
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(.secondary)
                 }
 
                 if let detail = self.metric.detailText, !detail.isEmpty {
                     Text(detail)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
-        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func detailTexts(
+        _ presentation: UsageMenuCardView.Model.Metric.LinePresentation,
+        stacked: Bool) -> some View
+    {
+        if let resetText = presentation.resetText {
+            Text(resetText)
+                .lineLimit(stacked ? nil : 1)
+                .fixedSize(horizontal: !stacked, vertical: true)
+        }
+        if !stacked {
+            Spacer(minLength: OpenBarSpacing.regular)
+        }
+        if let metaText = presentation.metaText {
+            Text(metaText)
+                .lineLimit(stacked ? nil : 1)
+                .fixedSize(horizontal: !stacked, vertical: true)
+        }
+    }
+
+    private var tone: OpenBarQuotaTone {
+        guard !self.metric.isSyntheticCreditLane else { return .normal }
+        let remaining = self.metric.percentStyle == .left ? self.metric.percent : 100 - self.metric.percent
+        return OpenBarQuotaTone.resolve(remainingPercent: remaining, isStale: false)
+    }
+
+    @ViewBuilder
+    private var valueLabel: some View {
+        let tone = self.tone
+        HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.tight) {
+            if tone == .warning || tone == .critical, let symbol = tone.symbolName {
+                Image(systemName: symbol)
+                    .font(OpenBarTheme.Fonts.meta)
+                    .accessibilityHidden(true)
+            }
+            Text(self.metric.percentLabel)
+                .font(OpenBarTheme.Fonts.laneValue)
+                .lineLimit(1)
+        }
+        .foregroundStyle(OpenBarTheme.Colors.tone(tone) ?? Color.primary)
+    }
+}
+
+/// Places usage lanes two per row when each lane can be at least `minimumLaneWidth` wide, otherwise one per row.
+/// A layout rather than `ViewThatFits`, so each lane and its meter is built once.
+private struct ProviderUsageLaneLayout: Layout {
+    var columnSpacing: CGFloat
+    var rowSpacing: CGFloat
+    var minimumLaneWidth: CGFloat = 220
+
+    private func columns(for width: CGFloat, count: Int) -> Int {
+        count >= 2 && width >= self.minimumLaneWidth * 2 + self.columnSpacing ? 2 : 1
+    }
+
+    private func laneWidth(for width: CGFloat, columns: Int) -> CGFloat {
+        columns == 2 ? (width - self.columnSpacing) / 2 : width
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? self.minimumLaneWidth * 2 + self.columnSpacing
+        let columns = self.columns(for: width, count: subviews.count)
+        let laneWidth = self.laneWidth(for: width, columns: columns)
+        var height: CGFloat = 0
+        for rowStart in stride(from: 0, to: subviews.count, by: columns) {
+            let row = subviews[rowStart..<min(rowStart + columns, subviews.count)]
+            let rowHeight = row.map { $0.sizeThatFits(ProposedViewSize(width: laneWidth, height: nil)).height }
+                .max() ?? 0
+            height += rowHeight + (rowStart == 0 ? 0 : self.rowSpacing)
+        }
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let columns = self.columns(for: bounds.width, count: subviews.count)
+        let laneWidth = self.laneWidth(for: bounds.width, columns: columns)
+        var y = bounds.minY
+        for rowStart in stride(from: 0, to: subviews.count, by: columns) {
+            let row = Array(subviews[rowStart..<min(rowStart + columns, subviews.count)])
+            let laneProposal = ProposedViewSize(width: laneWidth, height: nil)
+            let rowHeight = row.map { $0.sizeThatFits(laneProposal).height }.max() ?? 0
+            for (column, subview) in row.enumerated() {
+                let x = bounds.minX + CGFloat(column) * (laneWidth + self.columnSpacing)
+                subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: laneProposal)
+            }
+            y += rowHeight + self.rowSpacing
+        }
     }
 }
 
@@ -700,20 +820,20 @@ private struct ProviderLimitResetCreditsInlineRow: View {
     let presentation: LimitResetCreditsPresentation
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OpenBarMenuMetrics.laneInnerSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(L("Limit Reset Credits"))
-                    .font(.subheadline.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
                 Spacer(minLength: 8)
                 Text(self.presentation.text)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Image(systemName: "clock")
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                 Text(self.presentation.expirySummaryText)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -735,11 +855,11 @@ private struct ProviderMetricInlineTextRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             if !self.title.isEmpty {
                 Text(self.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
             }
             Spacer(minLength: 8)
             Text(self.value)
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.trailing)
         }
@@ -751,14 +871,14 @@ private struct ProviderMetricInlineCostRow: View {
     let progressColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OpenBarMenuMetrics.laneInnerSpacing) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(self.section.title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
                 Spacer(minLength: 8)
                 if let percentLine = self.section.percentLine {
                     Text(percentLine)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
@@ -773,7 +893,7 @@ private struct ProviderMetricInlineCostRow: View {
             }
 
             Text(self.section.spendLine)
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }

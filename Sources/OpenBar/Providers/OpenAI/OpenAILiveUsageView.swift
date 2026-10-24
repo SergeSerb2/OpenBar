@@ -59,6 +59,7 @@ struct OpenAILiveUsageView: View {
         }
         .padding(20)
         .frame(minWidth: 640, minHeight: 460)
+        .tint(OpenBarTheme.Colors.accent)
     }
 
     private var header: some View {
@@ -84,7 +85,7 @@ struct OpenAILiveUsageView: View {
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 if let updated = self.model.lastUpdated {
                     Text(Self.updatedText(from: updated, now: context.date))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
@@ -147,7 +148,7 @@ struct OpenAILiveUsageView: View {
                       let percent = highest.peakTPMPercent
             {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(L("Highest utilization")).font(.caption).foregroundStyle(.secondary)
+                    Text(L("Highest utilization")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     Text("\(highest.name) · \(Self.percent(percent))")
                         .font(.callout).foregroundStyle(Self.utilizationColor(percent))
                 }
@@ -159,16 +160,18 @@ struct OpenAILiveUsageView: View {
         _ title: String, value: Int, detail: String, percent: Double? = nil, batchDetail: String? = nil) -> some View
     {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             Text(Self.count(value)).font(.title2).monospacedDigit()
-            Text(detail).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text(detail).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).fixedSize(
+                horizontal: false,
+                vertical: true)
             if let batchDetail {
-                Text(batchDetail).font(.caption2).foregroundStyle(.secondary)
+                Text(batchDetail).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let percent {
                 Text(L("%@ of limit", Self.percent(percent)))
-                    .font(.caption2).foregroundStyle(Self.utilizationColor(percent))
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(Self.utilizationColor(percent))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -178,23 +181,23 @@ struct OpenAILiveUsageView: View {
         _ utilization: OpenAIOrgLimitUtilization?, projectCap: OpenAIOrgRateLimits.Limit?) -> some View
     {
         VStack(alignment: .leading, spacing: 4) {
-            Text(L("Limit")).font(.caption).foregroundStyle(.secondary)
+            Text(L("Limit")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             if let utilization {
                 Text(Self.limitText(utilization.limit)).font(.callout).monospacedDigit()
                 if let percent = utilization.peakRPMPercent {
                     Text(L("Peak RPM: %@ of limit", Self.percent(percent)))
-                        .font(.caption2).foregroundStyle(Self.utilizationColor(percent))
+                        .font(OpenBarTheme.Fonts.caption).foregroundStyle(Self.utilizationColor(percent))
                 }
             } else {
                 Text(L("Org limit not set")).font(.callout)
             }
             if let projectCap {
                 Text(L("project cap %@", Self.count(projectCap.tokensPerMinute)))
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             }
             if utilization == nil {
                 Button(L("Set org limit…"), action: self.openSettings)
-                    .buttonStyle(.link).font(.caption)
+                    .buttonStyle(.settingsLink).font(OpenBarTheme.Fonts.caption)
             }
         }
     }
@@ -209,10 +212,10 @@ struct OpenAILiveUsageView: View {
         value.formatted(.number.precision(.fractionLength(0...1))) + "%"
     }
 
+    /// Status tone for a utilization percentage, from the shared remaining-percent thresholds (docs/design §2.2).
     static func utilizationColor(_ percent: Double) -> Color {
-        if percent >= 95 { return Color(nsColor: .systemRed) }
-        if percent >= 80 { return Color(nsColor: .systemOrange) }
-        return .secondary
+        let tone = OpenBarQuotaTone.resolve(remainingPercent: 100 - percent, isStale: false)
+        return OpenBarTheme.Colors.tone(tone) ?? .secondary
     }
 
     private func footer(projectID: String?) -> some View {
@@ -234,7 +237,7 @@ struct OpenAILiveUsageView: View {
                     "and excludes Batch API traffic, which has separate limits. " +
                     "The limiter also reserves max_tokens up front, so short bursts can still hit limits."))
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.caption)
         .foregroundStyle(.secondary)
         .textSelection(.enabled)
     }
@@ -272,7 +275,7 @@ private struct OpenAILiveUsageTable: View {
                 Text(L("Org TPM limit")).frame(width: self.limitColumnWidth, alignment: .trailing)
                 self.cell(L("Peak % of limit"))
             }
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.caption)
             .foregroundStyle(.secondary)
             .padding(.horizontal, 8)
             .padding(.bottom, 6)
@@ -305,15 +308,17 @@ private struct OpenAILiveUsageTable: View {
                 Text(utilization.map { ProviderRateLimitNumber.format($0.limit.tokensPerMinute) } ?? "—")
                 if case let .model(model) = filter, let cap = self.limits.projectCap(for: model) {
                     Text(L("project cap %@", OpenAILiveUsageView.count(cap.tokensPerMinute)))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
             }.frame(width: self.limitColumnWidth, alignment: .trailing)
             self.capacity(utilization?.peakTPMPercent)
         }
         .padding(8)
         .contentShape(Rectangle())
-        .background(self.filter == filter ? Color.accentColor.opacity(0.15) : Color.clear)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        // Selected row: a rounded fill behind the row, not a clip of the row's content.
+        .background(
+            RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous)
+                .fill(self.filter == filter ? OpenBarTheme.Colors.accent.opacity(0.15) : Color.clear))
         .onTapGesture { self.filter = filter }
         .accessibilityAddTraits(self.filter == filter ? .isSelected : [])
     }

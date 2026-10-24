@@ -61,20 +61,19 @@ struct MenuBarLayoutConditionalEditorSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L("menu_bar_layout_conditional_name"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
                 TextField(L("menu_bar_layout_conditional_name_placeholder"), text: self.$conditional.name)
                     .textFieldStyle(.roundedBorder)
                 if !self.nameIsValid {
-                    Text(L("menu_bar_layout_conditional_name_error"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    SettingsStatusMessage(L("menu_bar_layout_conditional_name_error"), tone: .critical)
+                        .font(OpenBarTheme.Fonts.meta)
                 }
             }
 
             Text(L("menu_bar_layout_conditional_if"))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
 
@@ -92,7 +91,7 @@ struct MenuBarLayoutConditionalEditorSheet: View {
                             threshold: 0)))
             }
             .disabled(self.conditional.clauses.count >= 4)
-            .buttonStyle(.link)
+            .buttonStyle(.settingsLink)
 
             HStack {
                 Text(L("menu_bar_layout_conditional_then"))
@@ -104,7 +103,7 @@ struct MenuBarLayoutConditionalEditorSheet: View {
             }
 
             Text(self.conditional.editorSummary(provider: self.provider))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
 

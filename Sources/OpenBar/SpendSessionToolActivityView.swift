@@ -56,11 +56,11 @@ struct SpendSessionToolActivityView: View {
                     .help(L("Refresh"))
                     .accessibilityLabel(L("Refresh"))
                 }
-                .font(.caption2)
+                .font(OpenBarTheme.Fonts.caption)
             }
             .padding(.top, 8)
         } label: {
-            Text(L("spend_tools_title")).font(.caption).foregroundStyle(.secondary)
+            Text(L("spend_tools_title")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
         }
         .task(id: LoadKey(
             source: self.source, activity: self.lastActivity, expanded: self.expanded, revision: self.revision))
@@ -139,7 +139,7 @@ struct SpendToolActivityContent: View {
             }
             if self.snapshot.isPartial {
                 Label(L("spend_tools_partial"), systemImage: "info.circle")
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             }
             if let longest = operations.filter({ $0.timing == .native }).max(by: {
                 ($0.durationMilliseconds ?? -1) < ($1.durationMilliseconds ?? -1)
@@ -150,7 +150,7 @@ struct SpendToolActivityContent: View {
                     Spacer(minLength: 4)
                     Text(spendToolDuration(longest)).monospacedDigit()
                 }
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
             }
             HStack(spacing: 4) {
                 ForEach(SpendToolActivityFilter.allCases) { filter in
@@ -160,8 +160,8 @@ struct SpendToolActivityContent: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 6)
                             .background(
-                                self.filter == filter ? Color.accentColor.opacity(0.15) : .clear,
-                                in: RoundedRectangle(cornerRadius: 6))
+                                self.filter == filter ? OpenBarTheme.Colors.accent.opacity(0.15) : .clear,
+                                in: RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(L("spend_tools_filter") + ": " + filter.label)
@@ -169,11 +169,13 @@ struct SpendToolActivityContent: View {
                 }
             }
             .padding(3)
-            .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
+            .background(SettingsFillBackground(shape: RoundedRectangle(
+                cornerRadius: OpenBarRadius.rail,
+                style: .continuous)))
             .onChange(of: self.filter) { _, _ in self.rowLimit = 8 }
             if visible.isEmpty {
                 Text(L(operations.isEmpty ? "spend_tools_empty" : "spend_tools_no_matches"))
-                    .font(.caption).foregroundStyle(.secondary).padding(.vertical, 6)
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).padding(.vertical, 6)
             } else {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(visible.prefix(self.rowLimit)) { operation in
@@ -186,7 +188,7 @@ struct SpendToolActivityContent: View {
                 }
                 if visible.count > self.rowLimit {
                     Button(L("spend_tools_more")) { self.rowLimit += 20 }
-                        .buttonStyle(.borderless).font(.caption)
+                        .buttonStyle(.borderless).font(OpenBarTheme.Fonts.caption)
                 }
             }
         }
@@ -195,7 +197,7 @@ struct SpendToolActivityContent: View {
 
     private func metric(_ key: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(L(key)).font(.caption2).foregroundStyle(.secondary)
+            Text(L(key)).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             Text(value).font(.body.weight(.semibold)).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -242,12 +244,12 @@ struct SpendToolOperationRow: View {
                     ProgressView().controlSize(.small)
                 }
             }
-            .font(.caption).padding(.top, 6)
+            .font(OpenBarTheme.Fonts.caption).padding(.top, 6)
         } label: {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: self.operation.needsAttention ? "exclamationmark.circle" : "circle.fill")
-                    .foregroundStyle(self.operation.needsAttention ? Color.orange : Color.secondary)
-                    .font(.caption2)
+                    .foregroundStyle(self.operation.needsAttention ? OpenBarTheme.Colors.warning : Color.secondary)
+                    .font(OpenBarTheme.Fonts.caption)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(spendToolOperationName(self.operation, hidePersonalInfo: self.hidePersonalInfo))
@@ -259,21 +261,23 @@ struct SpendToolOperationRow: View {
                         Text(spendToolCompletionText(self.operation.completedAt, timeZone: self.timeZone))
                         Text(spendToolOutcome(self.operation))
                     }
-                    .foregroundStyle(.secondary).font(.caption2)
+                    .foregroundStyle(.secondary).font(OpenBarTheme.Fonts.caption)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .trailing, spacing: 3) {
                     Text(spendToolDuration(self.operation)).monospacedDigit()
                     if self.operation.timing == .recordedInterval {
-                        Text(L("spend_tools_interval")).font(.caption2).foregroundStyle(.secondary)
+                        Text(L("spend_tools_interval")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                 }
                 .fixedSize()
             }
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.caption)
         }
         .padding(8)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 8))
+        .background(SettingsFillBackground(shape: RoundedRectangle(
+            cornerRadius: OpenBarRadius.rail,
+            style: .continuous)))
         .task(id: self.detailsKey) {
             await self.detailsModel.load(key: self.detailsKey) {
                 try await SessionToolActivityStore.shared.details(

@@ -67,9 +67,7 @@ struct AdvancedPane: View {
                 Text(L("section_diagnostics"))
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
     }
 }
 
