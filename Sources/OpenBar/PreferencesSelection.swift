@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 extension SettingsPane {
     /// Stable token used to remember the selected pane across launches.
@@ -56,6 +56,7 @@ final class PreferencesSelection {
     static let paneDefaultsKey = "settingsSelectedPane"
 
     private let userDefaults: UserDefaults
+    var sidebarSearchText = ""
 
     struct Destination: Equatable {
         var pane: SettingsPane

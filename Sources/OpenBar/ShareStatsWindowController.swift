@@ -45,6 +45,9 @@ final class ShareStatsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func present() {
+        if self.window?.contentViewController == nil {
+            self.installContent()
+        }
         NSApp.activate(ignoringOtherApps: true)
         self.showWindow(nil)
         self.window?.makeKeyAndOrderFront(nil)
@@ -65,6 +68,11 @@ final class ShareStatsWindowController: NSWindowController, NSWindowDelegate {
                 guard let self else { return false }
                 return ShareStatsExporter.saveImage(self.payload)
             }).openBarLocalized())
+    }
+
+    func windowWillClose(_: Notification) {
+        self.window?.contentViewController = nil
+        self.window?.contentView = nil
     }
 }
 

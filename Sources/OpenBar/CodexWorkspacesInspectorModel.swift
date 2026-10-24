@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 /// Window-local state for the opt-in Codex Workspaces inspector.
 ///
@@ -114,6 +114,11 @@ final class CodexWorkspacesInspectorModel {
         self.isLoading = false
         self.loadReason = nil
         self.progress = nil
+    }
+
+    func releaseSnapshot() {
+        self.cancelLoading()
+        self.snapshot = nil
     }
 
     /// Configuration identifies a privacy and source scope boundary. Clearing

@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 enum OpenAILiveUsagePolling {
     static func interval(after error: OpenAILiveUsageError?, previous: TimeInterval) -> TimeInterval {
@@ -116,6 +116,12 @@ final class OpenAILiveUsageModel {
         self.limitsTask?.cancel()
         self.limitsTask = nil
         self.limitsRequestID = UUID()
+    }
+
+    func releaseSnapshot() {
+        self.snapshot = nil
+        self.projectCaps = nil
+        self.lastUpdated = nil
     }
 
     func refresh(manual: Bool = true) {
