@@ -51,17 +51,18 @@ extension OpenBarCLI {
     static func runHooksSetEnabled(_ values: ParsedValues, enabled: Bool) {
         let output = CLIOutputPreferences.from(values: values)
         let store = OpenBarConfigStore()
-        var config = Self.loadConfig(output: output)
-        var hooks = config.hooks ?? HooksConfig()
-        hooks.enabled = enabled
-        config.hooks = hooks
-
+        let config: OpenBarConfig
         do {
-            try store.save(config)
+            config = try store.update { config in
+                var hooks = config.hooks ?? HooksConfig()
+                hooks.enabled = enabled
+                config.hooks = hooks
+            }
         } catch {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .config)
         }
 
+        let hooks = config.hooks ?? HooksConfig()
         switch output.format {
         case .text:
             print("Hooks: \(enabled ? "enabled" : "disabled")")

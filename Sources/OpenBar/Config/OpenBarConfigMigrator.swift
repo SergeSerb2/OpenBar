@@ -35,22 +35,33 @@ struct OpenBarConfigMigrator {
         stores: LegacyStores) throws -> OpenBarConfig
     {
         try KeychainStringStore.withNoninteractiveAccess {
-            try self.loadNoninteractively(
-                configStore: configStore,
-                userDefaults: userDefaults,
-                keychainAccessDisabled: keychainAccessDisabled,
-                stores: stores)
+            do {
+                return try configStore.withTransaction { existing, publish in
+                    try self.loadNoninteractively(
+                        existing: existing,
+                        publish: publish,
+                        userDefaults: userDefaults,
+                        keychainAccessDisabled: keychainAccessDisabled,
+                        stores: stores)
+                }
+            } catch {
+                // A blocked config directory can prevent acquiring the lock at all. Defer
+                // migration without clearing legacy stores; unreadable config must still throw.
+                let existing = try configStore.load()
+                OpenBarLog.logger(LogCategories.configMigration).error("Legacy migration deferred: \(error)")
+                return (existing ?? .makeDefault()).normalized()
+            }
         }
     }
 
     private static func loadNoninteractively(
-        configStore: OpenBarConfigStore,
+        existing: OpenBarConfig?,
+        publish: (OpenBarConfig) throws -> Void,
         userDefaults: UserDefaults,
         keychainAccessDisabled: Bool,
         stores: LegacyStores) throws -> OpenBarConfig
     {
         let log = OpenBarLog.logger(LogCategories.configMigration)
-        let existing = try configStore.load()
         var config = (existing ?? OpenBarConfig.makeDefault()).normalized()
         var state = MigrationState()
 
@@ -80,7 +91,7 @@ struct OpenBarConfigMigrator {
 
         if state.didUpdate {
             do {
-                try configStore.save(config)
+                try publish(config)
             } catch {
                 log.error("Failed to persist config: \(error)")
                 return config.normalized()

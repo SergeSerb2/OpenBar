@@ -14,10 +14,11 @@ extension OpenBarCLI {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .args)
         }
         let store = OpenBarConfigStore()
-        let config = Self.configSettingSource(
-            Self.loadConfig(output: output), provider: selection.provider, source: selection.source)
+        let config: OpenBarConfig
         do {
-            try store.save(config)
+            config = try store.update { config in
+                config = Self.configSettingSource(config, provider: selection.provider, source: selection.source)
+            }
         } catch {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .config)
         }
