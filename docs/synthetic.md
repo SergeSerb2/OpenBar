@@ -50,7 +50,7 @@ If those keys are absent, OpenBar falls back to generic quota payloads such as
 
 - The menu card shows the five-hour, weekly token, and search-hourly lanes when present. The compact menu bar metric
   uses the five-hour or weekly lane.
-- Usage is normalized from percent fields when present, or computed from used/remaining/limit values.
+- Percent fields use a 0–100 scale, including values below 1%. Usage can also be computed from used/remaining/limit values.
 - Reset timestamps are shown when Synthetic returns one. When no timestamp is available, OpenBar uses the returned
   or inferred window duration when present.
 - Plan name, when returned, is displayed as provider identity context.
