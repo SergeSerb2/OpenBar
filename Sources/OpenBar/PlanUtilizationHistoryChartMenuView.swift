@@ -1,4 +1,3 @@
-import Charts
 import OpenBarCore
 import SwiftUI
 
@@ -124,41 +123,15 @@ struct PlanUtilizationHistoryChartMenuView: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: Layout.emptyStateHeight)
             } else {
-                self.utilizationChart(model: model)
-                    .chartYAxis(.hidden)
-                    .chartYScale(domain: 0...100)
-                    .chartXAxis {
-                        AxisMarks(values: model.axisIndexes) { value in
-                            AxisGridLine().foregroundStyle(Color.clear)
-                            AxisTick().foregroundStyle(Color.clear)
-                            AxisValueLabel(anchor: ChartAxisLabelLayout.barCenteredAnchor) {
-                                if let raw = value.as(Double.self) {
-                                    let index = Int(raw.rounded())
-                                    if let point = model.pointsByIndex[index] {
-                                        Self.axisLabel(
-                                            for: point,
-                                            windowMinutes: effectiveSelectedSeries?.history.windowMinutes ?? 0)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .chartLegend(.hidden)
+                self.utilizationChart(
+                    model: model,
+                    windowMinutes: effectiveSelectedSeries?.history.windowMinutes ?? 0)
                     .frame(height: Layout.chartHeight)
                     .accessibilityLabel(L("Plan utilization chart"))
                     .accessibilityValue(
                         model.points.isEmpty
                             ? L("No data")
                             : String(format: L("%d utilization samples"), model.points.count))
-                    .chartOverlay { proxy in
-                        GeometryReader { geo in
-                            MouseLocationReader { location in
-                                self.updateSelection(location: location, model: model, proxy: proxy, geo: geo)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .contentShape(Rectangle())
-                        }
-                    }
 
                 Text(self.detailLine(model: model, windowMinutes: effectiveSelectedSeries?.history.windowMinutes ?? 0))
                     .font(.caption)
@@ -730,46 +703,87 @@ struct PlanUtilizationHistoryChartMenuView: View {
     }
     #endif
 
-    private func xValue(for index: Int) -> PlottableValue<Double> {
-        .value(L("Series"), Double(index))
+    /// Track and fill bars, the hover rule, and date labels drawn with plain shapes and text. Swift Charts
+    /// renders through RenderBox's Metal backend on macOS 26+, which commits about 100 MB of GPU memory the
+    /// first time a menu draws a chart.
+    private func utilizationChart(model: Model, windowMinutes: Int) -> some View {
+        GeometryReader { proxy in
+            let plotFrame = CGRect(
+                x: 0,
+                y: 0,
+                width: proxy.size.width,
+                height: max(0, proxy.size.height - ChartAxisLabelLayout.xAxisHeight))
+            let scale = Self.xScale(model: model, plotWidth: plotFrame.width)
+            let barRect = { (point: Point, usedPercent: Double) in
+                let height = plotFrame.height * CGFloat(min(max(usedPercent, 0), 100) / 100)
+                return CGRect(
+                    x: scale.position(Double(point.index)) - Layout.barWidth / 2,
+                    y: plotFrame.maxY - height,
+                    width: Layout.barWidth,
+                    height: height)
+            }
+            ZStack(alignment: .topLeading) {
+                ChartBarPath.path(model.points.map { barRect($0, 100) }, roundsBottom: true)
+                    .fill(model.trackColor)
+                ChartBarPath.path(model.points.map { barRect($0, $0.usedPercent) }, roundsBottom: true)
+                    .fill(model.barColor)
+                if let selected = self.selectedPoint(model: model) {
+                    let x = scale.position(Double(selected.index))
+                    Path { path in
+                        path.move(to: CGPoint(x: x, y: plotFrame.minY))
+                        path.addLine(to: CGPoint(x: x, y: plotFrame.maxY))
+                    }
+                    .stroke(Color(nsColor: .tertiaryLabelColor), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                }
+                ForEach(model.axisIndexes, id: \.self) { raw in
+                    if let point = model.pointsByIndex[Int(raw.rounded())] {
+                        Self.axisLabel(for: point, windowMinutes: windowMinutes)
+                            .frame(width: 0, height: 0, alignment: .top)
+                            .position(
+                                x: scale.position(raw),
+                                y: plotFrame.maxY + ChartAxisLabelLayout.xAxisLabelGap)
+                    }
+                }
+                MouseLocationReader { location in
+                    self.updateSelection(location: location, model: model, plotFrame: plotFrame, scale: scale)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityChildren {
+            ForEach(model.points) { point in
+                Text(Self.detailLine(point: point, windowMinutes: windowMinutes))
+            }
+        }
     }
 
-    @ViewBuilder
-    private func utilizationChart(model: Model) -> some View {
-        if let xDomain = model.xDomain {
-            Chart {
-                self.utilizationChartContent(model: model)
-            }
-            .chartXScale(domain: xDomain, range: .plotDimension(padding: ChartAxisLabelLayout.dateLabelEdgePadding))
-        } else {
-            Chart {
-                self.utilizationChartContent(model: model)
-            }
-            .chartXScale(range: .plotDimension(padding: ChartAxisLabelLayout.dateLabelEdgePadding))
+    /// Maps bar indexes across the plot like the former `chartXScale` with edge padding for the date labels.
+    private struct XScale {
+        let domain: ClosedRange<Double>
+        let range: ClosedRange<CGFloat>
+
+        func position(_ value: Double) -> CGFloat {
+            let span = self.domain.upperBound - self.domain.lowerBound
+            guard span > 0 else { return (self.range.lowerBound + self.range.upperBound) / 2 }
+            let fraction = CGFloat((value - self.domain.lowerBound) / span)
+            return self.range.lowerBound + fraction * (self.range.upperBound - self.range.lowerBound)
+        }
+
+        func value(at position: CGFloat) -> Double {
+            let width = self.range.upperBound - self.range.lowerBound
+            guard width > 0 else { return self.domain.lowerBound }
+            let fraction = Double((position - self.range.lowerBound) / width)
+            return self.domain.lowerBound + fraction * (self.domain.upperBound - self.domain.lowerBound)
         }
     }
 
-    @ChartContentBuilder
-    private func utilizationChartContent(model: Model) -> some ChartContent {
-        ForEach(model.points) { point in
-            BarMark(
-                x: self.xValue(for: point.index),
-                yStart: .value(L("Capacity Start"), 0),
-                yEnd: .value(L("Capacity End"), 100),
-                width: .fixed(Layout.barWidth))
-                .foregroundStyle(model.trackColor)
-            BarMark(
-                x: self.xValue(for: point.index),
-                yStart: .value(L("Utilization Start"), 0),
-                yEnd: .value(L("Utilization End"), point.usedPercent),
-                width: .fixed(Layout.barWidth))
-                .foregroundStyle(model.barColor)
-        }
-        if let selected = self.selectedPoint(model: model) {
-            RuleMark(x: self.xValue(for: selected.index))
-                .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
-                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-        }
+    private static func xScale(model: Model, plotWidth: CGFloat) -> XScale {
+        let padding = ChartAxisLabelLayout.dateLabelEdgePadding
+        return XScale(
+            domain: model.xDomain ?? -0.5...0.5,
+            range: padding...max(padding, plotWidth - padding))
     }
 
     private func selectedPoint(model: Model) -> Point? {
@@ -785,28 +799,17 @@ struct PlanUtilizationHistoryChartMenuView: View {
     private func updateSelection(
         location: CGPoint?,
         model: Model,
-        proxy: ChartProxy,
-        geo: GeometryProxy)
+        plotFrame: CGRect,
+        scale: XScale)
     {
-        guard let location else {
+        guard let location, plotFrame.contains(location) else {
             if self.selectedPointID != nil {
                 self.selectedPointID = nil
             }
             return
         }
 
-        guard let plotAnchor = proxy.plotFrame else { return }
-        let plotFrame = geo[plotAnchor]
-        guard plotFrame.contains(location) else {
-            if self.selectedPointID != nil {
-                self.selectedPointID = nil
-            }
-            return
-        }
-
-        let xInPlot = location.x - plotFrame.origin.x
-        guard let xValue: Double = proxy.value(atX: xInPlot) else { return }
-
+        let xValue = scale.value(at: location.x - plotFrame.origin.x)
         var best: (id: Date, distance: Double)?
         for point in model.points {
             let distance = abs(Double(point.index) - xValue)
@@ -821,9 +824,8 @@ struct PlanUtilizationHistoryChartMenuView: View {
 
         // Stay on the last selected bar when cursor is in the gap between bars; only switch
         // selection when the cursor is over the bar's own visual body.
-        if let best, let bestPoint = model.pointsByID[best.id],
-           let barX = proxy.position(forX: Double(bestPoint.index))
-        {
+        if let best, let bestPoint = model.pointsByID[best.id] {
+            let barX = scale.position(Double(bestPoint.index))
             guard ChartBarHoverSelection.accepts(
                 distanceFromBarCenter: abs(location.x - (plotFrame.origin.x + barX)),
                 barHalfWidth: Layout.barWidth / 2,

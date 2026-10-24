@@ -1,4 +1,3 @@
-import Charts
 import OpenBarCore
 import SwiftUI
 
@@ -73,40 +72,13 @@ struct QuotaBurndownChartMenuView: View {
             }
 
             if let selected {
-                Chart {
-                    ForEach(selected.model.ideal, id: \.date) { point in
-                        LineMark(
-                            x: .value("Time", point.date),
-                            y: .value(L("Usage remaining"), point.remainingPercent),
-                            series: .value("Series", "Ideal"))
-                            .foregroundStyle(Color(nsColor: .secondaryLabelColor))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                    }
-                    ForEach(selected.model.samples, id: \.date) { point in
-                        LineMark(
-                            x: .value("Time", point.date),
-                            y: .value(L("Usage remaining"), point.remainingPercent),
-                            series: .value("Series", "Observed"))
-                            .foregroundStyle(self.color)
-                            .lineStyle(StrokeStyle(lineWidth: 2))
-                    }
-                    if let current = selected.model.samples.last {
-                        PointMark(
-                            x: .value("Time", current.date),
-                            y: .value(L("Usage remaining"), current.remainingPercent))
-                            .foregroundStyle(self.color)
-                            .symbolSize(35)
-                    }
-                }
-                .chartXScale(domain: selected.model.start...selected.model.reset)
-                .chartYScale(domain: 0...100)
-                .chartYAxis {
-                    AxisMarks(values: [0, 50, 100])
-                }
-                .chartXAxis(.hidden)
-                .chartLegend(.hidden)
-                .frame(height: 130)
-                .accessibilityLabel(L("Usage remaining"))
+                QuotaBurndownPlot(model: selected.model, color: self.color)
+                    .frame(height: 130)
+                    .accessibilityElement()
+                    .accessibilityLabel(L("Usage remaining"))
+                    .accessibilityValue(selected.model.samples.last.map {
+                        "\($0.remainingPercent.formatted(.number.precision(.fractionLength(0))))%"
+                    } ?? L("No data"))
 
                 HStack {
                     self.axisLabel(for: selected.model.start, model: selected.model, alignment: .leading)
@@ -181,4 +153,78 @@ struct QuotaBurndownChartMenuView: View {
         })
     }
     #endif
+}
+
+/// Ideal and observed remaining quota from the window start to its reset, on a 0–100% scale.
+///
+/// Plain shapes and text instead of Swift Charts, which renders through RenderBox's Metal backend on
+/// macOS 26+ and commits about 100 MB of GPU memory the first time a menu draws a chart.
+private struct QuotaBurndownPlot: View {
+    let model: QuotaBurndownModel
+    let color: Color
+
+    private static let gridValues: [Double] = [0, 50, 100]
+    /// Gap between the plot and its trailing percentage labels.
+    private static let labelSpacing: CGFloat = 4
+    /// Swift Charts reserved this width for the "100" label column.
+    private static let labelColumnMinWidth: CGFloat = 20
+    /// Swift Charts' default axis label size.
+    private static let labelFont = Font.system(size: 11)
+    /// Diameter of a circle covering the 35 square points of the former `symbolSize(35)` point mark.
+    private static let currentDotDiameter = 2 * (35 / CGFloat.pi).squareRoot()
+
+    var body: some View {
+        GeometryReader { proxy in
+            HStack(alignment: .top, spacing: Self.labelSpacing) {
+                GeometryReader { plot in
+                    self.plot(size: plot.size)
+                }
+                ZStack(alignment: .topLeading) {
+                    ForEach(Self.gridValues, id: \.self) { value in
+                        Text(value, format: .number)
+                            .font(Self.labelFont)
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                            // A zero-height frame centers the label on its grid line.
+                            .frame(height: 0)
+                            .offset(y: proxy.size.height * (1 - value / 100))
+                    }
+                }
+                .frame(minWidth: Self.labelColumnMinWidth, alignment: .leading)
+            }
+        }
+    }
+
+    private func plot(size: CGSize) -> some View {
+        let span = max(self.model.reset.timeIntervalSince(self.model.start), 1)
+        let point = { (sample: QuotaBurndownModel.Sample) in
+            CGPoint(
+                x: size.width * CGFloat(sample.date.timeIntervalSince(self.model.start) / span),
+                y: size.height * (1 - CGFloat(sample.remainingPercent) / 100))
+        }
+        return ZStack(alignment: .topLeading) {
+            Path { path in
+                for value in Self.gridValues {
+                    let y = size.height * (1 - value / 100)
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: size.width, y: y))
+                }
+            }
+            .stroke(Color(nsColor: .tertiaryLabelColor), lineWidth: 0.5)
+            Path { $0.addLines(self.model.ideal.map(point)) }
+                .stroke(Color(nsColor: .secondaryLabelColor), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            Path { $0.addLines(self.model.samples.map(point)) }
+                .stroke(self.color, style: StrokeStyle(lineWidth: 2))
+            if let current = self.model.samples.last {
+                let center = point(current)
+                let diameter = Self.currentDotDiameter
+                Path(ellipseIn: CGRect(
+                    x: center.x - diameter / 2,
+                    y: center.y - diameter / 2,
+                    width: diameter,
+                    height: diameter))
+                    .fill(self.color)
+            }
+        }
+    }
 }

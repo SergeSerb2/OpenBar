@@ -1,5 +1,4 @@
 import AppKit
-import Charts
 import OpenBarCore
 import SwiftUI
 
@@ -224,15 +223,7 @@ struct SpendTrendChart: View {
                     .frame(maxWidth: .infinity, minHeight: 210)
             } else {
                 self.summary(model)
-                if model.needsScrolling {
-                    self.chart(model)
-                        .chartScrollableAxes(.horizontal)
-                        .chartXVisibleDomain(length: model.visibleDuration)
-                        .chartScrollPosition(initialX: model.domain.upperBound
-                            .addingTimeInterval(-model.visibleDuration))
-                } else {
-                    self.chart(model)
-                }
+                self.chart(model)
                 self.inspection(model)
             }
         }
@@ -272,114 +263,65 @@ struct SpendTrendChart: View {
 
     private func chart(_ model: SpendTrendChartModel) -> some View {
         let topIDs = spendTopOfStackIDs(for: model.segments, key: \.date, id: \.id, stackEnd: \.end)
-        return Chart {
-            ForEach(model.segments) { point in
-                BarMark(
-                    x: .value(
-                        self.groupingText(model),
-                        point.date,
-                        unit: model.unit,
-                        calendar: self.group.calendar),
-                    yStart: .value(L("Estimated spend"), point.start),
-                    yEnd: .value(L("Estimated spend"), point.end),
-                    width: .ratio(0.72))
-                    .foregroundStyle(Color(nsColor: SpendChartPalette.color(
-                        sourceID: point.sourceID, provider: point.provider, providers: self.group.providers)))
-                    .cornerRadius(0)
-                    .clipShape(UnevenRoundedRectangle(
-                        topLeadingRadius: topIDs.contains(point.id) ? 3 : 0,
-                        topTrailingRadius: topIDs.contains(point.id) ? 3 : 0))
-                    .accessibilityLabel("\(self.sourceText(point)), \(self.bucketText(point.date, model: model))")
-                    .accessibilityValue(self.costText(point.cost, sourceID: point.sourceID))
-            }
-            if let date = (self.inspectedDate ?? self.pinnedDate).flatMap({ model.inspectionDate(at: $0) }) {
-                RuleMark(x: .value(self.groupingText(model), self.center(of: date, unit: model.unit)))
-                    .foregroundStyle(.secondary.opacity(0.45))
-            }
-        }
-        .chartLegend(.hidden)
-        .chartXScale(domain: model.domain, range: .plotDimension(startPadding: 18, endPadding: 18))
-        .chartYScale(domain: model.yDomain)
-        .chartXAxis {
-            if self.section == .hourly {
-                AxisMarks(preset: .aligned, values: model.hourlyTicks) { value in
-                    AxisTick()
-                    AxisValueLabel(
-                        centered: false,
-                        anchor: value.as(Date.self) == model.domain.upperBound ? .topTrailing
-                            : value.as(Date.self) == model.domain.lowerBound ? .topLeading : .top)
-                    {
-                        if let date = value.as(Date.self) {
-                            Text(model.hourlyAxisText(date))
-                                .monospacedDigit()
-                                .font(.callout).foregroundStyle(Color.primary.opacity(0.85)).fixedSize()
-                        }
-                    }
+        let ruleDate = (self.inspectedDate ?? self.pinnedDate).flatMap { model.inspectionDate(at: $0) }
+        return SpendTrendPlot(
+            model: model,
+            roundedTopIDs: topIDs,
+            ruleDate: ruleDate.map { self.center(of: $0, unit: model.unit) },
+            xTicks: self.section == .hourly
+                ? model.hourlyTicks
+                : self.strideTicks(model),
+            xTickText: { date in
+                self.section == .hourly ? model.hourlyAxisText(date) : self.axisText(date, unit: model.unit)
+            },
+            yTickText: { UsageFormatter.compactCurrencyString($0, currencyCode: self.group.currencyCode) },
+            color: { segment in
+                Color(nsColor: SpendChartPalette.color(
+                    sourceID: segment.sourceID, provider: segment.provider, providers: self.group.providers))
+            },
+            onHover: { date in self.inspectedDate = date.flatMap { model.inspectionDate(at: $0) } },
+            onTap: { location in
+                guard let date = model.inspectionDate(at: location) else { return }
+                self.pinnedDate = date
+                self.inspectedDate = nil
+                guard self.section == .daily else { return }
+                if model.unit != .day, let interval = model.interval(at: date) {
+                    self.onSelectInterval?(interval)
+                } else if self.group.hourlyPoints.contains(where: {
+                    self.group.calendar.isDate($0.hour, inSameDayAs: date)
+                }) {
+                    self.onSelectDay?(date)
                 }
-            } else {
-                AxisMarks(values: .stride(by: model.unit, count: self.tickStride(model))) { value in
-                    AxisTick()
-                    AxisValueLabel {
-                        if let date = value.as(Date.self) {
-                            Text(self.axisText(date, unit: model.unit))
-                                .font(.callout).foregroundStyle(Color.primary.opacity(0.85)).fixedSize()
-                        }
-                    }
+            })
+            .frame(height: 210)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(self.section.title)
+            .accessibilityValue(self.section == .hourly
+                ? spendDashboardHourlyChartAccessibilityValue(
+                    hourCount: model.buckets.count,
+                    serviceCount: Set(model.segments.map(\.sourceID)).count)
+                : "\(self.groupingText(model)) · \(self.dateText(model.scope.lowerBound)) – "
+                + self.dateText(model.scope.upperBound.addingTimeInterval(-1)))
+            .accessibilityChildren {
+                ForEach(model.segments) { segment in
+                    Text("\(self.sourceText(segment)), \(self.bucketText(segment.date, model: model))")
+                        .accessibilityValue(self.costText(segment.cost, sourceID: segment.sourceID))
                 }
             }
+            .accessibilityIdentifier("spend-trend-chart")
+    }
+
+    /// Every `tickStride` units from the start of the domain, like the former `.stride(by:count:)` axis.
+    private func strideTicks(_ model: SpendTrendChartModel) -> [Date] {
+        let count = self.tickStride(model)
+        var ticks: [Date] = []
+        var date = model.domain.lowerBound
+        while date <= model.domain.upperBound, ticks.count < 400 {
+            ticks.append(date)
+            guard let next = self.group.calendar.date(byAdding: model.unit, value: count, to: date) else { break }
+            date = next
         }
-        .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine().foregroundStyle(.secondary.opacity(0.15))
-                AxisValueLabel {
-                    if let amount = value.as(Double.self) {
-                        Text(UsageFormatter.compactCurrencyString(amount, currencyCode: self.group.currencyCode))
-                            .font(.callout).foregroundStyle(Color.primary.opacity(0.85))
-                    }
-                }
-            }
-        }
-        .chartOverlay { proxy in
-            GeometryReader { geometry in
-                Rectangle().fill(.clear).contentShape(Rectangle())
-                    .onContinuousHover { phase in
-                        switch phase {
-                        case let .active(location):
-                            self.inspectedDate = self.date(
-                                at: location,
-                                proxy: proxy,
-                                geometry: geometry,
-                                model: model)
-                        case .ended: self.inspectedDate = nil
-                        }
-                    }
-                    .onTapGesture { location in
-                        guard let date = self.date(at: location, proxy: proxy, geometry: geometry, model: model)
-                        else { return }
-                        self.pinnedDate = date
-                        self.inspectedDate = nil
-                        guard self.section == .daily else { return }
-                        if model.unit != .day, let interval = model.interval(at: date) {
-                            self.onSelectInterval?(interval)
-                        } else if self.group.hourlyPoints.contains(where: {
-                            self.group.calendar.isDate($0.hour, inSameDayAs: date)
-                        }) {
-                            self.onSelectDay?(date)
-                        }
-                    }
-            }
-        }
-        .frame(height: 210)
-        .environment(\.calendar, self.group.calendar)
-        .environment(\.timeZone, self.group.timeZone)
-        .accessibilityLabel(self.section.title)
-        .accessibilityValue(self.section == .hourly
-            ? spendDashboardHourlyChartAccessibilityValue(
-                hourCount: model.buckets.count,
-                serviceCount: Set(model.segments.map(\.sourceID)).count)
-            : "\(self.groupingText(model)) · \(self.dateText(model.scope.lowerBound)) – "
-            + self.dateText(model.scope.upperBound.addingTimeInterval(-1)))
-        .accessibilityIdentifier("spend-trend-chart")
+        return ticks
     }
 
     private func inspection(_ model: SpendTrendChartModel) -> some View {
@@ -446,18 +388,6 @@ struct SpendTrendChart: View {
         }
     }
 
-    private func date(
-        at location: CGPoint,
-        proxy: ChartProxy,
-        geometry: GeometryProxy,
-        model: SpendTrendChartModel) -> Date?
-    {
-        guard let frame = proxy.plotFrame, geometry[frame].contains(location),
-              let date = proxy.value(atX: location.x - geometry[frame].minX, as: Date.self)
-        else { return nil }
-        return model.inspectionDate(at: date)
-    }
-
     private func center(of date: Date, unit: Calendar.Component) -> Date {
         guard let interval = self.group.calendar.dateInterval(of: unit, for: date)
         else { return date }
@@ -518,5 +448,255 @@ struct SpendTrendChart: View {
             currencyCode: self.group.currencyCode,
             costIsLowerBound: source.map { $0.costIsLowerBound || $0.incompleteRequestCount > 0 }
                 ?? self.group.hasPartialCost)
+    }
+}
+
+/// Stacked spend bars with a fixed leading y-axis, drawn with plain shapes and text. Swift Charts renders
+/// through RenderBox's Metal backend on macOS 26+, which commits about 100 MB of GPU memory the first time
+/// a window draws a chart. The metrics match the Charts layout this view replaced.
+private struct SpendTrendPlot: View {
+    let model: SpendTrendChartModel
+    let roundedTopIDs: Set<String>
+    let ruleDate: Date?
+    let xTicks: [Date]
+    let xTickText: (Date) -> String
+    let yTickText: (Double) -> String
+    let color: (SpendTrendChartModel.Segment) -> Color
+    /// Receives the hovered date, or nil when the pointer leaves the plot.
+    let onHover: (Date?) -> Void
+    let onTap: (Date) -> Void
+
+    /// Room between the first and last bars and the plot edges.
+    private static let edgePadding: CGFloat = 18
+    private static let barWidthRatio: CGFloat = 0.72
+    private static let barCornerRadius: CGFloat = 3
+    private static let yAxisSpacing: CGFloat = 4
+    private static let labelColor = Color.primary.opacity(0.85)
+    private static let tickColor = Color(nsColor: .tertiaryLabelColor)
+
+    private var isHourly: Bool {
+        self.model.section == .hourly
+    }
+
+    /// Height below the plot for ticks and one line of callout labels.
+    private var xAxisHeight: CGFloat {
+        self.isHourly ? 23 : 19
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let plotHeight = max(0, proxy.size.height - self.xAxisHeight)
+            let yTicks = Self.yTicks(upperBound: self.model.yDomain.upperBound)
+            HStack(alignment: .top, spacing: Self.yAxisSpacing) {
+                self.yAxisLabels(yTicks, plotHeight: plotHeight)
+                GeometryReader { plot in
+                    ZStack(alignment: .topLeading) {
+                        Path { path in
+                            for value in yTicks {
+                                let y = self.y(value, plotHeight: plotHeight)
+                                path.move(to: CGPoint(x: 0, y: y))
+                                path.addLine(to: CGPoint(x: plot.size.width, y: y))
+                            }
+                        }
+                        .stroke(.secondary.opacity(0.15), lineWidth: 0.5)
+                        if self.model.needsScrolling {
+                            ScrollView(.horizontal) {
+                                self.content(
+                                    width: self.scrollWidth(visibleWidth: plot.size.width),
+                                    plotHeight: plotHeight)
+                                    .frame(height: plot.size.height)
+                            }
+                            .defaultScrollAnchor(.trailing)
+                        } else {
+                            self.content(width: plot.size.width, plotHeight: plotHeight)
+                        }
+                    }
+                    // Swift Charts resolved `.secondary` grid and rule styles against the accent tint.
+                    .foregroundStyle(.tint)
+                }
+            }
+        }
+    }
+
+    /// The scrollable plot shows the model's visible duration at a time, like `chartXVisibleDomain`.
+    private func scrollWidth(visibleWidth: CGFloat) -> CGFloat {
+        let domain = self.model.domain.upperBound.timeIntervalSince(self.model.domain.lowerBound)
+        guard self.model.visibleDuration > 0, domain > 0 else { return visibleWidth }
+        return visibleWidth * CGFloat(domain / self.model.visibleDuration)
+    }
+
+    private func content(width: CGFloat, plotHeight: CGFloat) -> some View {
+        let x = { (date: Date) in self.x(date, width: width) }
+        return ZStack(alignment: .topLeading) {
+            ForEach(self.barGroups(x: x, plotHeight: plotHeight), id: \.sourceID) { group in
+                group.path.fill(group.color)
+            }
+            if let ruleDate {
+                Path { path in
+                    path.move(to: CGPoint(x: x(ruleDate), y: 0))
+                    path.addLine(to: CGPoint(x: x(ruleDate), y: plotHeight))
+                }
+                .stroke(.secondary.opacity(0.45), style: StrokeStyle(lineWidth: 2, lineCap: .square))
+            }
+            self.xAxis(width: width, plotHeight: plotHeight)
+        }
+        .frame(width: width, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .onContinuousHover { phase in
+            switch phase {
+            case let .active(location):
+                self.onHover(self.date(at: location, width: width, plotHeight: plotHeight))
+            case .ended:
+                self.onHover(nil)
+            }
+        }
+        .onTapGesture { location in
+            guard let date = self.date(at: location, width: width, plotHeight: plotHeight) else { return }
+            self.onTap(date)
+        }
+    }
+
+    private struct BarGroup {
+        let sourceID: String
+        let color: Color
+        var path: Path
+    }
+
+    /// One path per source; only the top segment of each stack has rounded corners.
+    private func barGroups(x: (Date) -> CGFloat, plotHeight: CGFloat) -> [BarGroup] {
+        var groups: [BarGroup] = []
+        for segment in self.model.segments {
+            guard let interval = self.model.calendar.dateInterval(of: self.model.unit, for: segment.date) else {
+                continue
+            }
+            let start = x(interval.start)
+            let end = x(interval.end)
+            let width = (end - start) * Self.barWidthRatio
+            let top = self.y(segment.end, plotHeight: plotHeight)
+            let rect = CGRect(
+                x: (start + end - width) / 2,
+                y: top,
+                width: width,
+                height: self.y(segment.start, plotHeight: plotHeight) - top)
+            let path = self.roundedTopIDs.contains(segment.id)
+                ? ChartBarPath.path([rect], roundsBottom: false, cornerRadius: Self.barCornerRadius)
+                : Path(rect)
+            if let index = groups.firstIndex(where: { $0.sourceID == segment.sourceID }) {
+                groups[index].path.addPath(path)
+            } else {
+                groups.append(BarGroup(sourceID: segment.sourceID, color: self.color(segment), path: path))
+            }
+        }
+        return groups
+    }
+
+    @ViewBuilder
+    private func xAxis(width: CGFloat, plotHeight: CGFloat) -> some View {
+        Path { path in
+            for tick in self.xTicks {
+                let tickX = self.x(tick, width: width)
+                if self.isHourly {
+                    path.move(to: CGPoint(x: tickX, y: plotHeight))
+                    path.addLine(to: CGPoint(x: tickX, y: plotHeight + 2))
+                } else {
+                    path.move(to: CGPoint(x: tickX, y: plotHeight + 1))
+                    path.addLine(to: CGPoint(x: tickX, y: plotHeight + 16))
+                }
+            }
+        }
+        .stroke(
+            Self.tickColor,
+            style: StrokeStyle(lineWidth: 0.5, dash: self.isHourly ? [] : [3, 3]))
+        ForEach(self.xTicks, id: \.self) { tick in
+            // Edge labels start beside their tick; inner hourly labels center below theirs.
+            let placement: (alignment: Alignment, dx: CGFloat, dy: CGFloat) =
+                if !self.isHourly || tick == self.model.domain.lowerBound {
+                    (.topLeading, 4, 4)
+                } else if tick == self.model.domain.upperBound {
+                    (.topTrailing, -4, 4)
+                } else {
+                    (.top, 0, 8)
+                }
+            Text(self.xTickText(tick))
+                .font(self.isHourly ? .callout.monospacedDigit() : .callout)
+                .foregroundStyle(Self.labelColor)
+                .fixedSize()
+                .frame(width: 0, height: 0, alignment: placement.alignment)
+                .position(x: self.x(tick, width: width) + placement.dx, y: plotHeight + placement.dy)
+        }
+    }
+
+    private func yAxisLabels(_ ticks: [Double], plotHeight: CGFloat) -> some View {
+        // Swift Charts started the plot on a whole point after its labels.
+        WholePointWidthLayout {
+            self.yAxisLabelStack(ticks, plotHeight: plotHeight)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func yAxisLabelStack(_ ticks: [Double], plotHeight: CGFloat) -> some View {
+        ZStack(alignment: .topTrailing) {
+            ForEach(ticks, id: \.self) { value in
+                Text(self.yTickText(value))
+                    .font(.callout)
+                    .foregroundStyle(Self.labelColor)
+                    .fixedSize()
+                    // A zero-height frame centers the label on its grid line.
+                    .frame(height: 0)
+                    .offset(y: self.y(value, plotHeight: plotHeight))
+            }
+        }
+    }
+
+    private func x(_ date: Date, width: CGFloat) -> CGFloat {
+        let span = self.model.domain.upperBound.timeIntervalSince(self.model.domain.lowerBound)
+        guard span > 0 else { return width / 2 }
+        let range = max(0, width - Self.edgePadding * 2)
+        return Self.edgePadding + range * CGFloat(date.timeIntervalSince(self.model.domain.lowerBound) / span)
+    }
+
+    private func y(_ value: Double, plotHeight: CGFloat) -> CGFloat {
+        let upper = self.model.yDomain.upperBound
+        guard upper > 0 else { return plotHeight }
+        return plotHeight * (1 - CGFloat(min(max(value / upper, 0), 1)))
+    }
+
+    private func date(at location: CGPoint, width: CGFloat, plotHeight: CGFloat) -> Date? {
+        guard location.y >= 0, location.y <= plotHeight, location.x >= 0, location.x <= width else { return nil }
+        let range = width - Self.edgePadding * 2
+        guard range > 0 else { return nil }
+        let span = self.model.domain.upperBound.timeIntervalSince(self.model.domain.lowerBound)
+        let fraction = Double((location.x - Self.edgePadding) / range)
+        return self.model.domain.lowerBound.addingTimeInterval(span * fraction)
+    }
+
+    /// Round values from zero to the top of the domain, like the former `.automatic(desiredCount: 4)` axis.
+    static func yTicks(upperBound: Double, desiredCount: Int = 4) -> [Double] {
+        guard upperBound > 0, upperBound.isFinite else { return [0] }
+        let raw = upperBound / Double(desiredCount)
+        let magnitude = pow(10, floor(log10(raw)))
+        let normalized = raw / magnitude
+        let factor: Double = normalized >= 50.squareRoot() ? 10 : normalized >= 10.squareRoot() ? 5
+            : normalized >= 2.squareRoot() ? 2 : 1
+        let step = factor * magnitude
+        guard step > 0, step.isFinite else { return [0] }
+        let count = min(Int((upperBound / step).rounded(.down)), 20)
+        return (0...count).map { Double($0) * step }
+    }
+}
+
+/// Rounds its single subview's width up to a whole point and aligns it to the trailing edge.
+private struct WholePointWidthLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
+        let size = subviews.first?.sizeThatFits(proposal) ?? .zero
+        return CGSize(width: size.width.rounded(.up), height: size.height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
+        guard let subview = subviews.first else { return }
+        let size = subview.sizeThatFits(proposal)
+        subview.place(
+            at: CGPoint(x: bounds.maxX - size.width, y: bounds.minY),
+            proposal: ProposedViewSize(size))
     }
 }
