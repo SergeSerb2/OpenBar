@@ -600,7 +600,7 @@ enum ModelsDevCache {
     /// Drops the memoized decoded catalog. The app reads the catalog only for pricing jobs the cost helper
     /// hands back, so it should not stay resident between them; a later `load` decodes it again.
     static func releaseDecodedCatalog(cacheRoot: URL? = nil) {
-        Self.memo.invalidate(path: self.cacheFileURL(cacheRoot: cacheRoot).path)
+        self.memo.invalidate(path: self.cacheFileURL(cacheRoot: cacheRoot).path)
     }
 
     private static func readOutcome(at url: URL, metadata: FileMetadata) -> ModelsDevCacheMemo.Outcome {
