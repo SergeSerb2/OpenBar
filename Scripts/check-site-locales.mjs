@@ -119,7 +119,10 @@ const hasLanguagePicker =
 assert(hasLanguagePicker, "site must include the language picker backed by localeCatalog");
 
 for (const code of catalogCodes) {
-  assert(indexHtml.includes(`href="https://sergeserb2.github.io/OpenBar/?lang=${code}"`), `missing hreflang URL for ${code}`);
+  assert(
+    indexHtml.includes(`href="https://sergeserb2.github.io/OpenBar/?lang=${code}"`),
+    `missing hreflang URL for ${code}`,
+  );
 }
 
 const providerCards = [...indexHtml.matchAll(/<li class="provider-card"([^>]*)>([\s\S]*?)<\/li>/g)];
