@@ -50,6 +50,21 @@ extension StatusItemController {
         return image
     }
 
+    /// Worst quota lane for a provider's switcher segment, so the menu answers "which provider is close
+    /// to its limit?" without clicking through tabs (design council). Uses the same presentation
+    /// snapshot as the menu bar indicator and the weekly strip.
+    func switcherQuotaSummary(for instanceID: ProviderInstanceID) -> ProviderSwitcherQuotaSummary? {
+        guard let provider = instanceID.firstPartyProvider else { return nil }
+        let source = self.menuBarUsageSource(for: provider)
+        guard let worstRemaining = source.snapshot?.measuredRateWindows.map(\.remainingPercent).min() else {
+            return nil
+        }
+        return ProviderSwitcherQuotaSummary(
+            displayPercent: self.settings.usageBarsShowUsed ? 100 - worstRemaining : worstRemaining,
+            remainingPercent: worstRemaining,
+            isStale: source.isFleet || self.store.isStale(provider: provider))
+    }
+
     func applySubtitle(_ subtitle: String, to item: NSMenuItem, title: String) {
         if #available(macOS 14.4, *) {
             // NSMenuItem.subtitle is only available on macOS 14.4+.

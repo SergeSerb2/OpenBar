@@ -206,6 +206,18 @@ enum GalleryFixtures {
         return fixture.secondaryUsed.map { 100 - $0 } ?? (100 - fixture.primaryUsed)
     }
 
+    /// The switcher's worst-lane figure for a fixture provider (remaining display, fixture staleness).
+    static func switcherSummary(_ provider: UsageProvider) -> ProviderSwitcherQuotaSummary? {
+        let fixture = self.providers.first { $0.provider == provider }
+            ?? (provider == self.longName.provider ? self.longName : nil)
+        guard let fixture else { return nil }
+        let remaining = [fixture.primaryUsed, fixture.secondaryUsed].compactMap(\.self).map { 100 - $0 }.min() ?? 100
+        return ProviderSwitcherQuotaSummary(
+            displayPercent: remaining,
+            remainingPercent: remaining,
+            isStale: fixture.isStale)
+    }
+
     // MARK: Compact account rows
 
     /// Six claude-swap style accounts: one active, the rest spread across healthy, warning,

@@ -121,9 +121,34 @@ enum GalleryMenuSection {
             section: "menu",
             title: "Provider switcher",
             name: "switcher",
-            note: "ProviderSwitcherView with five providers, Claude selected, weekly strips on.")
+            note: "ProviderSwitcherView with five providers, Claude selected, weekly strips on, and each provider's "
+                + "worst-lane figure: Codex warning, Cursor critical, Gemini last-known.")
         { appearance in
             try GalleryCapture.appKit(self.switcher(), appearance: appearance, backdrop: appearance.menuBackdrop)
+        }
+
+        try gallery.add(
+            section: "menu",
+            title: "Provider switcher · six providers",
+            name: "switcher-six",
+            note: "Six providers in the 310-pt menu, with figures.")
+        { appearance in
+            try GalleryCapture.appKit(
+                self.switcher(providers: [.codex, .claude, .cursor, .gemini, .copilot, .alibabatokenplan]),
+                appearance: appearance,
+                backdrop: appearance.menuBackdrop)
+        }
+
+        try gallery.add(
+            section: "menu",
+            title: "Provider switcher · no figures",
+            name: "switcher-plain",
+            note: "The same switcher before any provider reports usage: no figures, weekly strips only.")
+        { appearance in
+            try GalleryCapture.appKit(
+                self.switcher(showsFigures: false),
+                appearance: appearance,
+                backdrop: appearance.menuBackdrop)
         }
     }
 
@@ -350,9 +375,13 @@ enum GalleryMenuSection {
         return container
     }
 
-    static func switcher(includesOverview: Bool = false) -> ProviderSwitcherView {
+    static func switcher(
+        includesOverview: Bool = false,
+        providers: [UsageProvider] = [.codex, .claude, .cursor, .gemini, .copilot],
+        showsFigures: Bool = true) -> ProviderSwitcherView
+    {
         let switcher = ProviderSwitcherView(
-            providers: [.codex, .claude, .cursor, .gemini, .copilot],
+            providers: providers,
             selected: includesOverview ? .overview : .provider(UsageProvider.claude.instanceID),
             includesOverview: includesOverview,
             width: self.menuWidth,
@@ -360,6 +389,10 @@ enum GalleryMenuSection {
             iconProvider: { ProviderBrandIcon.image(for: $0) ?? NSImage(size: NSSize(width: 16, height: 16)) },
             weeklyRemainingProvider: { instanceID in
                 instanceID.firstPartyProvider.flatMap(GalleryFixtures.weeklyRemaining)
+            },
+            quotaSummaryProvider: { instanceID in
+                guard showsFigures else { return nil }
+                return instanceID.firstPartyProvider.flatMap(GalleryFixtures.switcherSummary)
             },
             onSelect: { _ in })
         switcher.frame.size = NSSize(width: self.menuWidth, height: switcher.frame.height)
