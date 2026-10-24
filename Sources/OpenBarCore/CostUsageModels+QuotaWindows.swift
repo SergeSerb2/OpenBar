@@ -311,11 +311,58 @@ extension CostUsageTokenSnapshot {
         }
     }
 
+    /// One day's slices in start order, as a stable sort of its exact events followed by its coarse
+    /// buckets would list them. Exact events stay in the snapshot's own sorted `quotaSlices` storage, so
+    /// the memo does not hold a second copy of every event.
+    fileprivate struct QuotaProjectionSlices: Sequence {
+        let exact: ArraySlice<CostUsageTimedEntry>
+        let coarse: [QuotaProjectionSlice]
+
+        var isEmpty: Bool {
+            self.exact.isEmpty && self.coarse.isEmpty
+        }
+
+        func makeIterator() -> Iterator {
+            Iterator(exact: self.exact.makeIterator(), coarse: self.coarse.makeIterator())
+        }
+
+        struct Iterator: IteratorProtocol {
+            private var exact: ArraySlice<CostUsageTimedEntry>.Iterator
+            private var coarse: IndexingIterator<[QuotaProjectionSlice]>
+            private var nextExact: CostUsageTimedEntry?
+            private var nextCoarse: QuotaProjectionSlice?
+
+            init(exact: ArraySlice<CostUsageTimedEntry>.Iterator, coarse: IndexingIterator<[QuotaProjectionSlice]>) {
+                self.exact = exact
+                self.coarse = coarse
+                self.nextExact = self.exact.next()
+                self.nextCoarse = self.coarse.next()
+            }
+
+            mutating func next() -> QuotaProjectionSlice? {
+                // Ties yield the exact event first, matching the stable sort of exact-then-coarse rows.
+                if let entry = self.nextExact, self.nextCoarse.map({ entry.timestamp <= $0.start }) ?? true {
+                    self.nextExact = self.exact.next()
+                    return QuotaProjectionSlice(
+                        start: entry.timestamp,
+                        end: nil,
+                        totalTokens: entry.totalTokens,
+                        costUSD: entry.costUSD,
+                        tokensAreComplete: entry.tokensAreComplete,
+                        costIsComplete: entry.costIsComplete)
+                }
+                guard let slice = self.nextCoarse else { return nil }
+                self.nextCoarse = self.coarse.next()
+                return slice
+            }
+        }
+    }
+
     fileprivate struct QuotaProjectionDay {
         let start: Date
         let end: Date
         let daily: CostUsageDailyReport.Entry?
-        let slices: [QuotaProjectionSlice]
+        let slices: QuotaProjectionSlices
 
         func overlaps(start windowStart: Date, end windowEnd: Date) -> Bool {
             self.start < windowEnd && self.end > windowStart
@@ -353,33 +400,25 @@ extension CostUsageTokenSnapshot {
         hourly: [CostUsageHourlyEntry],
         calendar: Calendar) -> [QuotaProjectionDay]
     {
-        var slicesByDay: [String: [QuotaProjectionSlice]] = [:]
+        var exactByDay: [String: ArraySlice<CostUsageTimedEntry>] = [:]
+        var coarseByDay: [String: [QuotaProjectionSlice]] = [:]
         var dayMemo = CostUsageLocalDayKeyMemo()
         if !quotaSlices.isEmpty {
-            for entry in quotaSlices {
-                let dayKey = dayMemo.key(for: entry.timestamp, calendar: calendar)
-                slicesByDay[dayKey, default: []].append(QuotaProjectionSlice(
-                    start: entry.timestamp,
-                    end: nil,
-                    totalTokens: entry.totalTokens,
-                    costUSD: entry.costUSD,
-                    tokensAreComplete: entry.tokensAreComplete,
-                    costIsComplete: entry.costIsComplete))
-            }
+            exactByDay = self.quotaExactSlicesByDay(quotaSlices, calendar: calendar, dayMemo: &dayMemo)
             for slice in self.quotaHourlyResidualSlices(
                 exact: quotaSlices,
                 hourly: hourly,
                 calendar: calendar)
             {
                 let dayKey = dayMemo.key(for: slice.start, calendar: calendar)
-                slicesByDay[dayKey, default: []].append(slice)
+                coarseByDay[dayKey, default: []].append(slice)
             }
         } else {
             for entry in hourly {
                 let dayKey = dayMemo.key(for: entry.hour, calendar: calendar)
                 let hourEnd = calendar.date(byAdding: .hour, value: 1, to: entry.hour)
                     ?? entry.hour.addingTimeInterval(60 * 60)
-                slicesByDay[dayKey, default: []].append(QuotaProjectionSlice(
+                coarseByDay[dayKey, default: []].append(QuotaProjectionSlice(
                     start: entry.hour,
                     end: hourEnd,
                     totalTokens: entry.totalTokens,
@@ -395,7 +434,7 @@ extension CostUsageTokenSnapshot {
             dailyByDay[dayKey] = entry
         }
 
-        return Set(dailyByDay.keys).union(slicesByDay.keys)
+        return Set(dailyByDay.keys).union(exactByDay.keys).union(coarseByDay.keys)
             .compactMap { dayKey -> QuotaProjectionDay? in
                 guard let dayStart = CostUsageLocalDay.date(fromKey: dayKey, calendar: calendar),
                       let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)
@@ -404,9 +443,46 @@ extension CostUsageTokenSnapshot {
                     start: dayStart,
                     end: dayEnd,
                     daily: dailyByDay[dayKey],
-                    slices: (slicesByDay[dayKey] ?? []).sorted { $0.start < $1.start })
+                    slices: QuotaProjectionSlices(
+                        exact: exactByDay[dayKey] ?? [],
+                        coarse: (coarseByDay[dayKey] ?? []).sorted { $0.start < $1.start }))
             }
             .sorted { $0.start < $1.start }
+    }
+
+    /// Groups exact events by local day without copying them: sorted events make each day one contiguous
+    /// range of the snapshot's storage. Unsorted input falls back to per-day copies in stable timestamp order.
+    private static func quotaExactSlicesByDay(
+        _ entries: [CostUsageTimedEntry],
+        calendar: Calendar,
+        dayMemo: inout CostUsageLocalDayKeyMemo) -> [String: ArraySlice<CostUsageTimedEntry>]
+    {
+        var days: [String: ArraySlice<CostUsageTimedEntry>] = [:]
+        var run: (key: String, start: Int)?
+        var isContiguous = true
+        for index in entries.indices {
+            if index > entries.startIndex, entries[index].timestamp < entries[index - 1].timestamp {
+                isContiguous = false
+                break
+            }
+            let key = dayMemo.key(for: entries[index].timestamp, calendar: calendar)
+            guard key != run?.key else { continue }
+            if let run { days[run.key] = entries[run.start..<index] }
+            guard days[key] == nil else {
+                isContiguous = false
+                break
+            }
+            run = (key, index)
+        }
+        if isContiguous {
+            if let run { days[run.key] = entries[run.start...] }
+            return days
+        }
+        var grouped: [String: [CostUsageTimedEntry]] = [:]
+        for entry in entries {
+            grouped[dayMemo.key(for: entry.timestamp, calendar: calendar), default: []].append(entry)
+        }
+        return grouped.mapValues { ArraySlice($0.sorted { $0.timestamp < $1.timestamp }) }
     }
 
     private static func quotaLocalDayKey(for rawDate: String, calendar: Calendar) -> String? {
@@ -647,7 +723,7 @@ extension CostUsageTokenSnapshot {
     }
 
     private static func tokenReconciliation(
-        _ slices: [QuotaProjectionSlice],
+        _ slices: QuotaProjectionSlices,
         daily: Int) -> QuotaReconciliation
     {
         var totals = CostUsageTemporalTotals()
@@ -659,7 +735,7 @@ extension CostUsageTokenSnapshot {
     }
 
     private static func costReconciliation(
-        _ slices: [QuotaProjectionSlice],
+        _ slices: QuotaProjectionSlices,
         daily: Double) -> QuotaReconciliation
     {
         if slices.isEmpty { return daily == 0 ? .exact : .residual }
@@ -674,7 +750,7 @@ extension CostUsageTokenSnapshot {
     }
 
     private static func projectTokenSlices(
-        _ slices: [QuotaProjectionSlice],
+        _ slices: QuotaProjectionSlices,
         start: Date,
         end: Date) -> QuotaContribution<Int>
     {
@@ -691,7 +767,7 @@ extension CostUsageTokenSnapshot {
     }
 
     private static func projectCostSlices(
-        _ slices: [QuotaProjectionSlice],
+        _ slices: QuotaProjectionSlices,
         start: Date,
         end: Date) -> QuotaContribution<Double>
     {
