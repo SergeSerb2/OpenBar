@@ -174,7 +174,7 @@ struct ShareStatsCardView: View {
     }
 
     private var isAllTime: Bool {
-        self.payload.days >= SpendDashboardSource.scanDays
+        ShareStatsFormatting.isAllTime(self.payload)
     }
 
     private var periodLabel: String {

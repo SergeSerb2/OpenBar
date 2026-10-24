@@ -116,6 +116,7 @@ extension StatusItemController {
                 showUsed: self.settings.usageBarsShowUsed,
                 resetStyle: self.settings.resetTimeDisplayStyle,
                 width: width,
+                hidePersonalInfo: self.settings.hidePersonalInfo,
                 onRefresh: { [weak self] in
                     self?.startManualRefresh(
                         for: plugin.manifest.id,
@@ -278,6 +279,7 @@ struct UserPluginMenuCardView: View {
     let showUsed: Bool
     let resetStyle: ResetTimeDisplayStyle
     let width: CGFloat
+    var hidePersonalInfo: Bool = false
     let onRefresh: () -> Void
 
     var body: some View {
@@ -352,10 +354,17 @@ struct UserPluginMenuCardView: View {
             || identity.accountID != nil
         {
             Divider()
-            self.identityRow("Account", identity.accountEmail)
-            self.identityRow("Organization", identity.accountOrganization)
-            self.identityRow("Plan", identity.loginMethod)
-            self.identityRow("Account ID", identity.accountID)
+            self.identityRow("Account", identity.accountEmail.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
+            self.identityRow("Organization", identity.accountOrganization.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
+            self.identityRow("Plan", PersonalInfoRedactor.redactEmails(
+                in: identity.loginMethod, isEnabled: self.hidePersonalInfo))
+            self.identityRow("Account ID", identity.accountID.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
         }
     }
 

@@ -22,7 +22,7 @@ struct HTTPServerSection: View {
                     self.showToken.toggle()
                 }
                 Button(L("http_server_generate")) { self.draft.token = HTTPServerConfiguration.generateToken() }
-                Button(L("copy")) { self.copy(self.draft.token) }.disabled(self.draft.token.isEmpty)
+                Button(L("copy")) { Self.copy(self.draft.token, sensitive: true) }.disabled(self.draft.token.isEmpty)
             }
             TextField(L("http_server_cache"), value: self.$draft.refreshInterval, format: .number)
             TextField(L("http_server_timeout"), value: self.$draft.requestTimeout, format: .number)
@@ -41,7 +41,7 @@ struct HTTPServerSection: View {
             if let url = self.controller.runningURL {
                 LabeledContent(L("http_server_dashboard")) {
                     Text(url).textSelection(.enabled)
-                    Button(L("copy")) { self.copy(url) }
+                    Button(L("copy")) { Self.copy(url) }
                 }
                 if self.controller.configuration.bindHost == "0.0.0.0" {
                     Text(L("http_server_wildcard"))
@@ -60,8 +60,14 @@ struct HTTPServerSection: View {
         .onAppear { self.draft = self.controller.configuration }
     }
 
-    private func copy(_ value: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(value, forType: .string)
+    static func copy(_ value: String, sensitive: Bool = false, pasteboard: NSPasteboard = .general) {
+        let item = NSPasteboardItem()
+        item.setString(value, forType: .string)
+        if sensitive {
+            item.setData(Data(), forType: .init("org.nspasteboard.ConcealedType"))
+            item.setData(Data(), forType: .init("org.nspasteboard.TransientType"))
+        }
+        pasteboard.clearContents()
+        pasteboard.writeObjects([item])
     }
 }

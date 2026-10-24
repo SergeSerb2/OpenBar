@@ -1189,6 +1189,7 @@ extension ProviderSwitcherView {
 
 final class TokenAccountSwitcherView: NSView {
     private let accounts: [ProviderTokenAccount]
+    private let hidePersonalInfo: Bool
     private let onSelect: (Int) -> Task<Void, Never>?
     private var selectedIndex: Int
     private var buttons: [NSButton] = []
@@ -1204,9 +1205,11 @@ final class TokenAccountSwitcherView: NSView {
         accounts: [ProviderTokenAccount],
         selectedIndex: Int,
         width: CGFloat,
+        hidePersonalInfo: Bool = false,
         onSelect: @escaping (Int) -> Task<Void, Never>?)
     {
         self.accounts = accounts
+        self.hidePersonalInfo = hidePersonalInfo
         self.onSelect = onSelect
         self.selectedIndex = min(max(selectedIndex, 0), max(0, accounts.count - 1))
         let useTwoRows = accounts.count > 3
@@ -1257,17 +1260,22 @@ final class TokenAccountSwitcherView: NSView {
             row.translatesAutoresizingMaskIntoConstraints = false
 
             for account in rowAccounts {
+                let label = PersonalInfoRedactor.redactAccountLabel(
+                    account.displayName,
+                    isEnabled: self.hidePersonalInfo,
+                    ordinal: .init(globalIndex + 1))
                 let button = PaddedToggleButton(
-                    title: account.displayName,
+                    title: label,
                     target: self,
                     action: #selector(self.handleSelect))
                 button.tag = globalIndex
-                button.toolTip = account.displayName
+                button.toolTip = label
+                button.setAccessibilityLabel(label)
                 button.isBordered = false
                 button.setButtonType(.toggle)
                 button.controlSize = .small
                 button.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-                button.cell?.lineBreakMode = account.displayName.contains("@") ? .byTruncatingMiddle : .byTruncatingTail
+                button.cell?.lineBreakMode = label.contains("@") ? .byTruncatingMiddle : .byTruncatingTail
                 button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
                 button.wantsLayer = true
                 button.layer?.cornerRadius = 6

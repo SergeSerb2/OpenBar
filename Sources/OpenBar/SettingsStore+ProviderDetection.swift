@@ -39,15 +39,27 @@ enum ProviderDetectionPolicy {
 extension SettingsStore {
     func runInitialProviderDetectionIfNeeded(force: Bool = false) {
         guard force || !self.providerDetectionCompleted else { return }
+        self.providerDetectionGeneration &+= 1
+        let generation = self.providerDetectionGeneration
+        let enablementRevisions = self.providerEnablementRevisions
         LoginShellPathCache.shared.captureOnce { [weak self] _ in
             Task { @MainActor in
-                await self?.applyProviderDetection()
+                await self?.applyProviderDetection(
+                    force: force,
+                    enablementRevisions: enablementRevisions,
+                    generation: generation)
             }
         }
     }
 
-    func applyProviderDetection() async {
-        guard !self.providerDetectionCompleted else { return }
+    func applyProviderDetection(
+        force: Bool = false,
+        enablementRevisions: [ProviderInstanceID: UInt64]? = nil,
+        generation: UInt64? = nil) async
+    {
+        guard force || !self.providerDetectionCompleted else { return }
+        guard generation == nil || generation == self.providerDetectionGeneration else { return }
+        let expectedRevisions = enablementRevisions ?? self.providerEnablementRevisions
         // Provider-specific by design: detection reads each provider's installed app, CLI, or credential artifact.
         let codexCLIInstalled = BinaryLocator.resolveCodexBinary() != nil
         let claudeCLIInstalled = BinaryLocator.resolveClaudeBinary() != nil
@@ -58,6 +70,8 @@ extension SettingsStore {
             atPath: FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".gemini/oauth_creds.json").path)
         let antigravityRunning = await AntigravityStatusProbe.isRunning()
+        guard !Task.isCancelled, force || !self.providerDetectionCompleted,
+              generation == nil || generation == self.providerDetectionGeneration else { return }
         let antigravityLoggedIn = FileManager.default.fileExists(
             atPath: AntigravityOAuthCredentialsStore().fileURL.path)
         let logger = OpenBarLog.logger(LogCategories.providerDetection)
@@ -90,17 +104,12 @@ extension SettingsStore {
                 "antigravity": enabledProviders.contains(.antigravity) ? "1" : "0",
             ])
 
-        self.updateProviderConfig(provider: .codex) { entry in
-            entry.enabled = enabledProviders.contains(.codex)
-        }
-        self.updateProviderConfig(provider: .claude) { entry in
-            entry.enabled = enabledProviders.contains(.claude)
-        }
-        self.updateProviderConfig(provider: .gemini) { entry in
-            entry.enabled = enabledProviders.contains(.gemini)
-        }
-        self.updateProviderConfig(provider: .antigravity) { entry in
-            entry.enabled = enabledProviders.contains(.antigravity)
+        for provider in [UsageProvider.codex, .claude, .gemini, .antigravity]
+            where self.providerEnablementRevision(for: provider) == expectedRevisions[provider.instanceID, default: 0]
+        {
+            self.updateProviderConfig(provider: provider) { entry in
+                entry.enabled = enabledProviders.contains(provider)
+            }
         }
         self.providerDetectionCompleted = true
         logger.info("Provider detection completed")

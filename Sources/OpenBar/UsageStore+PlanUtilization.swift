@@ -222,9 +222,12 @@ extension UsageStore {
         shouldAdoptUnscopedHistory: Bool = true,
         codexLimitResetOwnerKey: CodexLimitResetOwnerKey? = nil,
         sessionRestoredNotificationPending: Bool = false,
+        refreshGeneration: UInt64? = nil,
         now: Date = Date())
         async
     {
+        guard !Task.isCancelled,
+              self.isCurrentProviderRefreshGeneration(provider, generation: refreshGeneration) else { return }
         guard ProviderDescriptorRegistry.descriptor(for: provider).history.supportsPlanUtilization else { return }
         let detectorSamples = self.planUtilizationSeriesSamples(
             provider: provider,
@@ -283,25 +286,32 @@ extension UsageStore {
         guard self.shouldRecordPlanUtilizationHistory(for: provider) else { return }
         guard !self.shouldDeferClaudePlanUtilizationHistory(provider: provider) else { return }
 
+        let preferredAccount = account ?? self.settings.effectiveSelectedTokenAccount(for: provider)
+        var capturedBuckets = self.planUtilizationHistory[provider.instanceID] ?? PlanUtilizationHistoryBuckets()
+        let destinationAccountKey = self.resolvePlanUtilizationAccountKey(
+            provider: provider,
+            snapshot: snapshot,
+            preferredAccount: preferredAccount,
+            claudeOAuthHistoryOwnerIdentifier: effectiveOwner,
+            isClaudeOAuthSample: isClaudeOAuthSample,
+            readOnly: true,
+            providerBuckets: &capturedBuckets)
+
         // Wait for the persisted history to finish loading before mutating
         // `self.planUtilizationHistory`. A startup refresh racing the
         // background decode would otherwise record samples against an empty
         // bucket and overwrite real disk history on the next persistence
         // enqueue.
         if !self.planUtilizationHistoryLoaded {
-            // `_cancelPlanUtilizationHistoryLoadForTesting` cancels the task
-            // and flips `loaded` to true; this branch only runs when the load
-            // is still pending. Cancellation here (deinit during a startup
-            // refresh) means the in-memory dictionary is empty — proceeding
-            // is the safer choice than discarding the sample.
             _ = await self.planUtilizationHistoryLoadTask?.result
         }
 
         var snapshotToPersist: [ProviderInstanceID: PlanUtilizationHistoryBuckets]?
         await MainActor.run {
+            guard !Task.isCancelled,
+                  self.isCurrentProviderRefreshGeneration(provider, generation: refreshGeneration) else { return }
             var providerBuckets = self.planUtilizationHistory[provider.instanceID] ?? PlanUtilizationHistoryBuckets()
             let originalProviderBuckets = providerBuckets
-            let preferredAccount = account ?? self.settings.effectiveSelectedTokenAccount(for: provider)
             let accountKey = self.resolvePlanUtilizationAccountKey(
                 provider: provider,
                 snapshot: snapshot,
@@ -310,7 +320,9 @@ extension UsageStore {
                 isClaudeOAuthSample: isClaudeOAuthSample,
                 shouldUpdatePreferredAccountKey: shouldUpdatePreferredAccountKey,
                 shouldAdoptUnscopedHistory: shouldAdoptUnscopedHistory,
+                useSelectedAccountFallback: false,
                 providerBuckets: &providerBuckets)
+            guard accountKey == destinationAccountKey else { return }
             var histories = providerBuckets.histories(for: accountKey)
             let originalHistories = histories
             var samplesToPersist = samples
@@ -345,7 +357,9 @@ extension UsageStore {
             snapshotToPersist = self.planUtilizationHistory
         }
 
-        guard let snapshotToPersist else { return }
+        guard !Task.isCancelled,
+              self.isCurrentProviderRefreshGeneration(provider, generation: refreshGeneration),
+              let snapshotToPersist else { return }
         await self.planUtilizationPersistenceCoordinator.enqueue(snapshotToPersist)
     }
 
@@ -1083,6 +1097,7 @@ extension UsageStore {
         shouldUpdatePreferredAccountKey: Bool = true,
         shouldAdoptUnscopedHistory: Bool = true,
         readOnly: Bool = false,
+        useSelectedAccountFallback: Bool = true,
         providerBuckets: inout PlanUtilizationHistoryBuckets) -> String?
     {
         // Provider-specific by design: Codex reconciliation and Claude OAuth use distinct persisted owner migrations.
@@ -1139,7 +1154,8 @@ extension UsageStore {
             return nil
         }
 
-        let resolvedAccount = preferredAccount ?? self.settings.effectiveSelectedTokenAccount(for: provider)
+        let resolvedAccount = preferredAccount ?? (useSelectedAccountFallback
+            ? self.settings.effectiveSelectedTokenAccount(for: provider) : nil)
         if let tokenAccountKey = Self.planUtilizationAccountKey(provider: provider, account: resolvedAccount) {
             if shouldUpdatePreferredAccountKey, !readOnly { providerBuckets.preferredAccountKey = tokenAccountKey }
             if canAdoptUnscopedHistory {

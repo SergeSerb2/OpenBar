@@ -52,6 +52,7 @@ struct ShareStatsCurrencyPayload: Sendable, Equatable, Identifiable {
 
 struct ShareStatsPayload: Sendable, Equatable {
     let days: Int
+    let reportingPeriod: CostReportingPeriod
     let periodEnd: Date
     let periodEndTimeZone: TimeZone
     let providers: [ShareStatsProviderPayload]
@@ -70,9 +71,12 @@ struct ShareStatsPayload: Sendable, Equatable {
         totalTokens: Int?,
         hasPartialTokens: Bool = false,
         hasPartialModels: Bool = false,
-        periodEndTimeZone: TimeZone = .current)
+        periodEndTimeZone: TimeZone = .current,
+        reportingPeriod: CostReportingPeriod? = nil)
     {
         self.days = days
+        self.reportingPeriod = reportingPeriod
+            ?? (days >= SpendDashboardSource.scanDays ? .allTime : .rolling(days: max(1, days)))
         self.periodEnd = periodEnd
         self.periodEndTimeZone = periodEndTimeZone
         self.providers = providers
@@ -320,7 +324,8 @@ enum ShareStatsBuilder {
             totalTokens: totalTokens,
             hasPartialTokens: hasPartialTokens,
             hasPartialModels: hasPartialModels,
-            periodEndTimeZone: periodGroup.timeZone)
+            periodEndTimeZone: periodGroup.timeZone,
+            reportingPeriod: model.reportingPeriod)
         return payload.hasShareableData ? payload : nil
     }
 
@@ -410,7 +415,7 @@ enum ShareStatsFormatting {
     }
 
     static func isAllTime(_ payload: ShareStatsPayload) -> Bool {
-        payload.days >= SpendDashboardSource.scanDays
+        payload.reportingPeriod == .allTime
     }
 
     static func periodHeadline(_ payload: ShareStatsPayload) -> String {

@@ -1,6 +1,9 @@
 import Foundation
 import OpenBarCore
 
+// Keep the reporting-period fix local; splitting this model is outside the audit's no-refactor scope.
+// swiftlint:disable file_length
+
 /// Group copies share a memo; its inputs are immutable and cache state does not affect equality.
 private final class SpendHourlyDaysMemo: @unchecked Sendable, Equatable {
     private let lock = NSLock()
@@ -386,6 +389,7 @@ struct SpendDashboardModel: Equatable, Sendable {
     }
 
     let requestedDays: Int
+    let reportingPeriod: CostReportingPeriod
     let groups: [CurrencyGroup]
     let availableSources: [SourceFilterItem]
     let tokenActivity: [TokenActivityPoint]
@@ -398,9 +402,12 @@ struct SpendDashboardModel: Equatable, Sendable {
         groups: [CurrencyGroup],
         availableSources: [SourceFilterItem] = [],
         tokenActivity: [TokenActivityPoint] = [],
-        selectedDay: Date? = nil)
+        selectedDay: Date? = nil,
+        reportingPeriod: CostReportingPeriod? = nil)
     {
         self.requestedDays = requestedDays
+        self.reportingPeriod = reportingPeriod
+            ?? (requestedDays >= SpendDashboardSource.scanDays ? .allTime : .rolling(days: max(1, requestedDays)))
         self.groups = groups
         self.availableSources = availableSources
         self.tokenActivity = tokenActivity
@@ -487,7 +494,8 @@ struct SpendDashboardModel: Equatable, Sendable {
                 inputs: aggregateInputs,
                 now: now,
                 calendar: calculationCalendar),
-            selectedDay: selectedDay.map { calculationCalendar.startOfDay(for: $0) })
+            selectedDay: selectedDay.map { calculationCalendar.startOfDay(for: $0) },
+            reportingPeriod: period)
     }
 
     static func visibleInputs(

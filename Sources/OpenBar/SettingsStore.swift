@@ -290,6 +290,7 @@ final class SettingsStore {
     @ObservationIgnored weak var providerOrderUndoManager: UndoManager?
     var providerEnablement: [ProviderInstanceID: Bool] = [:]
     @ObservationIgnored var providerEnablementRevisions: [ProviderInstanceID: UInt64] = [:]
+    @ObservationIgnored var providerDetectionGeneration: UInt64 = 0
     @ObservationIgnored var providerConfigRevisions: [ProviderInstanceID: UInt64] = [:]
     @ObservationIgnored var onProviderFetchIdentityChange: ((ProviderInstanceID) -> Void)?
     @ObservationIgnored var providerConfigFingerprints: [ProviderInstanceID: Data] = [:]
@@ -340,7 +341,7 @@ final class SettingsStore {
         keychainAccessPolicy: SettingsStoreKeychainAccessPolicy = .defaultPolicy,
         performInitialProviderDetection: Bool = !SettingsStore.isRunningTests)
     {
-        // Legacy credential migration must see the saved policy, including shared-defaults fallback.
+        // Resolve and freeze legacy consent before plugin loading or credential migration can touch Keychain.
         keychainAccessPolicy.setDisabled(Self.loadDebugDisableKeychainAccess(userDefaults: userDefaults))
         if !Self.isRunningTests {
             _ = UserProviderPluginRegistry.refresh()
@@ -941,19 +942,26 @@ extension SettingsStore {
     }
 
     static func loadDebugDisableKeychainAccess(userDefaults: UserDefaults) -> Bool {
-        self.loadDebugDisableKeychainAccess(
+        let bridgeSharedDefaults = self.shouldBridgeSharedDefaults(for: userDefaults)
+        return self.loadDebugDisableKeychainAccess(
             userDefaults: userDefaults,
-            sharedDefaults: self.shouldBridgeSharedDefaults(for: userDefaults) ? self.sharedDefaults : nil)
+            sharedDefaults: bridgeSharedDefaults ? self.sharedDefaults : nil,
+            legacyDefaults: bridgeSharedDefaults ? UserDefaults(suiteName: AppGroupSupport.legacyGroupID()) : nil)
     }
 
-    static func loadDebugDisableKeychainAccess(userDefaults: UserDefaults, sharedDefaults: UserDefaults?) -> Bool {
+    static func loadDebugDisableKeychainAccess(
+        userDefaults: UserDefaults,
+        sharedDefaults: UserDefaults?,
+        legacyDefaults: UserDefaults? = nil) -> Bool
+    {
         if let stored = userDefaults.object(forKey: "debugDisableKeychainAccess") as? Bool {
             return stored
         }
-        if let shared = sharedDefaults?.object(forKey: "debugDisableKeychainAccess") as? Bool {
-            if Self.isRunningTests {
-                userDefaults.set(shared, forKey: "debugDisableKeychainAccess")
-            }
+        if let shared = (sharedDefaults?.object(forKey: "debugDisableKeychainAccess") as? Bool)
+            ?? (legacyDefaults?.object(forKey: "debugDisableKeychainAccess") as? Bool)
+        {
+            // The detached app-group copy must not leave the first process with a different policy.
+            userDefaults.set(shared, forKey: "debugDisableKeychainAccess")
             return shared
         }
         return false
@@ -1112,6 +1120,8 @@ extension SettingsStore {
     }
 
     func setProviderEnabled(provider: UsageProvider, metadata _: ProviderMetadata, enabled: Bool) {
+        // An explicit choice also retires detected defaults when the value did not change.
+        self.providerEnablementRevisions[provider.instanceID, default: 0] &+= 1
         OpenBarLog.logger(LogCategories.settings).debug(
             "Provider toggle updated",
             metadata: ["provider": provider.rawValue, "enabled": "\(enabled)"])
