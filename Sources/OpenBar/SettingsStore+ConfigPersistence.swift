@@ -170,6 +170,20 @@ extension SettingsStore {
             affectsBackgroundWork: resolvedBackgroundWorkChange)
     }
 
+    /// Launch decodes the config before background plugin discovery finishes, so plugin entries are still opaque
+    /// records. Re-decode them in memory (no disk reload) to restore their saved order and settings.
+    func applyInitialUserPluginDiscovery() {
+        guard !self.configLoading, !UserProviderPluginRegistry.all.isEmpty,
+              let redecoded = try? OpenBarConfig.decode(from: self.config.encodedData())
+        else { return }
+        let normalized = redecoded.normalized()
+        self.configLoading = true
+        self.config = normalized
+        self.updateProviderState(config: normalized)
+        self.configLoading = false
+        self.bumpConfigRevision(origin: .externalSync, reason: "plugin-discovery", affectsBackgroundWork: false)
+    }
+
     private static func orderIndependentConfigData(_ config: OpenBarConfig) -> Data? {
         var canonical = config.normalized()
         canonical.providers = canonical.providers.map(\.fetchIdentityConfig)

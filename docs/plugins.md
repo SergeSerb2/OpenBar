@@ -16,6 +16,11 @@ Plugins are local files only. OpenBar has no plugin catalog, does not download p
 resolve imports. A plugin cannot use Node, browser globals, subprocesses, local files, databases, OAuth, WebViews, or
 arbitrary native APIs. The maximum source size is 1 MiB.
 
+OpenBar loads plugin files in the background at launch and when the Plugins pane opens, reloads, or installs a file,
+so a slow file never freezes the menu bar. A file's top-level code (normally just the `defineProvider` call) must
+finish within 2 seconds; otherwise that file is listed as timed out. JavaScriptCore cannot interrupt a script, so on
+the JavaScriptCore rollback engine a top level that never returns keeps one background thread busy until OpenBar quits.
+
 App refreshes are scoped to the installed plugin runtime and its fetch settings. Disabling, removing, reloading, or
 reconfiguring a plugin prevents an older refresh from publishing usage or errors. A replacement refresh waits for retired
 work to finish and reads the current configuration when its fetch starts. Display-only preferences do not invalidate usage.

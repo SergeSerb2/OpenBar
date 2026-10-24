@@ -253,6 +253,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         preludeSource: String,
         transport: any ProviderHTTPTransport,
         timeout: TimeInterval,
+        loadTimeout: TimeInterval? = nil,
         responseSizeLimit: Int,
         enforcesUserResponsePolicy: Bool,
         allowsDynamicID: Bool,
@@ -281,7 +282,11 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
                 timeout: timeout,
                 responseSizeLimit: responseSizeLimit,
                 enforcesUserResponsePolicy: enforcesUserResponsePolicy)
-            try engine.load(source: source, preludeSource: preludeSource, allowsDynamicID: allowsDynamicID)
+            try engine.load(
+                source: source,
+                preludeSource: preludeSource,
+                allowsDynamicID: allowsDynamicID,
+                timeout: loadTimeout ?? timeout)
             return engine
         }
     }
@@ -382,7 +387,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         }
     }
 
-    private func load(source: String, preludeSource: String, allowsDynamicID: Bool) throws {
+    private func load(source: String, preludeSource: String, allowsDynamicID: Bool, timeout: TimeInterval) throws {
         JS_UpdateStackTop(self.runtime)
         guard let watchdog = cqjs_watchdog_create(
             quickJSHostCallback,
@@ -392,7 +397,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         }
         self.watchdog = watchdog
         cqjs_watchdog_install(watchdog, self.runtime, self.context)
-        cqjs_watchdog_arm(watchdog, UInt64(self.timeout * 1000))
+        cqjs_watchdog_arm(watchdog, UInt64(timeout * 1000))
         defer { cqjs_watchdog_disarm(watchdog) }
 
         let global = JS_GetGlobalObject(self.context)

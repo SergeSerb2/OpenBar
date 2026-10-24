@@ -15,6 +15,8 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
     public typealias InstanceCookieResolver = @Sendable (ProviderInstanceID, String) async throws -> String
 
     public static let defaultTimeout: TimeInterval = 20
+    /// Top-level code only calls `defineProvider`; discovery must not wait the full fetch budget per file.
+    public static let userPluginLoadTimeout: TimeInterval = 2
     public static let maximumResponseBytes = 5 * 1024 * 1024
     public static let engineEnvironmentKey = "OPENBAR_PLUGIN_ENGINE"
     public static let javaScriptCoreRollbackDefaultsKey = "debugUseJavaScriptCorePluginEngine"
@@ -25,6 +27,7 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
     private let preludeSource: String
     private let transport: any ProviderHTTPTransport
     private let timeout: TimeInterval
+    private let loadTimeout: TimeInterval
     private let responseSizeLimit: Int
     private let enforcesUserResponsePolicy: Bool
     private let allowsDynamicID: Bool
@@ -91,7 +94,8 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
         enforcesUserResponsePolicy: Bool = false,
         allowsDynamicID: Bool = false,
         engine: ProviderPluginEngineKind = .automatic,
-        storageDirectory: URL? = nil) throws
+        storageDirectory: URL? = nil,
+        loadTimeout: TimeInterval? = nil) throws
     {
         try self.init(
             source: source,
@@ -103,7 +107,8 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
             allowsDynamicID: allowsDynamicID,
             contextOptions: .production,
             engine: engine,
-            storageDirectory: storageDirectory)
+            storageDirectory: storageDirectory,
+            loadTimeout: loadTimeout)
     }
 
     init(
@@ -116,9 +121,12 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
         allowsDynamicID: Bool = false,
         contextOptions: ProviderPluginContextOptions = .production,
         engine: ProviderPluginEngineKind = .automatic,
-        storageDirectory: URL? = nil) throws
+        storageDirectory: URL? = nil,
+        loadTimeout: TimeInterval? = nil) throws
     {
         guard timeout > 0 else { throw ProviderPluginError.load("timeout must be positive") }
+        let loadTimeout = min(loadTimeout ?? timeout, timeout)
+        guard loadTimeout > 0 else { throw ProviderPluginError.load("load timeout must be positive") }
         guard responseSizeLimit > 0 else { throw ProviderPluginError.load("response size limit must be positive") }
         if let optionalRequestTimeoutSeconds = contextOptions.optionalRequestTimeoutSeconds,
            !(1...30).contains(optionalRequestTimeoutSeconds)
@@ -139,6 +147,7 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
         self.preludeSource = try String(contentsOf: preludeURL, encoding: .utf8)
         self.transport = transport
         self.timeout = timeout
+        self.loadTimeout = loadTimeout
         self.responseSizeLimit = responseSizeLimit
         self.enforcesUserResponsePolicy = enforcesUserResponsePolicy
         self.allowsDynamicID = allowsDynamicID
@@ -151,6 +160,7 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
             preludeSource: self.preludeSource,
             transport: transport,
             timeout: timeout,
+            loadTimeout: loadTimeout,
             responseSizeLimit: responseSizeLimit,
             enforcesUserResponsePolicy: enforcesUserResponsePolicy,
             allowsDynamicID: allowsDynamicID)
@@ -301,6 +311,7 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
             preludeSource: self.preludeSource,
             transport: self.transport,
             timeout: self.timeout,
+            loadTimeout: self.loadTimeout,
             responseSizeLimit: self.responseSizeLimit,
             enforcesUserResponsePolicy: self.enforcesUserResponsePolicy,
             allowsDynamicID: self.allowsDynamicID)
@@ -432,6 +443,22 @@ private final class ProviderPluginCompletionGate<Value: Sendable>: @unchecked Se
 }
 
 #if canImport(JavaScriptCore)
+private final class JavaScriptCoreLoadResult: @unchecked Sendable {
+    private let done = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var result: Result<JavaScriptCoreProviderPluginEngine, Error>?
+
+    func finish(_ result: Result<JavaScriptCoreProviderPluginEngine, Error>) {
+        self.lock.withLock { self.result = result }
+        self.done.signal()
+    }
+
+    func wait(timeout: TimeInterval) -> Result<JavaScriptCoreProviderPluginEngine, Error>? {
+        guard self.done.wait(timeout: .now() + timeout) == .success else { return nil }
+        return self.lock.withLock { self.result }
+    }
+}
+
 private final class ProviderPluginJSValueBox: @unchecked Sendable {
     let value: JSValue
 
@@ -478,19 +505,29 @@ final class JavaScriptCoreProviderPluginEngine: ProviderPluginEngine, @unchecked
         transport: any ProviderHTTPTransport,
         responseSizeLimit: Int,
         enforcesUserResponsePolicy: Bool,
-        allowsDynamicID: Bool) throws -> JavaScriptCoreProviderPluginEngine
+        allowsDynamicID: Bool,
+        loadTimeout: TimeInterval = ProviderPluginRuntime.defaultTimeout) throws -> JavaScriptCoreProviderPluginEngine
     {
         let queue = DispatchQueue(label: "com.serbinenko.openbar.provider-plugin.\(UUID().uuidString)")
-        return try queue.sync {
-            try JavaScriptCoreProviderPluginEngine(
-                queue: queue,
-                source: source,
-                preludeSource: preludeSource,
-                transport: transport,
-                responseSizeLimit: responseSizeLimit,
-                enforcesUserResponsePolicy: enforcesUserResponsePolicy,
-                allowsDynamicID: allowsDynamicID)
+        let loaded = JavaScriptCoreLoadResult()
+        queue.async {
+            loaded.finish(Result {
+                try JavaScriptCoreProviderPluginEngine(
+                    queue: queue,
+                    source: source,
+                    preludeSource: preludeSource,
+                    transport: transport,
+                    responseSizeLimit: responseSizeLimit,
+                    enforcesUserResponsePolicy: enforcesUserResponsePolicy,
+                    allowsDynamicID: allowsDynamicID)
+            })
         }
+        // JavaScriptCore cannot interrupt a script. A top level that never returns keeps this private queue busy
+        // (as a hung JSC fetch already does), but the caller stops waiting for it.
+        guard let result = loaded.wait(timeout: loadTimeout) else {
+            throw ProviderPluginError.timedOut
+        }
+        return try result.get()
     }
 
     private init(

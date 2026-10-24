@@ -1015,14 +1015,16 @@ extension SettingsStore {
             return []
         }
 
+        // Until launch-time plugin discovery finishes, selected plugins only look inactive; keep the saved choice.
+        let pluginsKnown = self.initialUserPluginDiscovery == nil
         let normalizedActive = Self.normalizeProviders(activeProviders)
         if normalizedActive.isEmpty {
-            self.clearMergedOverviewSelectionPreference()
+            if pluginsKnown { self.clearMergedOverviewSelectionPreference() }
             return []
         }
 
-        let shouldPersistResolvedSelection = normalizedActive.count > maxVisibleProviders ||
-            self.mergedOverviewSelectionApplies(to: normalizedActive)
+        let shouldPersistResolvedSelection = pluginsKnown && (normalizedActive.count > maxVisibleProviders ||
+            self.mergedOverviewSelectionApplies(to: normalizedActive))
 
         if self.hasMergedOverviewSelectionPreference, shouldPersistResolvedSelection {
             let selectedSet = Set(self.mergedOverviewSelectedProviders)

@@ -207,8 +207,11 @@ struct PluginsPane: View {
     }
 
     private func refresh() {
-        self.store.refreshUserPluginDiscovery()
         self.results = UserProviderPluginRegistry.allResults
+        Task {
+            await self.store.refreshUserPluginDiscoveryInBackground()
+            self.results = UserProviderPluginRegistry.allResults
+        }
     }
 
     private func choosePlugin() {
@@ -217,17 +220,20 @@ struct PluginsPane: View {
         panel.canChooseDirectories = false
         panel.allowedContentTypes = ["js", "ts"].compactMap { UTType(filenameExtension: $0) }
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let plugin = try UserProviderPluginLoader().load(fileURL: url)
-            if plugin.manifest.id.firstPartyProvider != nil ||
-                UserProviderPluginRegistry.plugin(for: plugin.manifest.id) != nil
-            {
-                throw ProviderPluginError.invalidManifest(
-                    "provider id '\(plugin.manifest.id.rawValue)' collides with another provider")
+        Task {
+            do {
+                // Loading evaluates the file's top-level code.
+                let plugin = try await Task.detached { try UserProviderPluginLoader().load(fileURL: url) }.value
+                if plugin.manifest.id.firstPartyProvider != nil ||
+                    UserProviderPluginRegistry.plugin(for: plugin.manifest.id) != nil
+                {
+                    throw ProviderPluginError.invalidManifest(
+                        "provider id '\(plugin.manifest.id.rawValue)' collides with another provider")
+                }
+                self.requestApproval(plugin: plugin, sourceURL: url)
+            } catch {
+                self.operationError = error.localizedDescription
             }
-            self.requestApproval(plugin: plugin, sourceURL: url)
-        } catch {
-            self.operationError = error.localizedDescription
         }
     }
 
@@ -244,29 +250,39 @@ struct PluginsPane: View {
         confirmations: [String: String],
         settings: [String: String])
     {
+        let binding: ProviderPluginApprovalBinding
         do {
-            let binding = try pending.plugin.approvalBinding(settings: settings)
-            guard binding.typedConfirmationOrigins.allSatisfy({ confirmations[$0] == $0 }) else { return }
-            let plugin: UserProviderPlugin = if let sourceURL = pending.sourceURL {
-                try UserProviderPluginLoader().install(fileURL: sourceURL)
-            } else {
-                pending.plugin
-            }
-            let installedBinding = try plugin.approvalBinding(settings: settings)
-            guard installedBinding == binding else {
-                throw ProviderPluginError.load("plugin authority changed during installation; review it again")
-            }
-            self.settings.updatePluginConfig(instanceID: plugin.manifest.id) {
-                $0.enabled = true
-                $0.pluginSettings = settings
-            }
-            try self.store.pluginApprovalStore.record(installedBinding)
-            self.pendingApproval = nil
-            self.refresh()
-            Task { await self.store.refreshUserPlugin(plugin.manifest.id) }
+            binding = try pending.plugin.approvalBinding(settings: settings)
         } catch {
             self.pendingApproval = nil
             self.operationError = error.localizedDescription
+            return
+        }
+        guard binding.typedConfirmationOrigins.allSatisfy({ confirmations[$0] == $0 }) else { return }
+        self.pendingApproval = nil
+        Task {
+            do {
+                let plugin: UserProviderPlugin = if let sourceURL = pending.sourceURL {
+                    // Installing re-loads the file, which evaluates its top-level code.
+                    try await Task.detached { try UserProviderPluginLoader().install(fileURL: sourceURL) }.value
+                } else {
+                    pending.plugin
+                }
+                let installedBinding = try plugin.approvalBinding(settings: settings)
+                guard installedBinding == binding else {
+                    throw ProviderPluginError.load("plugin authority changed during installation; review it again")
+                }
+                self.settings.updatePluginConfig(instanceID: plugin.manifest.id) {
+                    $0.enabled = true
+                    $0.pluginSettings = settings
+                }
+                try self.store.pluginApprovalStore.record(installedBinding)
+                await self.store.refreshUserPluginDiscoveryInBackground()
+                self.results = UserProviderPluginRegistry.allResults
+                await self.store.refreshUserPlugin(plugin.manifest.id)
+            } catch {
+                self.operationError = error.localizedDescription
+            }
         }
     }
 
