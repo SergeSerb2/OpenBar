@@ -441,19 +441,21 @@ enum CostUsageClaudeCacheIO {
         reportContext: CostUsageReportContext = .regular,
         calendar: Calendar? = nil) -> CostUsageClaudeCache
     {
-        let url = self.cacheFileURL(provider: provider, cacheRoot: cacheRoot, reportContext: reportContext)
-        let key = url.standardizedFileURL.resolvingSymlinksInPath()
-        guard let loaded = try? CostUsageClaudeFragments.shared.load(at: key, legacy: { data in
-            let decoder = JSONDecoder()
-            decoder.userInfo[CostUsageRowStringPool.key] = CostUsageRowStringPool()
-            return try decoder.decode(CostUsageClaudeCache.self, from: data).split()
-        }) else { return CostUsageClaudeCache() }
-        var cache: CostUsageClaudeCache = loaded.0
-        cache.join(loaded.1)
-        guard cache.usage.version == self.schemaVersion,
-              calendar == nil || cache.usage.timeZoneIdentifier == calendar?.timeZone.identifier
-        else { return CostUsageClaudeCache() }
-        return cache
+        autoreleasepool {
+            let url = self.cacheFileURL(provider: provider, cacheRoot: cacheRoot, reportContext: reportContext)
+            let key = url.standardizedFileURL.resolvingSymlinksInPath()
+            guard let loaded = try? CostUsageClaudeFragments.shared.load(at: key, legacy: { data in
+                let decoder = JSONDecoder()
+                decoder.userInfo[CostUsageRowStringPool.key] = CostUsageRowStringPool()
+                return try decoder.decode(CostUsageClaudeCache.self, from: data).split()
+            }) else { return CostUsageClaudeCache() }
+            var cache: CostUsageClaudeCache = loaded.0
+            cache.join(loaded.1)
+            guard cache.usage.version == self.schemaVersion,
+                  calendar == nil || cache.usage.timeZoneIdentifier == calendar?.timeZone.identifier
+            else { return CostUsageClaudeCache() }
+            return cache
+        }
     }
 
     static func save(

@@ -37,7 +37,7 @@ final class CostUsageClaudeFragments: @unchecked Sendable {
     private let byteLimit: Int
     private var entries: [(url: URL, snapshot: Snapshot)] = []
 
-    init(byteLimit: Int = 512 * 1024 * 1024) { self.byteLimit = byteLimit }
+    init(byteLimit: Int = 32 * 1024 * 1024) { self.byteLimit = byteLimit }
 
     func evict(at url: URL) {
         let url = url.standardizedFileURL.resolvingSymlinksInPath()
@@ -77,19 +77,33 @@ final class CostUsageClaudeFragments: @unchecked Sendable {
                     return try legacy(data)
                 }
                 guard manifest.format == 1 else { throw CocoaError(.fileReadCorruptFile) }
+                let remainingBytes = max(0, self.byteLimit / 3 - manifest.header.count)
+                let availableBytes = manifest.shards.values.reduce(remainingBytes) { remaining, shard in
+                    guard shard.bytes >= 0, shard.bytes <= remaining else { return 0 }
+                    return remaining - shard.bytes
+                }
+                self.entries.removeAll { $0.url == url }
+                while !self.entries.isEmpty,
+                      self.entries.reduce(0, { $0 + $1.snapshot.cost * 3 }) > availableBytes * 3
+                {
+                    self.entries.removeFirst()
+                }
                 let header = try decoder.decode(Header.self, from: manifest.header)
                 var values: [String: Value] = [:]
                 for descriptor in manifest.shards.values {
-                    let reference = descriptor.digest
-                    guard reference.count == 64, reference.allSatisfy(\.isHexDigit),
-                          let shard = CostUsageClaudeCacheIO.read(
-                              at: Self.directory(at: url).appendingPathComponent(reference + ".json"),
-                              options: .mappedIfSafe), shard.count == descriptor.bytes, Self.digest(shard) == reference
-                    else { throw CocoaError(.fileReadCorruptFile) }
-                    let decoded = try decoder.decode([String: Value].self, from: shard)
-                    for (path, value) in decoded {
-                        guard values.updateValue(value, forKey: path) == nil else {
-                            throw CocoaError(.fileReadCorruptFile)
+                    try autoreleasepool {
+                        let reference = descriptor.digest
+                        guard reference.count == 64, reference.allSatisfy(\.isHexDigit),
+                              let shard = CostUsageClaudeCacheIO.read(
+                                  at: Self.directory(at: url).appendingPathComponent(reference + ".json"),
+                                  options: .mappedIfSafe), shard.count == descriptor.bytes,
+                              Self.digest(shard) == reference
+                        else { throw CocoaError(.fileReadCorruptFile) }
+                        let decoded = try decoder.decode([String: Value].self, from: shard)
+                        for (path, value) in decoded {
+                            guard values.updateValue(value, forKey: path) == nil else {
+                                throw CocoaError(.fileReadCorruptFile)
+                            }
                         }
                     }
                 }
@@ -138,29 +152,31 @@ final class CostUsageClaudeFragments: @unchecked Sendable {
                 }
                 var manifest = try Manifest(header: encoder.encode(header), shards: [:])
                 for (parent, paths) in groups {
-                    let key = Self.digest(parent)
-                    let same = oldCounts[parent] == paths.count && paths.allSatisfy { path in
-                        guard let index = oldValues.index(forKey: path) else { return false }
-                        return oldValues[index].key.utf8.elementsEqual(path.utf8)
-                            && oldValues[index].value == values[path]
-                    }
-                    if same, let reference = current?.manifest.shards[key] {
-                        manifest.shards[key] = reference
-                    } else {
-                        let group = paths.reduce(into: [String: Value]()) { $0[$1] = values[$1] }
-                        let data = try encoder.encode(group)
-                        let reference = Self.digest(data)
-                        let target = Self.directory(at: url).appendingPathComponent(reference + ".json")
-                        let old = (current?.manifest.shards[key]).map {
-                            Self.directory(at: url).appendingPathComponent($0.digest + ".json")
+                    try autoreleasepool {
+                        let key = Self.digest(parent)
+                        let same = oldCounts[parent] == paths.count && paths.allSatisfy { path in
+                            guard let index = oldValues.index(forKey: path) else { return false }
+                            return oldValues[index].key.utf8.elementsEqual(path.utf8)
+                                && oldValues[index].value == values[path]
                         }
-                        try Self.write(data, at: target, replacing: old)
-                        manifest.shards[key] = Shard(digest: reference, bytes: data.count)
-                        #if DEBUG
-                        for _ in paths {
-                            CostUsageScanner.recordClaudeScanWork(.fragmentEncode)
+                        if same, let reference = current?.manifest.shards[key] {
+                            manifest.shards[key] = reference
+                        } else {
+                            let group = paths.reduce(into: [String: Value]()) { $0[$1] = values[$1] }
+                            let data = try encoder.encode(group)
+                            let reference = Self.digest(data)
+                            let target = Self.directory(at: url).appendingPathComponent(reference + ".json")
+                            let old = (current?.manifest.shards[key]).map {
+                                Self.directory(at: url).appendingPathComponent($0.digest + ".json")
+                            }
+                            try Self.write(data, at: target, replacing: old)
+                            manifest.shards[key] = Shard(digest: reference, bytes: data.count)
+                            #if DEBUG
+                            for _ in paths {
+                                CostUsageScanner.recordClaudeScanWork(.fragmentEncode)
+                            }
+                            #endif
                         }
-                        #endif
                     }
                 }
                 let data = try encoder.encode(manifest)
