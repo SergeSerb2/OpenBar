@@ -176,6 +176,13 @@ public final class ProviderHTTPClient: ProviderHTTPTransport, @unchecked Sendabl
 
     static func defaultConfiguration() -> URLSessionConfiguration {
         let configuration = URLSessionConfiguration.default
+        // Providers send credentials in explicit headers. A shared on-disk cookie jar would persist every
+        // Set-Cookie outside the Keychain and replay it to later requests that omit a Cookie header (another
+        // account, API-key mode), and the disk URLCache would keep authenticated response bodies.
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 90
         #if !os(Linux)
