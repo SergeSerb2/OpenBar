@@ -16,6 +16,7 @@ defineProvider({
     const manual = ctx.browser.availability(domain) === "manual";
     const auth = () => ctx.fail.authenticationExpired("Unauthorized. Please log in to Abacus AI.");
     let clearCookie = false;
+    let rateLimited = false;
     const parseFailure = (message: string): never => {
       clearCookie = true;
       throw ctx.fail.parseFailure(`Could not parse Abacus AI usage: ${message}`);
@@ -24,6 +25,19 @@ defineProvider({
       if (response.status === 401 || response.status === 403) {
         clearCookie = true;
         throw auth();
+      }
+      if (response.status === 429) {
+        rateLimited = true;
+        const raw = response.headers["retry-after"] ?? response.headers["Retry-After"];
+        const seconds =
+          raw && /^\d+$/.test(raw.trim())
+            ? Number(raw)
+            : raw
+              ? (Date.parse(raw) - ctx.date.now().getTime()) / 1000
+              : NaN;
+        throw ctx.fail.rateLimited("Abacus AI requests are rate limited.", {
+          retryAfterSeconds: Number.isFinite(seconds) ? Math.min(10, Math.max(0, seconds)) : 1,
+        });
       }
       if (response.status !== 200) throw ctx.fail.apiFailure(`Abacus AI API error: HTTP ${response.status}`);
       let root;
@@ -118,7 +132,7 @@ defineProvider({
           identity: { loginMethod: typeof billing.currentTier === "string" ? billing.currentTier : undefined },
         };
       } catch (error) {
-        if (manual || (error as { transportClass?: string }).transportClass === "cancelled") throw error;
+        if (manual || rateLimited || (error as { transportClass?: string }).transportClass === "cancelled") throw error;
         if (clearCookie) ctx.browser.rejectCookie(domain, session);
         lastError = error;
         if (++attempts >= maximumCandidates) break;

@@ -379,6 +379,18 @@ defineProvider({
       if (response.status === 401 || response.status === 403) {
         throw ctx.fail.authenticationExpired("Chutes API key was rejected. Check the API key in Settings.");
       }
+      if (response.status === 429) {
+        const raw = _nullishCoalesce(response.headers["retry-after"], () => response.headers["Retry-After"]);
+        const seconds =
+          raw && /^\d+$/.test(raw.trim())
+            ? Number(raw)
+            : raw
+              ? (Date.parse(raw) - ctx.date.now().getTime()) / 1000
+              : NaN;
+        throw ctx.fail.rateLimited("Chutes requests are rate limited.", {
+          retryAfterSeconds: Number.isFinite(seconds) ? Math.min(10, Math.max(0, seconds)) : 1,
+        });
+      }
       if (response.status < 200 || response.status >= 300)
         throw ctx.fail.apiFailure(`Chutes usage API error: HTTP ${response.status}`);
       try {
