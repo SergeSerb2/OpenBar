@@ -734,7 +734,6 @@ extension CostUsageScanner {
             return priorMemo.report
         }
 
-        defer { CostUsageClaudeFragments.shared.evict(at: cacheURL) }
         var artifact = CostUsageClaudeCacheIO.load(
             provider: provider,
             cacheRoot: options.cacheRoot,

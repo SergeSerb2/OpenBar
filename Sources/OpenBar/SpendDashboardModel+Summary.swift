@@ -18,14 +18,18 @@ extension SpendDashboardModel.ProviderInput {
             costProvenance: self.snapshot.costProvenance,
             credentialScopeFingerprint: self.snapshot.credentialScopeFingerprint,
             daily: self.snapshot.daily,
+            hourly: self.snapshot.hourly,
             updatedAt: self.snapshot.updatedAt)
         snapshot.reportingPeriod = self.snapshot.reportingPeriod
+        // Activity values carry their own coverage bounds, and accounting decides Pi inclusion; both stay.
         return Self(
             id: self.id,
             provider: self.provider,
             displayName: self.displayName,
             modelProviderName: self.modelProviderName,
             snapshot: snapshot,
-            sourceKind: self.sourceKind)
+            tokenActivityCache: self.tokenActivityCache,
+            sourceKind: self.sourceKind,
+            accounting: self.accounting)
     }
 }

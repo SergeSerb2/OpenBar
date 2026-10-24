@@ -1207,6 +1207,9 @@ final class SpendDashboardController {
     private var lastRefreshDateWindowAt: Date?
     private var lastRefreshDateWindowDayStart: Date?
     private static let dashboardSnapshotTTL: TimeInterval = 5 * 60
+    private static let hiddenDetailRetention: Duration = .seconds(5 * 60)
+    @ObservationIgnored private var hiddenDetailReleaseTask: Task<Void, Never>?
+    @ObservationIgnored private var loadedInputsAreSummaryOnly = false
     private(set) var dashboardSnapshotLoadedAt: Date?
 
     init(
@@ -1405,6 +1408,7 @@ final class SpendDashboardController {
         self.loadedInputs = Self.stableUniqueInputs(self.loadedInputs).map {
             self.detailsVisible ? $0 : $0.summaryOnly()
         }
+        self.loadedInputsAreSummaryOnly = !self.detailsVisible
         for input in inputs {
             self.loadedInputScopes[input.id] = SpendDashboardLoadedInputScope(
                 configuration: request.configuration,
@@ -1572,6 +1576,7 @@ final class SpendDashboardController {
         self.loadedInputs = Self.stableUniqueInputs(nextInputs).map {
             self.detailsVisible ? $0 : $0.summaryOnly()
         }
+        self.loadedInputsAreSummaryOnly = !self.detailsVisible
         self.loadedInputScopes = nextInputScopes
         self.loadedAt = request.now
         self.dashboardSnapshotLoadedAt = self.nowProvider()
@@ -1721,9 +1726,22 @@ final class SpendDashboardController {
     func setDetailsVisible(_ visible: Bool) {
         guard self.detailsVisible != visible else { return }
         self.detailsVisible = visible
-        self.dashboardSnapshotLoadedAt = nil
-        if !visible {
-            self.loadedInputs = self.loadedInputs.map { $0.summaryOnly() }
+        self.hiddenDetailReleaseTask?.cancel()
+        self.hiddenDetailReleaseTask = nil
+        if visible {
+            // Detail released while hidden must reload; retained detail reopens instantly.
+            if self.loadedInputsAreSummaryOnly {
+                self.dashboardSnapshotLoadedAt = nil
+            }
+        } else {
+            // Keep detail briefly so a quick reopen stays instant, then keep only summaries.
+            self.hiddenDetailReleaseTask = Task { [weak self] in
+                try? await Task.sleep(for: Self.hiddenDetailRetention)
+                guard let self, !Task.isCancelled, !self.detailsVisible else { return }
+                self.loadedInputs = self.loadedInputs.map { $0.summaryOnly() }
+                self.loadedInputsAreSummaryOnly = true
+                self.hiddenDetailReleaseTask = nil
+            }
         }
         self.rebuildModel()
     }

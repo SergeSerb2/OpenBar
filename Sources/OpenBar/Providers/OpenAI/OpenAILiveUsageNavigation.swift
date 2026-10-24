@@ -82,9 +82,13 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
 
     func windowWillClose(_: Notification) {
         self.model.stop()
-        self.window?.contentViewController = nil
-        self.window?.contentView = nil
-        self.model.releaseSnapshot()
+        // Tear down after AppKit finishes closing, unless the window was reopened meanwhile.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, !window.isVisible else { return }
+            window.contentViewController = nil
+            window.contentView = nil
+            self.model.releaseSnapshot()
+        }
     }
 }
 

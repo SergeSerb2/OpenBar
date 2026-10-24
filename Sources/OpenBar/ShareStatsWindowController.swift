@@ -71,8 +71,12 @@ final class ShareStatsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     func windowWillClose(_: Notification) {
-        self.window?.contentViewController = nil
-        self.window?.contentView = nil
+        // Tear down after AppKit finishes closing, unless the window was reopened meanwhile.
+        DispatchQueue.main.async { [weak self] in
+            guard let window = self?.window, !window.isVisible else { return }
+            window.contentViewController = nil
+            window.contentView = nil
+        }
     }
 }
 

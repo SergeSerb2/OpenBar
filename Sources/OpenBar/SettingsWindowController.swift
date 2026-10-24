@@ -154,10 +154,13 @@ final class SettingsWindowController: NSWindowController {
 extension SettingsWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window === self.retainedWindow else { return }
-        window.contentViewController = nil
-        window.contentView = nil
         self.retainedWindow = nil
         self.window = nil
-        self.didCloseWindow?()
+        // Tear the hosting tree down after AppKit finishes closing, not inside its close callback.
+        DispatchQueue.main.async { [weak self, weak window] in
+            window?.contentViewController = nil
+            window?.contentView = nil
+            self?.didCloseWindow?()
+        }
     }
 }
