@@ -265,10 +265,16 @@ public final class ProviderPluginRuntime: @unchecked Sendable {
                     cookieResolver: cookieResolver,
                     instanceCookieResolver: instanceCookieResolver,
                     completion: finish)
-                Task.detached {
-                    try? await Task.sleep(for: .seconds(self.timeout))
+                let timeout = self.timeout
+                let timeoutTask = Task.detached {
+                    do {
+                        try await Task.sleep(for: .seconds(timeout))
+                    } catch {
+                        return
+                    }
                     finish(.failure(ProviderPluginError.timedOut))
                 }
+                gate.installTimeout(timeoutTask)
             }
         } onCancel: {
             finish(.failure(CancellationError()))
@@ -381,6 +387,18 @@ private final class ProviderPluginCompletionGate<Value: Sendable>: @unchecked Se
     private var continuation: CheckedContinuation<Value, Error>?
     private var pendingResult: Result<Value, Error>?
     private var finished = false
+    private var timeoutTask: Task<Void, Never>?
+
+    func installTimeout(_ task: Task<Void, Never>) {
+        self.lock.lock()
+        if self.finished {
+            self.lock.unlock()
+            task.cancel()
+            return
+        }
+        self.timeoutTask = task
+        self.lock.unlock()
+    }
 
     func install(_ continuation: CheckedContinuation<Value, Error>) {
         self.lock.lock()
@@ -401,6 +419,8 @@ private final class ProviderPluginCompletionGate<Value: Sendable>: @unchecked Se
             return
         }
         self.finished = true
+        self.timeoutTask?.cancel()
+        self.timeoutTask = nil
         // Retire failed workers before a resumed caller can request another fetch.
         beforeResume()
         let continuation = self.continuation
