@@ -194,7 +194,7 @@ struct CostUsageScannerClaudeMemoTests {
         var envelope = try claudeMemoObjectForTesting(at: memoURL)
         envelope["reportSemanticsVersion"] = revision
         envelope["report"] = [
-            "type": "openbar-claude-report-memo", "data": [],
+            "type": "codexbar-claude-report-memo", "data": [],
             "summary": ["totalTokens": 9999, "totalCostUSD": 9999],
         ]
         try JSONSerialization.data(withJSONObject: envelope).write(to: memoURL)
@@ -488,7 +488,7 @@ struct CostUsageScannerClaudeMemoTests {
     @Test
     func `persisted report retains token mix coverage and service tier details`() throws {
         let json = """
-        {"type":"openbar-claude-report-memo","data":[{"date":"2026-07-01",
+        {"type":"codexbar-claude-report-memo","data":[{"date":"2026-07-01",
         "inputTokens":1,"outputTokens":2,"cacheReadTokens":3,
         "cacheCreationTokens":4,"reasoningTokens":5,"totalTokens":15,"requestCount":4,"costUSD":0.5,
         "modelsUsed":["fixture-model"],"unpricedRequestCount":1,"pricedRequestCount":1,

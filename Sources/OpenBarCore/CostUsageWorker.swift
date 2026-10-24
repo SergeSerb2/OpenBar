@@ -53,11 +53,12 @@ package enum CostUsageWorker {
                 return try self.exchange(request, executable: executable, checkCancellation: checkCancellation)
             }
             try Task.checkCancellation()
+            guard let result = value.result else { throw WorkerError.protocolFailure }
+            let decoded = try PropertyListDecoder().decode(CostUsageWorkerValue<Value>.self, from: result).value
             for job in value.pricingJobs {
                 job.start()
             }
-            guard let result = value.result else { throw WorkerError.protocolFailure }
-            return try .value(PropertyListDecoder().decode(CostUsageWorkerValue<Value>.self, from: result).value)
+            return .value(decoded)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -119,10 +120,10 @@ package enum CostUsageWorker {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             process.waitUntilExit()
         }
-        let deadline = Date().addingTimeInterval(15 * 60)
+        let deadline = ContinuousClock.now.advanced(by: .seconds(15 * 60))
         while process.isRunning {
             try checkCancellation()
-            guard Date() < deadline, stdout.currentSnapshot().count <= self.maximumResponseBytes else {
+            guard ContinuousClock.now < deadline, stdout.currentSnapshot().count <= self.maximumResponseBytes else {
                 throw WorkerError.protocolFailure
             }
             Thread.sleep(forTimeInterval: 0.01)

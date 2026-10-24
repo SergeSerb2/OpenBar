@@ -878,7 +878,8 @@ public struct CostUsageDailyReport: Sendable, Codable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode("openbar-claude-report-memo", forKey: .type)
+        // Upstream format tag; kept so memo files and golden digests stay compatible with CodexBar.
+        try container.encode("codexbar-claude-report-memo", forKey: .type)
         try container.encode(self.data, forKey: .data)
         try container.encodeIfPresent(self.summary, forKey: .summary)
     }

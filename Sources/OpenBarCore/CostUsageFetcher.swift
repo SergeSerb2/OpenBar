@@ -1715,7 +1715,9 @@ public struct CostUsageFetcher: Sendable {
         scannerOptions overrideScannerOptions: CostUsageScanner
             .Options? = nil) async throws -> CodexLocalProjectUsageSnapshot
     {
-        if CostUsageWorker.canRoute(options: overrideScannerOptions), progress == nil {
+        if CostUsageWorker.canRoute(options: overrideScannerOptions) {
+            // The helper does not stream file counts; report an indeterminate scan instead of per-file progress.
+            progress?(CodexLocalProjectUsageIndexProgress(phase: .scanningLogs))
             var workerRequest = CostUsageWorkerRequest(
                 operation: .projects, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
             workerRequest.now = now

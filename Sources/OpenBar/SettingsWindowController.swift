@@ -160,7 +160,9 @@ extension SettingsWindowController: NSWindowDelegate {
         DispatchQueue.main.async { [weak self, weak window] in
             window?.contentViewController = nil
             window?.contentView = nil
-            self?.didCloseWindow?()
+            // A reopen in the same run-loop turn already made the new window's content visible again.
+            guard let self, self.retainedWindow == nil else { return }
+            self.didCloseWindow?()
         }
     }
 }

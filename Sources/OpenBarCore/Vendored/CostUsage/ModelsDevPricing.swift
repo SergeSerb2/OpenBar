@@ -837,12 +837,13 @@ private actor ModelsDevRefreshCoordinator {
         if let inFlight = self.inFlightByCachePath[cachePath] {
             return await inFlight.task.value
         }
-        if let lastAttempt = self.lastCatalogAttemptByCachePath[cachePath],
+        if let lastAttempt = self.lastCatalogAttemptByCachePath[cachePath] ?? Self.persistedAttempt(cachePath),
            now.timeIntervalSince(lastAttempt) < modelsDevCatalogRetryInterval
         {
             return false
         }
         self.lastCatalogAttemptByCachePath[cachePath] = now
+        Self.persistAttempt(now, cachePath: cachePath)
 
         let inFlight = InFlightRefresh(
             id: UUID(),
@@ -853,5 +854,20 @@ private actor ModelsDevRefreshCoordinator {
             self.inFlightByCachePath[cachePath] = nil
         }
         return result
+    }
+
+    /// Cost helpers exit after each request, so they share the cooldown through a sidecar file.
+    private static func persistedAttempt(_ cachePath: String) -> Date? {
+        guard CostUsageWorker.isWorker,
+              let text = try? String(contentsOfFile: cachePath + ".attempt", encoding: .utf8),
+              let seconds = TimeInterval(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    private static func persistAttempt(_ date: Date, cachePath: String) {
+        guard CostUsageWorker.isWorker else { return }
+        try? String(date.timeIntervalSince1970).write(
+            toFile: cachePath + ".attempt", atomically: true, encoding: .utf8)
     }
 }
