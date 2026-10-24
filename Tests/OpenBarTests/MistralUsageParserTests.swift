@@ -111,10 +111,16 @@ struct MistralUsageParserTests {
           \(qualifier)
         }]}
         """
-        let snapshot = try MistralUsageFetcher.parseResponse(data: Data(json.utf8), updatedAt: Date())
-        #expect(snapshot.totalInputTokens == 100)
-        #expect(snapshot.totalCost == (dimension == "legacy" ? 10 : 0))
-        #expect(snapshot.daily.first?.cost == snapshot.totalCost)
+        if dimension == "legacy" {
+            let snapshot = try MistralUsageFetcher.parseResponse(data: Data(json.utf8), updatedAt: Date())
+            #expect(snapshot.totalInputTokens == 100)
+            #expect(snapshot.totalCost == 10)
+            #expect(snapshot.daily.first?.cost == snapshot.totalCost)
+        } else {
+            #expect(throws: MistralUsageError.self) {
+                try MistralUsageFetcher.parseResponse(data: Data(json.utf8), updatedAt: Date())
+            }
+        }
     }
 
     @Test(arguments: ["NaN", "Infinity", "1e308"])
@@ -152,15 +158,12 @@ struct MistralUsageParserTests {
             return (Data(json.utf8), response)
         }
 
-        let snapshot = try await MistralUsageFetcher.fetchUsage(
-            cookieHeader: "ory_session_test=abc",
-            csrfToken: nil,
-            transport: transport)
-
-        #expect(snapshot.totalCost == 0)
-        #expect(snapshot.totalCost.isFinite)
-        #expect(snapshot.daily.first?.cost == 0)
-        #expect(snapshot.daily.first?.models.first?.cost == 0)
+        await #expect(throws: MistralUsageError.self) {
+            try await MistralUsageFetcher.fetchUsage(
+                cookieHeader: "ory_session_test=abc",
+                csrfToken: nil,
+                transport: transport)
+        }
     }
 
     @Test
@@ -203,13 +206,9 @@ struct MistralUsageParserTests {
         }
         """
 
-        let snapshot = try MistralUsageFetcher.parseResponse(data: Data(json.utf8), updatedAt: Date())
-
-        #expect(snapshot.totalCost == 1e308)
-        #expect(snapshot.totalCost.isFinite)
-        #expect(snapshot.daily.first?.cost == 1e308)
-        #expect(snapshot.daily.first?.models.count == 2)
-        #expect(snapshot.daily.first?.models.allSatisfy { $0.cost == 1e308 } == true)
+        #expect(throws: MistralUsageError.self) {
+            try MistralUsageFetcher.parseResponse(data: Data(json.utf8), updatedAt: Date())
+        }
     }
 
     @Test
