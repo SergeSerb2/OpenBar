@@ -13,7 +13,7 @@ read_when:
 > below remain in the tree, so this document is retained as their historical context, not a current contribution policy.
 
 **Fork:** topoffunnel/OpenBar  
-**Upstream 1:** SergeSerb2/OpenBar (original)  
+**Upstream 1:** steipete/CodexBar (original)  
 **Upstream 2:** nguyenphutrong/quotio (inspiration source)
 
 ---
@@ -49,7 +49,7 @@ read_when:
 git remote add origin git@github.com:topoffunnel/OpenBar.git
 
 # Original upstream (steipete)
-git remote add upstream git@github.com:SergeSerb2/OpenBar.git
+git remote add upstream git@github.com:steipete/CodexBar.git
 
 # Quotio inspiration source
 git remote add quotio git@github.com:nguyenphutrong/quotio.git
@@ -128,7 +128,7 @@ jobs:
       
       - name: Add upstream remotes
         run: |
-          git remote add upstream https://github.com/SergeSerb2/OpenBar.git
+          git remote add upstream https://github.com/steipete/CodexBar.git
           git remote add quotio https://github.com/nguyenphutrong/quotio.git
           git fetch upstream
           git fetch quotio
@@ -152,7 +152,7 @@ jobs:
             
             const body = `## Upstream Changes Detected
             
-            **SergeSerb2/OpenBar:** ${upstreamCommits} new commits
+            **steipete/CodexBar:** ${upstreamCommits} new commits
             **quotio:** ${quotioCommits} new commits (last week)
             
             Review changes:

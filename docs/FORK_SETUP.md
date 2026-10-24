@@ -32,7 +32,7 @@ git remote -v
 # Should show: origin  git@github.com:topoffunnel/OpenBar.git
 
 # Add upstream (steipete's original)
-git remote add upstream https://github.com/SergeSerb2/OpenBar.git
+git remote add upstream https://github.com/steipete/CodexBar.git
 
 # Add quotio (inspiration source)
 git remote add quotio https://github.com/nguyenphutrong/quotio.git
@@ -44,7 +44,7 @@ git fetch --all
 git remote -v
 # Should show:
 # origin    git@github.com:topoffunnel/OpenBar.git (fetch/push)
-# upstream  https://github.com/SergeSerb2/OpenBar.git (fetch/push)
+# upstream  https://github.com/steipete/CodexBar.git (fetch/push)
 # quotio    https://github.com/nguyenphutrong/quotio.git (fetch/push)
 ```
 

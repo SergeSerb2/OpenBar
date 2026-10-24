@@ -76,7 +76,7 @@ remote_default_branch() {
 }
 
 case "$UPSTREAM" in
-    upstream) REMOTE=$(ensure_remote upstream "https://github.com/SergeSerb2/OpenBar.git") ;;
+    upstream) REMOTE=$(ensure_remote upstream "https://github.com/steipete/CodexBar.git") ;;
     quotio) REMOTE=$(ensure_remote quotio "https://github.com/nguyenphutrong/quotio.git") ;;
 esac
 
