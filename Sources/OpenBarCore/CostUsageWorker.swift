@@ -119,7 +119,7 @@ package enum CostUsageWorker {
         stdout.start()
         stderr.start()
         defer {
-            if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+            if process.isRunning { SubprocessRunner.terminateProcess(process, processGroup: nil) }
             process.waitUntilExit()
         }
         let deadline = ContinuousClock.now.advanced(by: .seconds(15 * 60))

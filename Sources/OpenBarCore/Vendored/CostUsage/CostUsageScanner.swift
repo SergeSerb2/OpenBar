@@ -1134,7 +1134,8 @@ enum CostUsageScanner {
             errorCapture.start()
 
             if semaphore.wait(timeout: .now() + .seconds(1)) == .timedOut {
-                process.terminate()
+                SubprocessRunner.terminateProcess(process, processGroup: nil)
+                process.waitUntilExit()
                 outputCapture.stop()
                 errorCapture.stop()
                 return nil

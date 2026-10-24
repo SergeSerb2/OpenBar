@@ -188,7 +188,6 @@ public struct OpenBarConfig: Codable, Sendable {
         }
 
         var copy = self
-        copy.version = Self.currentVersion
         copy.providers = normalized
         return copy
     }
