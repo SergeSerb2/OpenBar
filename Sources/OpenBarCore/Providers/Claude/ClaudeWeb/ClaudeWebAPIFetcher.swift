@@ -152,6 +152,7 @@ public enum ClaudeWebAPIFetcher {
         case noSessionKeyFound
         case noDesktopSessionKeyFound
         case invalidSessionKey
+        case invalidProbeEndpoint
         case notSupportedOnThisPlatform
         case networkError(Error)
         case invalidResponse
@@ -169,6 +170,8 @@ public enum ClaudeWebAPIFetcher {
                 "No readable Claude desktop session found. Sign in to Claude.app and check cookie access."
             case .invalidSessionKey:
                 "Invalid Claude session key format."
+            case .invalidProbeEndpoint:
+                "Probe endpoints must use https://claude.ai with no userinfo and port 443."
             case .notSupportedOnThisPlatform:
                 "Claude web fetching is only supported on macOS."
             case let .networkError(error):
@@ -422,25 +425,25 @@ extension ClaudeWebAPIFetcher {
         logger: ((String) -> Void)? = nil) async throws -> [ProbeResult]
     {
         let log: (String) -> Void = { msg in logger?("[claude-probe] \(msg)") }
+        // Reject the entire list before looking for credentials or making the organization request.
+        for endpoint in endpoints {
+            _ = try self.validatedProbeURL(endpoint.replacingOccurrences(of: "{orgId}", with: "probe-organization"))
+        }
         let sessionInfo = try extractSessionKeyInfo(browserDetection: browserDetection, logger: log)
         let sessionKey = sessionInfo.key
         let organization = try? await fetchOrganizationInfo(sessionKey: sessionKey, logger: log)
-        let expanded = endpoints.map { endpoint -> String in
+        let expanded = try endpoints.map { endpoint -> URL in
             var url = endpoint
             if let orgId = organization?.id {
                 url = url.replacingOccurrences(of: "{orgId}", with: orgId)
             }
-            if url.hasPrefix("/") {
-                url = "https://claude.ai\(url)"
-            }
-            return url
+            return try self.validatedProbeURL(url)
         }
 
         var results: [ProbeResult] = []
         results.reserveCapacity(expanded.count)
 
-        for endpoint in expanded {
-            guard let url = URL(string: endpoint) else { continue }
+        for url in expanded {
             var request = URLRequest(url: url)
             request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "Cookie")
             request.setValue("application/json, text/html;q=0.9, */*;q=0.8", forHTTPHeaderField: "Accept")
@@ -458,7 +461,7 @@ extension ClaudeWebAPIFetcher {
                 let preview = includePreview ? parsed.preview : nil
 
                 results.append(ProbeResult(
-                    url: endpoint,
+                    url: url.absoluteString,
                     statusCode: http?.statusCode,
                     contentType: contentType,
                     topLevelKeys: parsed.keys,
@@ -468,7 +471,7 @@ extension ClaudeWebAPIFetcher {
                     bodyPreview: preview))
             } catch {
                 results.append(ProbeResult(
-                    url: endpoint,
+                    url: url.absoluteString,
                     statusCode: nil,
                     contentType: nil,
                     topLevelKeys: [],
@@ -480,6 +483,17 @@ extension ClaudeWebAPIFetcher {
         }
 
         return results
+    }
+
+    private static func validatedProbeURL(_ endpoint: String) throws -> URL {
+        let absolute = endpoint.hasPrefix("/") ? "https://claude.ai\(endpoint)" : endpoint
+        guard let url = URL(string: absolute),
+              url.scheme?.lowercased() == "https",
+              url.host?.lowercased() == "claude.ai",
+              url.user == nil, url.password == nil,
+              url.port == nil || url.port == 443
+        else { throw FetchError.invalidProbeEndpoint }
+        return url
     }
     #endif
 
