@@ -2117,8 +2117,10 @@ struct MenuBarLayoutRendererTests {
     func `pace colors follow reserve and ahead values and toggle invalidates cache`() {
         let renderer = MenuBarLayoutRenderer()
         let cases: [(PercentWindow, NSColor)] = [
-            (.session, .systemGreen), (.weekly, .systemRed), (.automatic, .controlTextColor),
-            (.spend, .systemRed),
+            (.session, MenuBarLayoutRenderer.paceReserveColor),
+            (.weekly, MenuBarLayoutRenderer.paceDeficitColor),
+            (.automatic, .controlTextColor),
+            (.spend, MenuBarLayoutRenderer.paceDeficitColor),
         ]
         for (window, expectedColor) in cases {
             let layout = MenuBarLayout(lines: [[.pace(window: window)]])
@@ -2215,7 +2217,8 @@ struct MenuBarLayoutRendererTests {
             _ = StatusItemController.applyMenuBarLayoutContent(output, for: button, gap: .regular)
             let range = (button.attributedTitle.string as NSString).range(of: "+11%")
             try #require(range.location != NSNotFound)
-            let expected = mode == "stale" ? NSColor.systemRed.withAlphaComponent(0.5) : .systemRed
+            let deficit = MenuBarLayoutRenderer.paceDeficitColor
+            let expected = mode == "stale" ? deficit.withAlphaComponent(0.5) : deficit
             #expect(button.attributedTitle.attribute(
                 .foregroundColor,
                 at: range.location,
@@ -2233,14 +2236,14 @@ struct MenuBarLayoutRendererTests {
             icon: nil,
             options: self.options(isStale: true, colorPace: true))
         #expect(rendered.attributedTitle.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
-            == NSColor.systemRed.withAlphaComponent(0.5))
+            == MenuBarLayoutRenderer.paceDeficitColor.withAlphaComponent(0.5))
     }
 
     @Test(arguments: [false, true])
     func `high contrast preserves pace color without recoloring neutral tokens`(stale: Bool) {
         let renderer = MenuBarLayoutRenderer()
         for (token, expected): (MenuBarLayoutToken, NSColor) in [
-            (.pace(window: .weekly), .systemRed),
+            (.pace(window: .weekly), MenuBarLayoutRenderer.paceDeficitColor),
             (.pace(window: .automatic), .labelColor),
             (.percent(window: .session), .labelColor),
         ] {
@@ -2323,7 +2326,7 @@ struct MenuBarLayoutRendererTests {
             icon: nil,
             options: self.options(colorPace: true))
         #expect(colored.attributedTitle.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
-            == .systemGreen)
+            == MenuBarLayoutRenderer.paceReserveColor)
     }
 
     @Test
