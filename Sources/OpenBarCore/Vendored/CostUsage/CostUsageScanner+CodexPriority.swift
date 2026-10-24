@@ -758,15 +758,18 @@ extension CostUsageScanner {
         timestampIndex: Int32,
         bodyIndex: Int32) -> String
     {
-        let timestamp = sqlite3_column_int64(stmt, timestampIndex)
-        var payload = Data("\(timestamp)\n".utf8)
-        if sqlite3_column_type(stmt, bodyIndex) != SQLITE_NULL {
-            let byteCount = Int(sqlite3_column_bytes(stmt, bodyIndex))
-            if byteCount > 0, let bytes = sqlite3_column_blob(stmt, bodyIndex) {
-                payload.append(Data(bytes: bytes, count: byteCount))
+        autoreleasepool {
+            let timestamp = sqlite3_column_int64(stmt, timestampIndex)
+            var digest = SHA256()
+            digest.update(data: Data("\(timestamp)\n".utf8))
+            if sqlite3_column_type(stmt, bodyIndex) != SQLITE_NULL {
+                let byteCount = Int(sqlite3_column_bytes(stmt, bodyIndex))
+                if byteCount > 0, let bytes = sqlite3_column_blob(stmt, bodyIndex) {
+                    digest.update(bufferPointer: UnsafeRawBufferPointer(start: bytes, count: byteCount))
+                }
             }
+            return digest.finalize().map { String(format: "%02x", $0) }.joined()
         }
-        return SHA256.hash(data: payload).map { String(format: "%02x", $0) }.joined()
     }
 
     private static func pruneDeletedCodexPrioritySources(
@@ -865,29 +868,31 @@ extension CostUsageScanner {
             for (offset, rowID) in chunk.enumerated() {
                 sqlite3_bind_int64(stmt, Int32(offset + 1), rowID)
             }
-            while true {
-                let stepResult = sqlite3_step(stmt)
-                if stepResult == SQLITE_DONE {
-                    break
-                }
-                guard stepResult == SQLITE_ROW else { return nil }
-                let rowID = sqlite3_column_int64(stmt, 0)
-                guard let body = self.text(stmt: stmt, index: 2) else { return nil }
-                if let expected = requestSources[rowID] {
-                    let timestamp = self.timestamp(stmt: stmt, index: 1)
-                    guard self.parseCodexPriorityTraceRow(timestamp: timestamp, body: body) == expected else {
-                        return nil
+            var stepResult = sqlite3_step(stmt)
+            while stepResult == SQLITE_ROW {
+                let valid = autoreleasepool {
+                    let rowID = sqlite3_column_int64(stmt, 0)
+                    guard let body = self.text(stmt: stmt, index: 2) else { return false }
+                    if let expected = requestSources[rowID] {
+                        let timestamp = self.timestamp(stmt: stmt, index: 1)
+                        guard self.parseCodexPriorityTraceRow(timestamp: timestamp, body: body) == expected else {
+                            return false
+                        }
+                    } else if let expected = completedSources[rowID] {
+                        guard let parsed = self.parseCodexCompletedTraceRow(body: body),
+                              parsed.turnID == expected.turnID,
+                              parsed.model == expected.model
+                        else { return false }
+                    } else {
+                        return false
                     }
-                } else if let expected = completedSources[rowID] {
-                    guard let parsed = self.parseCodexCompletedTraceRow(body: body),
-                          parsed.turnID == expected.turnID,
-                          parsed.model == expected.model
-                    else { return nil }
-                } else {
-                    return nil
+                    retained.insert(rowID)
+                    return true
                 }
-                retained.insert(rowID)
+                guard valid else { return nil }
+                stepResult = sqlite3_step(stmt)
             }
+            guard stepResult == SQLITE_DONE else { return nil }
         }
         return retained
     }
@@ -950,28 +955,30 @@ extension CostUsageScanner {
             guard stepResult == SQLITE_ROW else {
                 return stepResult == SQLITE_DONE
             }
-            let rowID = sqlite3_column_int64(stmt, 0)
-            let timestamp = self.timestamp(stmt: stmt, index: 1)
-            guard let body = self.text(stmt: stmt, index: 2) else { continue }
-            if let completed = self.parseCodexCompletedTraceRow(body: body) {
-                if state.turns[completed.turnID] != nil {
-                    state.priorityCompletedModelsByTurnID[completed.turnID, default: [:]][rowID] = completed.model
-                } else {
-                    self.storePendingCodexCompletedModels(
-                        [rowID: completed.model],
-                        turnID: completed.turnID,
-                        in: &state)
+            autoreleasepool {
+                let rowID = sqlite3_column_int64(stmt, 0)
+                let timestamp = self.timestamp(stmt: stmt, index: 1)
+                guard let body = self.text(stmt: stmt, index: 2) else { return }
+                if let completed = self.parseCodexCompletedTraceRow(body: body) {
+                    if state.turns[completed.turnID] != nil {
+                        state.priorityCompletedModelsByTurnID[completed.turnID, default: [:]][rowID] = completed.model
+                    } else {
+                        self.storePendingCodexCompletedModels(
+                            [rowID: completed.model],
+                            turnID: completed.turnID,
+                            in: &state)
+                    }
+                    return
                 }
-                continue
-            }
-            guard let parsed = self.parseCodexPriorityTraceRow(timestamp: timestamp, body: body)
-            else { continue }
-            state.turns[parsed.turnID] = parsed
-            state.requestSourcesByTurnID[parsed.turnID, default: [:]][rowID] = parsed
-            if let completedModels = state.completedModelsByTurnID.removeValue(forKey: parsed.turnID) {
-                self.compactCodexPendingCompletionOrderPrefix(in: &state)
-                state.completedTurnIDInsertionOrder.removeAll { $0 == parsed.turnID }
-                state.priorityCompletedModelsByTurnID[parsed.turnID] = completedModels
+                guard let parsed = self.parseCodexPriorityTraceRow(timestamp: timestamp, body: body)
+                else { return }
+                state.turns[parsed.turnID] = parsed
+                state.requestSourcesByTurnID[parsed.turnID, default: [:]][rowID] = parsed
+                if let completedModels = state.completedModelsByTurnID.removeValue(forKey: parsed.turnID) {
+                    self.compactCodexPendingCompletionOrderPrefix(in: &state)
+                    state.completedTurnIDInsertionOrder.removeAll { $0 == parsed.turnID }
+                    state.priorityCompletedModelsByTurnID[parsed.turnID] = completedModels
+                }
             }
         }
     }
@@ -1012,7 +1019,7 @@ extension CostUsageScanner {
         guard let markerRange = body.range(of: self.requestMarker) else {
             return self.parseCodexPrioritySubmissionRow(timestamp: timestamp, body: body)
         }
-        let prefix = String(body[..<markerRange.lowerBound])
+        let prefix = body[..<markerRange.lowerBound]
         let jsonText = body[markerRange.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
         guard let data = jsonText.data(using: .utf8),
               let request = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
@@ -1039,13 +1046,13 @@ extension CostUsageScanner {
         guard body.contains(#"service_tier: Some(Some("priority"))"#),
               let submissionRange = body.range(of: "Submission sub=Submission {")
         else { return nil }
-        let submission = String(body[submissionRange.upperBound...])
+        let submission = body[submissionRange.upperBound...]
         guard let turnID = self.quotedValue(named: "id", in: submission) else { return nil }
 
         return CodexPriorityTurnMetadata(
             threadID: self.value(
                 named: "thread_id",
-                in: String(body[..<submissionRange.lowerBound])),
+                in: body[..<submissionRange.lowerBound]),
             turnID: turnID,
             model: nil,
             timestamp: timestamp)
@@ -1054,7 +1061,7 @@ extension CostUsageScanner {
     static func parseCodexCompletedTraceRow(body: String) -> (turnID: String, model: String)? {
         let marker = "websocket event:"
         guard let markerRange = body.range(of: marker) else { return nil }
-        let prefix = String(body[..<markerRange.lowerBound])
+        let prefix = body[..<markerRange.lowerBound]
         let jsonText = body[markerRange.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
         guard let data = jsonText.data(using: .utf8),
               let event = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
@@ -1071,7 +1078,7 @@ extension CostUsageScanner {
         return (turnID: turnID, model: model)
     }
 
-    private static func value(named name: String, in text: String) -> String? {
+    private static func value(named name: String, in text: some StringProtocol) -> String? {
         guard let range = text.range(of: "\(name)=") else { return nil }
         let tail = text[range.upperBound...]
         let value = tail.prefix { char in
@@ -1080,7 +1087,7 @@ extension CostUsageScanner {
         return value.isEmpty ? nil : String(value)
     }
 
-    private static func quotedValue(named name: String, in text: String) -> String? {
+    private static func quotedValue(named name: String, in text: some StringProtocol) -> String? {
         guard let range = text.range(of: "\(name): \"") else { return nil }
         let tail = text[range.upperBound...]
         guard let end = tail.firstIndex(of: "\"") else { return nil }

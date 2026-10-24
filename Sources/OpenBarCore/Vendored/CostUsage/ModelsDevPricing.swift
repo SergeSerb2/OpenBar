@@ -140,8 +140,12 @@ private struct ModelsDevAnyCodingKey: CodingKey {
 struct ModelsDevProvider: Codable, Equatable {
     var id: String?
     var name: String?
-    var models: [String: ModelsDevModel]
+    var models: [String: ModelsDevModel] {
+        didSet { self.normalizedModels = ModelsDevNormalizedModels() }
+    }
+
     var mapKey: String?
+    private var normalizedModels = ModelsDevNormalizedModels()
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -181,11 +185,15 @@ struct ModelsDevProvider: Codable, Equatable {
         raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id && lhs.name == rhs.name && lhs.models == rhs.models && lhs.mapKey == rhs.mapKey
+    }
+
     func pricing(modelID rawModelID: String, exactModelID: Bool = false) -> ModelsDevPricingLookup? {
         let candidates = exactModelID
             ? [ModelsDevModelIDNormalizer.normalize(rawModelID)]
             : ModelsDevModelIDNormalizer.candidates(rawModelID)
-        var normalizedModels: [String: ModelsDevModel]?
+
         for candidate in candidates {
             if let model = self.models[candidate],
                let pricing = model.pricing(providerID: self.id ?? self.mapKey ?? "", providerName: self.name)
@@ -193,17 +201,8 @@ struct ModelsDevProvider: Codable, Equatable {
                 return ModelsDevPricingLookup(pricing: pricing, normalizedModelID: candidate)
             }
 
-            if normalizedModels == nil {
-                normalizedModels = [:]
-                var normalizedIDs: [String: String] = [:]
-                for model in self.models.values where model.isPriceable {
-                    let normalizedID = normalizedIDs[model.id] ?? model.normalizedID
-                    normalizedIDs[model.id] = normalizedID
-                    if normalizedModels?[normalizedID] == nil { normalizedModels?[normalizedID] = model }
-                }
-            }
-            if let normalizedModels,
-               let index = normalizedModels.index(forKey: candidate),
+            let normalizedModels = self.normalizedModels.index(for: self.models)
+            if let index = normalizedModels.index(forKey: candidate),
                let pricing = normalizedModels[index].value.pricing(
                    providerID: self.id ?? self.mapKey ?? "", providerName: self.name)
             {
@@ -213,6 +212,26 @@ struct ModelsDevProvider: Codable, Equatable {
         }
 
         return nil
+    }
+}
+
+private final class ModelsDevNormalizedModels: @unchecked Sendable {
+    private let lock = NSLock()
+    private var models: [String: ModelsDevModel]?
+
+    func index(for source: [String: ModelsDevModel]) -> [String: ModelsDevModel] {
+        self.lock.withLock {
+            if let models = self.models { return models }
+            var models: [String: ModelsDevModel] = [:]
+            var normalizedIDs: [String: String] = [:]
+            for model in source.values where model.isPriceable {
+                let normalizedID = normalizedIDs[model.id] ?? model.normalizedID
+                normalizedIDs[model.id] = normalizedID
+                if models[normalizedID] == nil { models[normalizedID] = model }
+            }
+            self.models = models
+            return models
+        }
     }
 }
 
@@ -448,6 +467,7 @@ private final class ModelsDevCacheMemo: @unchecked Sendable {
 
     private let lock = NSLock()
     private var entries: [String: Entry] = [:]
+    private var paths: [String] = []
 
     func outcome(path: String, metadata: ModelsDevCache.FileMetadata) -> Outcome? {
         self.lock.lock()
@@ -457,22 +477,27 @@ private final class ModelsDevCacheMemo: @unchecked Sendable {
         else {
             return nil
         }
+        self.paths.removeAll { $0 == path }
+        self.paths.append(path)
         return entry.outcome
     }
 
     func store(path: String, metadata: ModelsDevCache.FileMetadata, outcome: Outcome) {
         self.lock.lock()
         defer { self.lock.unlock() }
-        if self.entries.count >= 128, self.entries[path] == nil {
-            self.entries.removeAll(keepingCapacity: true)
-        }
+        self.paths.removeAll { $0 == path }
+        self.paths.append(path)
         self.entries[path] = Entry(metadata: metadata, outcome: outcome)
+        while self.paths.count > 2 {
+            self.entries.removeValue(forKey: self.paths.removeFirst())
+        }
     }
 
     func invalidate(path: String) {
         self.lock.lock()
         defer { self.lock.unlock() }
         self.entries.removeValue(forKey: path)
+        self.paths.removeAll { $0 == path }
     }
 }
 

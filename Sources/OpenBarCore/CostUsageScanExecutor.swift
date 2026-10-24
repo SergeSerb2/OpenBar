@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 
 /// Cost-usage scans read and parse the full local session corpus synchronously and can run for
 /// minutes on large archives. Executing that work inline on Swift's cooperative thread pool
@@ -10,6 +13,25 @@ public enum CostUsageScanExecutor {
     public static let queueLabel = "com.serbinenko.openbar.cost-usage-scan"
 
     private static let queue = DispatchQueue(label: queueLabel, qos: .utility)
+
+    #if canImport(Darwin)
+    private static let reliefPending = LockedState(false)
+    #endif
+
+    private static func scheduleMemoryRelief() {
+        #if canImport(Darwin)
+        let shouldSchedule = self.reliefPending.withLock { pending in
+            guard !pending else { return false }
+            pending = true
+            return true
+        }
+        guard shouldSchedule else { return }
+        self.queue.asyncAfter(deadline: .now() + .milliseconds(100)) {
+            self.reliefPending.withLock { $0 = false }
+            _ = malloc_zone_pressure_relief(nil, 0)
+        }
+        #endif
+    }
 
     package struct TimedResult<Value: Sendable>: Sendable {
         package let value: Value
@@ -172,15 +194,19 @@ public enum CostUsageScanExecutor {
                 guard state.install(continuation) else { return }
                 queue.async {
                     guard state.begin() else { return }
-                    state.complete(with: Result {
-                        #if DEBUG
-                        try CostUsageStoreTestHooks.$current.withValue(storeTestHooks) {
+                    defer { self.scheduleMemoryRelief() }
+                    let result = autoreleasepool {
+                        Result {
+                            #if DEBUG
+                            try CostUsageStoreTestHooks.$current.withValue(storeTestHooks) {
+                                try work(checkCancellation)
+                            }
+                            #else
                             try work(checkCancellation)
+                            #endif
                         }
-                        #else
-                        try work(checkCancellation)
-                        #endif
-                    })
+                    }
+                    state.complete(with: result)
                 }
             }
         } onCancel: {
