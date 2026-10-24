@@ -58,7 +58,8 @@ Endpoint fallback, rejected-credential handling, and optional billing enrichment
 
 ## Snapshot mapping
 - Primary usage, reset timing, and plan/tier are derived from Coding Plan response fields or page text.
-- Unrepresentable integer fields and page durations are ignored without discarding otherwise usable usage percentages.
+- Unrepresentable or negative quota counts and page durations are ignored without discarding otherwise usable usage percentages.
+  Count-based usage is unavailable when remaining quota exceeds its total.
 - Web-session billing history, when available, is mapped into the shared inline usage dashboard:
   - 30-day token trend.
   - Top model and top method breakdowns.

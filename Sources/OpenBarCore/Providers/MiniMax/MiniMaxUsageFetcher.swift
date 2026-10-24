@@ -835,9 +835,10 @@ enum MiniMaxUsageParser {
         let first = payload.data.modelRemains.first
         let hasPercentQuota = first?.currentIntervalRemainingPercent != nil
         let total = hasPercentQuota && first?.currentIntervalTotalCount == 0 ? nil : first?.currentIntervalTotalCount
+            .flatMap { $0 >= 0 ? $0 : nil }
         let remaining = hasPercentQuota && first?.currentIntervalUsageCount == 0
             ? nil
-            : first?.currentIntervalUsageCount
+            : first?.currentIntervalUsageCount.flatMap { $0 >= 0 ? $0 : nil }
         let usedPercent = self.usedPercent(
             total: total,
             remaining: remaining,
@@ -854,11 +855,7 @@ enum MiniMaxUsageParser {
 
         let planName = self.parsePlanName(data: payload.data)
 
-        let currentPrompts: Int? = if let total, let remaining {
-            max(0, total - remaining)
-        } else {
-            nil
-        }
+        let currentPrompts = self.usedCount(total: total, remaining: remaining)
 
         return MiniMaxUsageSnapshot(
             planName: planName,
@@ -877,10 +874,14 @@ enum MiniMaxUsageParser {
         if let remainingPercent {
             return self.usedPercent(remainingPercent: remainingPercent)
         }
-        guard let total, total > 0, let remaining else { return nil }
-        let used = max(0, total - remaining)
+        guard let total, total > 0, let used = self.usedCount(total: total, remaining: remaining) else { return nil }
         let percent = Double(used) / Double(total) * 100
         return min(100, max(0, percent))
+    }
+
+    private static func usedCount(total: Int?, remaining: Int?) -> Int? {
+        guard let total, total >= 0, let remaining, remaining >= 0, remaining <= total else { return nil }
+        return total - remaining
     }
 
     private static func usedPercent(remainingPercent: Double) -> Double {
@@ -1424,8 +1425,9 @@ enum MiniMaxUsageParser {
             limit = quotaLimit
             usage = Int((percent * Double(quotaLimit) / 100.0).rounded())
         } else {
-            guard let total = input.total, total > 0, let remaining = input.remaining else { return nil }
-            let used = max(0, total - remaining)
+            guard let total = input.total, total > 0,
+                  let used = self.usedCount(total: total, remaining: input.remaining)
+            else { return nil }
             percent = Double(used) / Double(total) * 100.0
             limit = total
             usage = used
