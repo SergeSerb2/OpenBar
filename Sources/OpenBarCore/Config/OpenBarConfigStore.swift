@@ -62,6 +62,9 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     }
 
     public func encodedData(for config: OpenBarConfig) throws -> Data {
+        guard config.version == OpenBarConfig.currentVersion else {
+            throw OpenBarConfigStoreError.encodeFailed("Unsupported config version \(config.version).")
+        }
         do {
             return try config.normalized().encodedData()
         } catch {
