@@ -18,7 +18,7 @@ public enum CostUsageScanExecutor {
     private static let reliefPending = LockedState(false)
     #endif
 
-    private static func scheduleMemoryRelief() {
+    static func scheduleMemoryRelief() {
         #if canImport(Darwin)
         let shouldSchedule = self.reliefPending.withLock { pending in
             guard !pending else { return false }
