@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Dispatch
+import OpenBarCore
 import Testing
 @testable import OpenBar
 

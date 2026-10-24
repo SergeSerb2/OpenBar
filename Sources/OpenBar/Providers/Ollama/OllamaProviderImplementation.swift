@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct OllamaProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .ollama

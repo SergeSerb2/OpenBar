@@ -1,6 +1,6 @@
-import OpenBarCore
 import Dispatch
 import Foundation
+import OpenBarCore
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension UsageMenuCardView.Model {
     static func monthlyTargetMetrics(_ metrics: [Metric], input: Input, calendar: Calendar) -> [Metric] {

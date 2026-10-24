@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct SessionEquivalentBurnEstimate: Equatable, Sendable {
     let medianWeeklyPercentPerWindow: Double

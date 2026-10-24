@@ -1,5 +1,5 @@
-import OpenBarCore
 import Commander
+import OpenBarCore
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Where the selected provider sits in the switcher's rotation, and which providers the previous
 /// and next controls move to.

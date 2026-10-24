@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct LongCatProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .longcat

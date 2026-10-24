@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Reads app-owned metadata and retained usage only; never opens managed homes or credentials.
 enum DashboardManagedCodexAccounts {

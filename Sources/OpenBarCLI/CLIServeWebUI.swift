@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum CLIServeWebUI {
     static func response() -> CLILocalHTTPResponse {

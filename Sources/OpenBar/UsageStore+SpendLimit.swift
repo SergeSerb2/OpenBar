@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// A provider-reported spend budget behind the menu bar layout's Spend window.
 struct MenuBarSpendLimit {

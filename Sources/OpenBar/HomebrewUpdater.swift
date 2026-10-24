@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Sparkle
 
 enum HomebrewCask: String, Sendable {

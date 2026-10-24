@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct QuotaBurndownModel: Equatable, Sendable {
     private static let resetEquivalenceTolerance: TimeInterval = 2 * 60

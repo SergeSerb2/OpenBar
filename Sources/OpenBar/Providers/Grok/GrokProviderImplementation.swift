@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct GrokProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .grok

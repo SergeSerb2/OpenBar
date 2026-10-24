@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct GroqProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .groq

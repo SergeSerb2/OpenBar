@@ -1,6 +1,6 @@
-import OpenBarCore
 import Dispatch
 import Foundation
+import OpenBarCore
 
 @MainActor
 struct MemoryPressureCacheTrimSummary: Equatable {

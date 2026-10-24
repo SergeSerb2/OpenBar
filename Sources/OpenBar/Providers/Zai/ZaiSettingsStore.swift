@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension SettingsStore {
     var zaiAPIRegion: ZaiAPIRegion {

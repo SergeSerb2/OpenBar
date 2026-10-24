@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// How much account identity a dashboard snapshot exposes. Dashboard commands
 /// retain ordinary snapshot defaults; live account expansion defaults to `.none`.

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import os.lock
 import Testing
 @testable import OpenBar

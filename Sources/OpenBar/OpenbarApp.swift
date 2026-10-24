@@ -1,7 +1,7 @@
 import AppKit
-import OpenBarCore
 import KeyboardShortcuts
 import Observation
+import OpenBarCore
 import QuartzCore
 import Security
 import SwiftUI

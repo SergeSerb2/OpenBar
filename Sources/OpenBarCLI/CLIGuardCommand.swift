@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 extension OpenBarCLI {
     /// Window selected by the `guard` command: `session` maps to the primary

@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 import XCTest
 @testable import OpenBarCLI
 

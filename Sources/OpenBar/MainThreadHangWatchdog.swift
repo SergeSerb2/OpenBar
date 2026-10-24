@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Tracks what the main thread is currently doing so hang reports can name the
 /// operation even when the stall happens in uninstrumented code.

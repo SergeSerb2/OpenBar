@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct KiloProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .kilo

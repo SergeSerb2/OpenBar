@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct ClawRouterProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .clawrouter

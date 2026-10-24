@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum CLIClaudeSwapText {
     static let labelScalarLimit = 256

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct VertexAIProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .vertexai

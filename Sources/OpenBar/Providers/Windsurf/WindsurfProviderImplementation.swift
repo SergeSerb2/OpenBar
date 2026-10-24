@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct WindsurfProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .windsurf

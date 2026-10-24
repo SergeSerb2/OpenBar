@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CLIServeAccountsPayload: Encodable, Equatable {
     let schemaVersion: Int

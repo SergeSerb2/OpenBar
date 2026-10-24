@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct KiloScopeSnapshot: Identifiable, Equatable {
     let id: String // KiloUsageScope.scopeIdentifier

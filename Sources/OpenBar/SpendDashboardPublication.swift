@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct SpendSourcePublication: Sendable, Equatable {
     enum Role: Sendable, Equatable {

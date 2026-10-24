@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Observation
+import OpenBarCore
 
 extension StatusItemController {
     func observeCloudSyncChanges() {

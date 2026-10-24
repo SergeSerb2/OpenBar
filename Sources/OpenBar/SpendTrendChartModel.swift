@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Presentation only: original accounting and missing-cost semantics stay in the dashboard model.
 struct SpendTrendChartModel {

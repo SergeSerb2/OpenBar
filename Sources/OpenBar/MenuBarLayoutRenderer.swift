@@ -1,7 +1,7 @@
 import AppKit
-import OpenBarCore
 import CoreText
 import Foundation
+import OpenBarCore
 
 struct MenuBarLayoutRenderWindow: Hashable {
     let usedPercent: Double

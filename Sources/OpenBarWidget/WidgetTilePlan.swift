@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// One quota lane after the tile has decided how to present it.
 struct WidgetTileLane: Identifiable, Equatable {

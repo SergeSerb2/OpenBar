@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct ZoomMateProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .zoommate

@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct MenuBarLayoutWindows {
     let primary: RateWindow?

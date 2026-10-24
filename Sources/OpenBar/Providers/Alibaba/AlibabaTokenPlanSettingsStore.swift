@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Provider-specific by design: The Alibaba folder co-locates settings for the distinct Token Plan variant.
 extension SettingsStore {

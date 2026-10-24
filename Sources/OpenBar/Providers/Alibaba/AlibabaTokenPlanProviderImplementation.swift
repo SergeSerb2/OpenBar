@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Provider-specific by design: The Alibaba folder co-locates the distinct Alibaba Token Plan variant.
 struct AlibabaTokenPlanProviderImplementation: ProviderImplementation {

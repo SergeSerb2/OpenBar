@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum IconRemainingResolver {
     /// The renderer caches percentages in tenths. This is the smallest robust value that has a distinct cache

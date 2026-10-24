@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 protocol ZaiTokenStoring: Sendable {
     func loadToken() throws -> String?

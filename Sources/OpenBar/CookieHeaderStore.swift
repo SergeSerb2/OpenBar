@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 protocol CookieHeaderStoring: Sendable {
     func loadCookieHeader() throws -> String?

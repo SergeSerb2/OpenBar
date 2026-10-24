@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CodexUIErrorMapper {
     private static var codexCLINotSignedInMessage: String {

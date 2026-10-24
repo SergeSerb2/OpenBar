@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 enum ManagedCodexAccountCoordinatorError: Error, Equatable {
     case authenticationInProgress

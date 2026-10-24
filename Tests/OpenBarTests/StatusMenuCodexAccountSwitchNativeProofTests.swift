@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Vision
 import XCTest
 @testable import OpenBar

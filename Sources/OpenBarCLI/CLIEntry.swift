@@ -1,5 +1,5 @@
-import OpenBarCore
 import Commander
+import OpenBarCore
 #if os(Linux)
 import CoreFoundation
 #endif

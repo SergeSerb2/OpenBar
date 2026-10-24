@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum CLIErrorKind: String, Encodable, Sendable {
     case args

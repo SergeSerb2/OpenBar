@@ -5,9 +5,9 @@ import Glibc
 #elseif canImport(Musl)
 import Musl
 #endif
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 struct DashboardOptions: CommanderParsable {
     @Flag(names: [.short("v"), .long("verbose")], help: "Enable verbose logging")

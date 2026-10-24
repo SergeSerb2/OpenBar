@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 struct CodexSystemAccountPromotionUserFacingError: Error, Equatable {
     let title: String

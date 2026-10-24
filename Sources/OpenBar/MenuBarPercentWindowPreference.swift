@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Maps the layout's common top-level percentage tokens onto one picker. Conditional branches
 /// and direct primary/secondary lane tokens remain under the layout editor's control.

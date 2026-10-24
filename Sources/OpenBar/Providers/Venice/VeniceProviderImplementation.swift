@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import SwiftUI
 
 struct VeniceProviderImplementation: ProviderImplementation {

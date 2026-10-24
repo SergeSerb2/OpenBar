@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CodebuffProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .codebuff

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 // swiftlint:disable:next type_body_length
 enum CLIRenderer {

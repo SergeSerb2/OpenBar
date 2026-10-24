@@ -1,6 +1,6 @@
-import OpenBarCore
 import CryptoKit
 import Foundation
+import OpenBarCore
 
 struct TokenAccountUsageSnapshot: Identifiable {
     let id: UUID

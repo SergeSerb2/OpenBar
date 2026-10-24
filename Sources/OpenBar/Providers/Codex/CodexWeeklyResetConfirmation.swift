@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CodexWeeklyResetPublicationCandidate: Codable, Sendable {
     static let currentEvidenceVersion = 1

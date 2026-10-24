@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 struct SpendToolDetailsKey: Equatable {
     let operation: SessionToolOperation

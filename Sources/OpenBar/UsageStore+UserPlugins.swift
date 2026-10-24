@@ -1,6 +1,6 @@
 #if canImport(JavaScriptCore)
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 @MainActor
 extension UsageStore {

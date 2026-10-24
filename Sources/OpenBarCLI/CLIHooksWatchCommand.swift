@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 extension OpenBarCLI {
     /// Default poll period. Deliberately far longer than `serve --refresh-interval`

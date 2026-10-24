@@ -1,6 +1,6 @@
-import OpenBarCore
 import Crypto
 import Foundation
+import OpenBarCore
 
 /// Account presentation metadata travels beside usage, including failed fetches.
 /// Never derive public IDs from cacheAccountKey, email, or authFingerprint.

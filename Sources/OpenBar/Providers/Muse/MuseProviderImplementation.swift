@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct MuseProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .muse

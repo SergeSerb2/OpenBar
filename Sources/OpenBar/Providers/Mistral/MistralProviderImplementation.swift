@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct MistralProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .mistral

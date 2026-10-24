@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct JetBrainsProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .jetbrains

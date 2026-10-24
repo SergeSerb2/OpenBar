@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum PercentWindow: String, CaseIterable, Codable, Hashable, Sendable {
     case session

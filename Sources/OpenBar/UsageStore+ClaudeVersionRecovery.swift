@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension UsageStore {
     /// #2899: the startup version probe runs in a detached background task, where the Claude

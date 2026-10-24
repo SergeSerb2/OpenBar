@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Machine-local settings: deliberately separate from provider config, sync, and exports.
 struct HTTPServerConfiguration: Codable, Equatable {

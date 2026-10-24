@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct ProviderUsageItemID: Hashable, Sendable {
     private static let metricPrefix = "metric:"

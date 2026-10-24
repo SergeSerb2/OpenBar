@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 protocol ManagedCodexLoginRunning: Sendable {
     func run(homePath: String, timeout: TimeInterval) async -> CLILoginRunner.Result

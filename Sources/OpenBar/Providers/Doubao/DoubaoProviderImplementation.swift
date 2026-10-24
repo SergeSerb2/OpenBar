@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct DoubaoProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .doubao

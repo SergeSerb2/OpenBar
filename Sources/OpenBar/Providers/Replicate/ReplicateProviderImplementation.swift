@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct ReplicateProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .replicate

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 @preconcurrency import UserNotifications
 
 @MainActor

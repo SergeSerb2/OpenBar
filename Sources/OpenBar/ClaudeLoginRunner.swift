@@ -1,6 +1,6 @@
-import OpenBarCore
 import Darwin
 import Foundation
+import OpenBarCore
 
 struct ClaudeLoginRunner {
     static let loginArguments = ["auth", "login", "--claudeai"]

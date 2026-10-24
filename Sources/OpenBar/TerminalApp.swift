@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum TerminalApp: String, CaseIterable, Identifiable {
     static let pickerIconSize = NSSize(width: 16, height: 16)

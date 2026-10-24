@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct WidgetVerifiedTokenSnapshot: Codable, Sendable {
     let credentialScope: String

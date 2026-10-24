@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum MenuBarIconStyle: String, CaseIterable {
     case critters

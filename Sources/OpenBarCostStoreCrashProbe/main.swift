@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 // Subprocess driver for the store tests that need a real process. CostUsageStoreCrashSafetyTests
 // SIGKILLs this process mid-save to prove the save cycle is all-or-nothing;

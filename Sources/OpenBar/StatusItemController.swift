@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Observation
+import OpenBarCore
 import QuartzCore
 
 // MARK: - Status item controller (AppKit-hosted icons, SwiftUI popovers)

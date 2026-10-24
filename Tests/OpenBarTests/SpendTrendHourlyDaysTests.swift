@@ -1,6 +1,6 @@
-import OpenBarCore
 import Darwin
 import Foundation
+import OpenBarCore
 import Testing
 @testable import OpenBar
 

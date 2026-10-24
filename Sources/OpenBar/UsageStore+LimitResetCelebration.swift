@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension UsageStore {
     private nonisolated static let limitResetThreshold = 1.0

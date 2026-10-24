@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 @MainActor
 final class AugmentProviderRuntime: ProviderRuntime {

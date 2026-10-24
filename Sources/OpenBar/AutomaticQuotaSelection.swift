@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Snapshot-only ordering shared by Auto windows and the unified highest-usage icon.
 enum AutomaticQuotaSelection {

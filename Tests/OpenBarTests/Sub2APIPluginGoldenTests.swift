@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif

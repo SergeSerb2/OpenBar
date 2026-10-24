@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 struct ServeOptions: CommanderParsable {
     @Flag(name: .long("all-accounts"), help: "Include all local accounts in dashboard snapshots")

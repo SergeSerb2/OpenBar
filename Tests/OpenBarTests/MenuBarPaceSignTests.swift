@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Observation
+import OpenBarCore
 import Testing
 @testable import OpenBar
 

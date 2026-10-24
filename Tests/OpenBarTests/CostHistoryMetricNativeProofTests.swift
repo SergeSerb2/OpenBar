@@ -1,7 +1,7 @@
 import AppKit
-import OpenBarCore
 import CoreGraphics
 import Foundation
+import OpenBarCore
 import SwiftUI
 import XCTest
 @testable import OpenBar

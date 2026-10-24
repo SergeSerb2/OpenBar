@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension UsageStore {
     /// Publishes (or, when `shareUsageWithCLI` is off, withdraws) the private usage cache that SSH `openbar usage`

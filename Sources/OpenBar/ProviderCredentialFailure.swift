@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Credential failures only. Never infer authentication from an arbitrary message containing "token" or "login".
 enum ProviderCredentialFailure {

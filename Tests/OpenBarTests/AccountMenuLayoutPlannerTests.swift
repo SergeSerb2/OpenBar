@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Testing
 
 /// Coverage for the compact multi-account menu plan: active card pinned first,

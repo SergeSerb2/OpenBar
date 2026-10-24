@@ -1,5 +1,5 @@
-import OpenBarCore
 import Observation
+import OpenBarCore
 
 struct MenuCardLiveSubtitle {
     let text: String

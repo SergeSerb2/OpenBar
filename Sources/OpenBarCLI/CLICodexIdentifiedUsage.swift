@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 struct CodexIdentifiedSource: Codable, Sendable {
     let host: String

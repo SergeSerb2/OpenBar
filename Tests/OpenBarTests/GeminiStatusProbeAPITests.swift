@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Testing
 #if canImport(Darwin)
 import Darwin

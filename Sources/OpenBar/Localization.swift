@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum OpenBarLocalizationOverride {
     @TaskLocal static var appLanguage: String?

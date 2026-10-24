@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct TypeSafeProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .typesafe

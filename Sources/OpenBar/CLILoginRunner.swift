@@ -1,6 +1,6 @@
-import OpenBarCore
 import Darwin
 import Foundation
+import OpenBarCore
 
 /// Owns the lifecycle of CLI logins that wait for browser approval and retain diagnostic output on failure.
 enum CLILoginRunner {

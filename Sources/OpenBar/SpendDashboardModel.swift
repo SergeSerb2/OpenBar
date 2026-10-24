@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Group copies share a memo; its inputs are immutable and cache state does not affect equality.
 private final class SpendHourlyDaysMemo: @unchecked Sendable, Equatable {

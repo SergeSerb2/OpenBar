@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CLICardsBriefRow: Sendable, Equatable {
     let provider: UsageProvider

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct StepFunProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .stepfun

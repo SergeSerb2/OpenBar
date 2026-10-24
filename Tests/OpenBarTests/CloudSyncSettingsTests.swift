@@ -1,6 +1,6 @@
 import CloudKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Testing
 @testable import OpenBar
 

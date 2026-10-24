@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension SettingsStore {
     /// Username for StepFun login — stored in the apiKey config field.

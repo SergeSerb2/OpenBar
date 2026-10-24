@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum OpenAILiveUsageErrorText {
     static func message(_ error: any Error) -> String {

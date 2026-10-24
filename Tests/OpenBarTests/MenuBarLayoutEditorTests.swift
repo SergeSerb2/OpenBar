@@ -1,7 +1,7 @@
-import OpenBarCore
 import CoreTransferable
 import Foundation
 import Observation
+import OpenBarCore
 import Testing
 import UniformTypeIdentifiers
 @testable import OpenBar

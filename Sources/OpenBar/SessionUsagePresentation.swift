@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 enum SessionUsagePresentation {
     enum Sort: CaseIterable, Hashable {

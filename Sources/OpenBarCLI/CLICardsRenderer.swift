@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 #if canImport(Glibc)
 import Glibc
 #elseif canImport(Musl)

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CursorProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .cursor

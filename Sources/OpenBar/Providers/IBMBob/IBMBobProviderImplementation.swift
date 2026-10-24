@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct IBMBobProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .ibmbob

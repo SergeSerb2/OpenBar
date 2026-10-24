@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import Testing
 
 /// The Claude CLI renders /usage as a redrawing TUI, so a half-painted capture frame can drop a

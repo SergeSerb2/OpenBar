@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension StatusItemController {
     private nonisolated static let menuBarCountdownRefreshEpsilon: TimeInterval = 0.05

@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 import SwiftUI
 
 struct OverviewSpendSummary: Equatable {

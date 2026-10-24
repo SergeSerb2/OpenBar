@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct FutureAGIProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .futureagi

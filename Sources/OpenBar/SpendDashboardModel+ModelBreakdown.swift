@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 /// Per-model breakdown aggregation and the completeness policy that decides whether
 /// model rows are trustworthy enough to display, rank, or retain as a partial view.

@@ -1,6 +1,6 @@
-import OpenBarCore
 import CryptoKit
 import Foundation
+import OpenBarCore
 
 extension UsageStore {
     func widgetAccountOverflowCounts() -> [String: Int] {

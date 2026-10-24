@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CommandCodeProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .commandcode

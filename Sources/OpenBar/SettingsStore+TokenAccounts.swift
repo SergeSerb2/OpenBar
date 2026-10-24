@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension SettingsStore {
     func tokenAccountsData(for provider: UsageProvider) -> ProviderTokenAccountData? {

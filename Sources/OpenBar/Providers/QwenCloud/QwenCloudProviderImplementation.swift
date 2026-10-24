@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct QwenCloudProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .qwencloud

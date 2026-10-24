@@ -1,7 +1,7 @@
 import AppKit
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 import SweetCookieKit
 
 // MARK: - Observation helpers

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct MoonshotProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .moonshot

@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct AntigravityProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .antigravity

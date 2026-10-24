@@ -1,7 +1,7 @@
 import CloudKit
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 @MainActor
 final class CloudSyncCoordinator {

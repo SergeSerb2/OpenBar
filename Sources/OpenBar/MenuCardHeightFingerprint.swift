@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension UsageMenuCardView.Model {
     func heightFingerprint(section: String, additional: [String] = []) -> String {

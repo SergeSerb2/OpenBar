@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct AmpProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .amp

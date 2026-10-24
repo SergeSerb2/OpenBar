@@ -1,6 +1,6 @@
 import CloudKit
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct CloudSyncPersistence: Sendable {
     struct RecordMetadata: Codable, Sendable {

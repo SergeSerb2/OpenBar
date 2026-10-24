@@ -1,6 +1,6 @@
-import OpenBarCore
 import Commander
 import Foundation
+import OpenBarCore
 
 struct DiagnoseOptions: CommanderParsable {
     @OptionGroup

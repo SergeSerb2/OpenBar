@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct SpendDashboardTokenRefreshTrigger: Equatable {
     let providerConfigRevision: UInt64

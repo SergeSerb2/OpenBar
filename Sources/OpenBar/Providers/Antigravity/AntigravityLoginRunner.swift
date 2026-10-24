@@ -1,8 +1,8 @@
 import AppKit
-import OpenBarCore
 import Darwin
 import Foundation
 import Network
+import OpenBarCore
 
 enum AntigravityLoginRunner {
     enum Phase {

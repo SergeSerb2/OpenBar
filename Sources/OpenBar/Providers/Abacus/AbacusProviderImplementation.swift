@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 struct AbacusProviderImplementation: ProviderImplementation {
     let id: UsageProvider = .abacus

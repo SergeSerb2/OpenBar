@@ -1,5 +1,5 @@
-import OpenBarCore
 import Foundation
+import OpenBarCore
 
 extension SettingsStore {
     /// Local presentation state, keyed by source-issued identity rather than account labels or row order.

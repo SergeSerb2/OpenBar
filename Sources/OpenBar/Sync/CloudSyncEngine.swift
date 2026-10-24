@@ -1,8 +1,8 @@
 import AppKit
 import CloudKit
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 import Security
 
 enum SyncAvailability: Equatable, Sendable {
