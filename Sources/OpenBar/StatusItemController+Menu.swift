@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Observation
+import OpenBarCore
 import QuartzCore
 import SwiftUI
 
@@ -179,6 +179,10 @@ extension StatusItemController {
             self.resetClaudeSwapAccountInspection()
         }
         self.resetCompactAccountMenuExpansionStateIfIdle()
+        DispatchQueue.main.async { [weak self, weak menu] in
+            guard let self, let menu else { return }
+            self.releaseClosedHostedSubviewContent(in: menu)
+        }
     }
 
     func forgetClosedMenu(_ menu: NSMenu) {

@@ -1,6 +1,6 @@
-import OpenBarCore
 import Foundation
 import Observation
+import OpenBarCore
 
 @MainActor
 extension UsageStore {
@@ -30,6 +30,7 @@ extension UsageStore {
             cachedLoader: { request in
                 await SpendDashboardSource.loadCached(request)
             },
+            detailsVisible: false,
             publicationHandler: { [weak self] publication in
                 self?.spendDashboardPublication = publication
             })

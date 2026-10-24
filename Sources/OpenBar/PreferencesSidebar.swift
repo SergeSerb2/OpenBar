@@ -9,13 +9,14 @@ struct SettingsSidebarView: View {
     @Bindable var store: UsageStore
     @Binding var selection: SettingsPane
     var onSelectAbout: () -> Void = {}
+    var search: Binding<String>?
     @State private var searchText = ""
     @Environment(\.undoManager) private var undoManager
 
     var body: some View {
         if #available(macOS 26.0, *) {
             self.content
-                .searchable(text: self.$searchText, placement: .sidebar, prompt: L("Search providers"))
+                .searchable(text: self.search ?? self.$searchText, placement: .sidebar, prompt: L("Search providers"))
                 .toolbar {
                     SettingsSidebarSortToolbar(
                         isOn: self.$settings.providersSortedAlphabetically,
@@ -26,7 +27,7 @@ struct SettingsSidebarView: View {
         } else {
             VStack(spacing: 0) {
                 HStack(spacing: 6) {
-                    SettingsSidebarSearchField(searchText: self.$searchText)
+                    SettingsSidebarSearchField(searchText: self.search ?? self.$searchText)
                     SettingsSidebarSortToggle(
                         isOn: self.$settings.providersSortedAlphabetically,
                         enabledOnly: self.$settings.providersEnabledOnly,
@@ -105,7 +106,7 @@ struct SettingsSidebarView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button(L("Clear filters")) {
-                    self.searchText = ""
+                    (self.search ?? self.$searchText).wrappedValue = ""
                     self.settings.providersEnabledOnly = false
                 }
                 .buttonStyle(.plain)
@@ -151,7 +152,7 @@ struct SettingsSidebarView: View {
         }
         return ProvidersPane.filteredProviders(
             providers,
-            query: self.searchText,
+            query: (self.search ?? self.$searchText).wrappedValue,
             displayName: { self.store.metadata(for: $0).displayName })
     }
 
@@ -163,7 +164,7 @@ struct SettingsSidebarView: View {
 
     private var canReorderProviders: Bool {
         !self.settings.providersSortedAlphabetically && !self.settings.providersEnabledOnly
-            && self.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (self.search ?? self.$searchText).wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func enabledBinding(for provider: UsageProvider) -> Binding<Bool> {

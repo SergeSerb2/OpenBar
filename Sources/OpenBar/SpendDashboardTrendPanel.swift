@@ -8,17 +8,16 @@ struct SpendDashboardTrendPanel: View {
     @Binding var selection: SpendDashboardTrendSection
     var onSelectDay: ((Date) -> Void)?
     var onClearSelectedDay: (() -> Void)?
-    @State private var focusedDay: Date?
-    @State private var selectedSourceID: String?
-    @State private var focusedInterval: DateInterval?
+    @State var navigation = SpendDashboardCurrencyNavigation()
 
     var body: some View {
         let legendProviders = SpendTrendChartModel(
             group: self.group,
             section: self.activeSection,
             day: self.day,
-            overviewInterval: self.focusedInterval).legendProviders(in: self.group)
-        let sourceID = self.selectedSourceID.flatMap { id in legendProviders.contains { $0.id == id } ? id : nil }
+            overviewInterval: self.navigation.focusedInterval).legendProviders(in: self.group)
+        let sourceID = self.navigation.selectedTrendSourceID
+            .flatMap { id in legendProviders.contains { $0.id == id } ? id : nil }
         return SpendDashboardPanel {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
@@ -43,8 +42,8 @@ struct SpendDashboardTrendPanel: View {
                     HStack {
                         Text(self.scopeText).font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        if self.focusedInterval != nil {
-                            Button(L("Overview")) { self.focusedInterval = nil }
+                        if self.navigation.focusedInterval != nil {
+                            Button(L("Overview")) { self.navigation.focusedInterval = nil }
                                 .controlSize(.small).accessibilityIdentifier("spend-trend-back-overview")
                         }
                     }
@@ -57,12 +56,12 @@ struct SpendDashboardTrendPanel: View {
                     section: self.activeSection,
                     day: self.day,
                     sourceID: sourceID,
-                    overviewInterval: self.focusedInterval,
+                    overviewInterval: self.navigation.focusedInterval,
                     onSelectDay: { day in
-                        self.focusedDay = self.group.calendar.startOfDay(for: day)
+                        self.navigation.focusedDay = self.group.calendar.startOfDay(for: day)
                         self.selection = .hourly
                     },
-                    onSelectInterval: { self.focusedInterval = $0 })
+                    onSelectInterval: { self.navigation.focusedInterval = $0 })
                     .id(self.chartIdentity(sourceID: sourceID))
 
                 MenuBarLayoutChipFlowLayout(spacing: 8) {
@@ -71,23 +70,24 @@ struct SpendDashboardTrendPanel: View {
             }
         }
         .onChange(of: self.group.selectedDay) { _, selectedDay in
-            self.focusedDay = selectedDay
+            self.navigation.focusedDay = selectedDay
             self.selection = selectedDay != nil && !self.hourlyDays.isEmpty ? .hourly : .daily
         }
-        .onChange(of: self.group.chartDomain) { _, _ in self.focusedInterval = nil }
+        .onChange(of: self.group.chartDomain) { _, _ in self.navigation.focusedInterval = nil }
         .onChange(of: legendProviders.map(\.id)) { _, ids in
-            if let selectedSourceID, !ids.contains(selectedSourceID) { self.selectedSourceID = nil }
+            if let selectedSourceID = self.navigation.selectedTrendSourceID,
+               !ids.contains(selectedSourceID) { self.navigation.selectedTrendSourceID = nil }
         }
     }
 
     private func chartIdentity(sourceID: String?) -> String {
         "\(self.activeSection):\(self.day?.timeIntervalSince1970 ?? 0):"
             + "\(sourceID ?? "all"):\(self.group.chartDomain):"
-            + "\(self.focusedInterval?.start.timeIntervalSince1970 ?? 0)"
+            + "\(self.navigation.focusedInterval?.start.timeIntervalSince1970 ?? 0)"
     }
 
     private var scopeText: String {
-        let scope = self.focusedInterval.map { $0.start...$0.end } ?? self.group.chartDomain
+        let scope = self.navigation.focusedInterval.map { $0.start...$0.end } ?? self.group.chartDomain
         let unit = SpendTrendChartModel.overviewUnit(in: scope, calendar: self.group.calendar)
         let grouping = unit == .month ? L("Monthly") : unit == .weekOfYear ? L("Weekly") : L("Daily")
         return "\(self.dateText(scope.lowerBound)) – "
@@ -103,14 +103,14 @@ struct SpendDashboardTrendPanel: View {
     }
 
     private var day: Date? {
-        SpendTrendChartModel.focusedDay(self.focusedDay, group: self.group)
+        SpendTrendChartModel.focusedDay(self.navigation.focusedDay, group: self.group)
     }
 
     private func dayNavigation(_ day: Date) -> some View {
         let index = self.hourlyDays.firstIndex(of: day)
         return HStack(spacing: 8) {
             Button {
-                self.focusedDay = self.hourlyDays[max(0, (index ?? 0) - 1)]
+                self.navigation.focusedDay = self.hourlyDays[max(0, (index ?? 0) - 1)]
             } label: { Image(systemName: "chevron.left") }
                 .disabled(index == nil || index == 0)
                 .help(L("Previous day"))
@@ -118,7 +118,7 @@ struct SpendDashboardTrendPanel: View {
                 .accessibilityIdentifier("spend-trend-previous-day")
             Picker(L("Day"), selection: Binding(
                 get: { day },
-                set: { self.focusedDay = $0 }))
+                set: { self.navigation.focusedDay = $0 }))
             {
                 ForEach(self.hourlyDays, id: \.self) { date in
                     Text(self.dateText(date)).tag(date)
@@ -128,7 +128,7 @@ struct SpendDashboardTrendPanel: View {
             .frame(maxWidth: 180)
             .accessibilityIdentifier("spend-trend-day-picker")
             Button {
-                self.focusedDay = self.hourlyDays[min(self.hourlyDays.count - 1, (index ?? 0) + 1)]
+                self.navigation.focusedDay = self.hourlyDays[min(self.hourlyDays.count - 1, (index ?? 0) + 1)]
             } label: { Image(systemName: "chevron.right") }
                 .disabled(index == nil || (index ?? 0) >= self.hourlyDays.count - 1)
                 .help(L("Next day"))
@@ -152,7 +152,8 @@ struct SpendDashboardTrendPanel: View {
     private func legend(providers: [SpendDashboardModel.ProviderRow], selectedSourceID: String?) -> some View {
         ForEach(providers) { provider in
             Button {
-                self.selectedSourceID = self.selectedSourceID == provider.id ? nil : provider.id
+                self.navigation.selectedTrendSourceID = self.navigation.selectedTrendSourceID == provider
+                    .id ? nil : provider.id
             } label: {
                 HStack(spacing: 5) {
                     Circle().fill(Color(nsColor: SpendChartPalette.color(

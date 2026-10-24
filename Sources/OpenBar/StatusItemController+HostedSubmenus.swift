@@ -15,10 +15,12 @@ struct HostedSubviewRenderSignature: Equatable {
     let content: HostedSubviewContentFingerprint
 }
 
+@MainActor
 final class HostedSubviewRenderSignatureBox: NSObject {
-    let signature: HostedSubviewRenderSignature
+    var signature: HostedSubviewRenderSignature?
+    var costHistoryNavigation: CostHistoryChartNavigation?
 
-    init(_ signature: HostedSubviewRenderSignature) {
+    init(_ signature: HostedSubviewRenderSignature?) {
         self.signature = signature
     }
 }
@@ -86,6 +88,25 @@ extension StatusItemController {
         chartItem.toolTip = provider?.rawValue
         submenu.addItem(chartItem)
         return submenu
+    }
+
+    func releaseClosedHostedSubviewContent(in menu: NSMenu) {
+        guard self.openMenus[ObjectIdentifier(menu)] == nil else { return }
+        if self.isHostedSubviewMenu(menu), let identity = self.hostedSubviewIdentity(for: menu) {
+            menu.removeAllItems()
+            self.hostedSubviewRenderSignatures.object(forKey: menu)?.signature = nil
+            let placeholder = NSMenuItem()
+            placeholder.isEnabled = true
+            placeholder.representedObject = identity.chartID
+            placeholder.toolTip = identity.providerRawValue
+            menu.addItem(placeholder)
+            return
+        }
+        for item in menu.items {
+            if let submenu = item.submenu {
+                self.releaseClosedHostedSubviewContent(in: submenu)
+            }
+        }
     }
 
     @discardableResult
@@ -219,9 +240,9 @@ extension StatusItemController {
                 chartID: identity.chartID,
                 providerRawValue: identity.provider?.rawValue ?? identity.providerRawValue)
         }
-        self.hostedSubviewRenderSignatures.setObject(
-            HostedSubviewRenderSignatureBox(signature),
-            forKey: menu)
+        let state = self.hostedSubviewRenderSignatures.object(forKey: menu) ?? HostedSubviewRenderSignatureBox(nil)
+        state.signature = signature
+        self.hostedSubviewRenderSignatures.setObject(state, forKey: menu)
     }
 
     private func hostedSubviewIdentity(for menu: NSMenu)
@@ -251,9 +272,9 @@ extension StatusItemController {
         width: CGFloat)
     {
         let signature = self.hostedSubviewRenderSignature(identity: identity, width: width)
-        self.hostedSubviewRenderSignatures.setObject(
-            HostedSubviewRenderSignatureBox(signature),
-            forKey: menu)
+        let state = self.hostedSubviewRenderSignatures.object(forKey: menu) ?? HostedSubviewRenderSignatureBox(nil)
+        state.signature = signature
+        self.hostedSubviewRenderSignatures.setObject(state, forKey: menu)
     }
 
     private func hostedSubviewRenderSignature(
@@ -438,6 +459,20 @@ extension StatusItemController {
         }
 
         let displayConversion = self.costHistoryDisplayConversion(for: tokenSnapshot)
+        let state = self.hostedSubviewRenderSignatures.object(forKey: submenu) ?? HostedSubviewRenderSignatureBox(nil)
+        let navigation = state.costHistoryNavigation ?? CostHistoryChartNavigation()
+        state.costHistoryNavigation = navigation
+        self.hostedSubviewRenderSignatures.setObject(state, forKey: submenu)
+        let sessionContext = SessionUsageBrowserContext(
+            providerName: ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName,
+            windowLabel: tokenSnapshot.historyLabel.map { L($0) }
+                ?? CostHistoryChartMenuView.windowLabel(days: max(1, tokenSnapshot.historyDays)),
+            sessions: tokenSnapshot.sessions,
+            currencyCode: displayConversion.currencyCode,
+            costMultiplier: displayConversion.multiplier,
+            timeZone: self.settings.costUsageBucketCalendar.timeZone,
+            activityRange: SessionUsagePresentation.toolActivityRange(
+                snapshot: tokenSnapshot, calendar: self.settings.costUsageBucketCalendar))
         let chartView = CostHistoryChartMenuView(
             provider: provider,
             daily: tokenSnapshot.daily,
@@ -451,20 +486,11 @@ extension StatusItemController {
             sessions: tokenSnapshot.sessions,
             hidePersonalInfo: self.settings.hidePersonalInfo,
             width: width,
+            navigation: navigation,
             onBrowseSessions: { [weak self, weak submenu] sessionID in
                 guard let self else { return }
-                let context = SessionUsageBrowserContext(
-                    providerName: ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName,
-                    windowLabel: tokenSnapshot.historyLabel.map { L($0) }
-                        ?? CostHistoryChartMenuView.windowLabel(days: max(1, tokenSnapshot.historyDays)),
-                    sessions: tokenSnapshot.sessions,
-                    currencyCode: displayConversion.currencyCode,
-                    costMultiplier: displayConversion.multiplier,
-                    timeZone: self.settings.costUsageBucketCalendar.timeZone,
-                    activityRange: SessionUsagePresentation.toolActivityRange(
-                        snapshot: tokenSnapshot, calendar: self.settings.costUsageBucketCalendar))
                 performAfterClosingSessionMenu(submenu) {
-                    SessionUsageNavigation.shared.request = .init(context: context, sessionID: sessionID)
+                    SessionUsageNavigation.shared.request = .init(context: sessionContext, sessionID: sessionID)
                     self.settingsOpenHandler?(.usageSpend)
                 }
             })

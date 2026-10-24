@@ -137,7 +137,8 @@ struct PreferencesView: View {
                 settings: self.settings,
                 store: self.store,
                 selection: self.$selection.pane,
-                onSelectAbout: { self.selection.requestAboutRoot() })
+                onSelectAbout: { self.selection.requestAboutRoot() },
+                search: self.$selection.sidebarSearchText)
                 .modifier(SettingsSidebarSizing(width: self.$sidebarWidth))
         } detail: {
             self.detailView
@@ -173,7 +174,8 @@ struct PreferencesView: View {
                 settings: self.settings,
                 store: self.store,
                 selection: self.$selection.pane,
-                onSelectAbout: { self.selection.requestAboutRoot() })
+                onSelectAbout: { self.selection.requestAboutRoot() },
+                search: self.$selection.sidebarSearchText)
                 .frame(width: self.clampedSidebarWidth)
                 .background {
                     SettingsSidebarMaterial()

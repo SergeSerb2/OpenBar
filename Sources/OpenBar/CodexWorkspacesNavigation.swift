@@ -34,6 +34,7 @@ final class CodexWorkspacesWindowController: NSWindowController {
 
     private let model: CodexWorkspacesInspectorModel
     private let configuration: @MainActor () -> CodexWorkspacesInspectorModel.Configuration
+    private let makeContent: @MainActor () -> NSViewController
 
     init(
         store: UsageStore,
@@ -48,6 +49,15 @@ final class CodexWorkspacesWindowController: NSWindowController {
             fetcher: store.costUsageFetcher)
         self.model = model
         self.configuration = configuration
+        self.makeContent = {
+            let hostingController = NSHostingController(rootView: CodexWorkspacesWindowShell(
+                minimumSize: Self.minimumContentSize,
+                model: model,
+                store: store,
+                settings: settings).openBarLocalized())
+            hostingController.sizingOptions = .minSize
+            return hostingController
+        }
 
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: Self.defaultSize),
@@ -59,14 +69,8 @@ final class CodexWorkspacesWindowController: NSWindowController {
         window.tabbingMode = .disallowed
         window.isReleasedWhenClosed = false
         window.isRestorable = false
-        let hostingController = NSHostingController(rootView: CodexWorkspacesWindowShell(
-            minimumSize: Self.minimumContentSize,
-            model: model,
-            store: store,
-            settings: settings).openBarLocalized())
         // Share the content minimum without adopting the empty state's intrinsic window size.
-        hostingController.sizingOptions = .minSize
-        window.contentViewController = hostingController
+        window.contentViewController = self.makeContent()
         window.contentMinSize = Self.minimumContentSize
         window.setContentSize(Self.defaultSize)
         window.center()
@@ -81,6 +85,9 @@ final class CodexWorkspacesWindowController: NSWindowController {
 
     func present() {
         self.model.updateConfiguration(self.configuration())
+        if self.window?.contentViewController == nil {
+            self.window?.contentViewController = self.makeContent()
+        }
         self.model.load()
         NSApp.activate()
         self.showWindow(nil)
@@ -104,8 +111,9 @@ final class CodexWorkspacesWindowController: NSWindowController {
 
 extension CodexWorkspacesWindowController: NSWindowDelegate {
     func windowWillClose(_: Notification) {
-        // The reusable controller outlives the closed window.
-        self.model.cancelLoading()
+        self.window?.contentViewController = nil
+        self.window?.contentView = nil
+        self.model.releaseSnapshot()
     }
 }
 

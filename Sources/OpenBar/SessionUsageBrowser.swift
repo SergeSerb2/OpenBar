@@ -1,6 +1,6 @@
 import AppKit
-import OpenBarCore
 import Observation
+import OpenBarCore
 import SwiftUI
 
 struct SessionUsageBrowserContext: Sendable {
@@ -25,16 +25,24 @@ final class SessionUsageNavigation {
     }
 
     var request: Request?
+    @ObservationIgnored private var browserRequestID: UUID?
+    @ObservationIgnored private var browserState = SessionUsageBrowserState()
+
+    func browser(for request: Request) -> SessionUsageBrowserState {
+        if self.browserRequestID != request.id {
+            self.browserRequestID = request.id
+            self.browserState = SessionUsageBrowserState()
+            self.browserState.selectedSessionID = request.sessionID
+        }
+        return self.browserState
+    }
 }
 
 @MainActor
 struct SessionUsageBrowser: View {
     let context: SessionUsageBrowserContext
     let hidePersonalInfo: Bool
-    @State private var query = ""
-    @State private var sort = SessionUsagePresentation.Sort.activity
-    @State private var ascending = false
-    @State private var selectedSessionID: String?
+    @State private var state: SessionUsageBrowserState
     @State private var requestDetails: (key: DetailKey, turns: [CostUsageSessionTurn])?
     @State private var loadingDetails = false
     @State private var detailError: CostUsageSessionDetailError?
@@ -48,23 +56,31 @@ struct SessionUsageBrowser: View {
         let timeZone: String
     }
 
-    init(context: SessionUsageBrowserContext, hidePersonalInfo: Bool, selectedSessionID: String? = nil) {
+    init(
+        context: SessionUsageBrowserContext,
+        hidePersonalInfo: Bool,
+        selectedSessionID: String? = nil,
+        state: SessionUsageBrowserState? = nil)
+    {
         self.context = context
         self.hidePersonalInfo = hidePersonalInfo
-        self._selectedSessionID = State(initialValue: selectedSessionID)
+        let navigation = state ?? SessionUsageBrowserState()
+        if state == nil { navigation.selectedSessionID = selectedSessionID }
+        self._state = State(initialValue: navigation)
     }
 
     private var sessions: [CostUsageSessionBreakdown] {
         SessionUsagePresentation.sessions(
             self.context.sessions,
-            matching: self.query,
+            matching: self.state.query,
             hidePersonalInfo: self.hidePersonalInfo,
-            sort: self.sort,
-            ascending: self.ascending)
+            sort: self.state.sort,
+            ascending: self.state.ascending)
     }
 
     private var selectedSession: CostUsageSessionBreakdown? {
-        guard let session = self.sessions.first(where: { $0.sessionID == self.selectedSessionID }) ?? self.sessions
+        guard let session = self.sessions.first(where: { $0.sessionID == self.state.selectedSessionID }) ?? self
+            .sessions
             .first
         else { return nil }
         guard let details = self.requestDetails, details.key == self.detailKey(for: session)
@@ -102,40 +118,42 @@ struct SessionUsageBrowser: View {
             }
         }
         .onAppear {
-            if self.selectedSessionID == nil { self.selectedSessionID = self.sessions.first?.sessionID }
+            if !self.sessions.contains(where: { $0.sessionID == self.state.selectedSessionID }) {
+                self.state.selectedSessionID = self.sessions.first?.sessionID
+            }
         }
         .onChange(of: self.sessions.map(\.sessionID)) { _, ids in
-            if !ids.contains(self.selectedSessionID ?? "") { self.selectedSessionID = ids.first }
+            if !ids.contains(self.state.selectedSessionID ?? "") { self.state.selectedSessionID = ids.first }
         }
         .onChange(of: self.hidePersonalInfo) { _, _ in
-            self.query = ""
+            self.state.query = ""
         }
         .environment(\.timeZone, self.context.timeZone)
     }
 
     private var sessionList: some View {
         VStack(spacing: 0) {
-            TextField(L("Search sessions"), text: self.$query)
+            TextField(L("Search sessions"), text: self.$state.query)
                 .textFieldStyle(.roundedBorder)
                 .padding(12)
             HStack {
-                Picker(L("Sort by"), selection: self.$sort) {
+                Picker(L("Sort by"), selection: self.$state.sort) {
                     ForEach(SessionUsagePresentation.Sort.allCases, id: \.self) { order in
                         Text(order.title).tag(order)
                     }
                 }
                 .labelsHidden()
-                Button { self.ascending.toggle() } label: {
-                    Image(systemName: self.ascending ? "arrow.up" : "arrow.down")
+                Button { self.state.ascending.toggle() } label: {
+                    Image(systemName: self.state.ascending ? "arrow.up" : "arrow.down")
                 }
                 .buttonStyle(.borderless)
-                .help(L(self.ascending ? "Ascending" : "Descending"))
-                .accessibilityLabel(L(self.ascending ? "Ascending" : "Descending"))
+                .help(L(self.state.ascending ? "Ascending" : "Descending"))
+                .accessibilityLabel(L(self.state.ascending ? "Ascending" : "Descending"))
             }
             .controlSize(.small)
             .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            List(selection: self.$selectedSessionID) {
+            List(selection: self.$state.selectedSessionID) {
                 ForEach(self.sessions) { session in
                     self.sessionRow(session)
                         .tag(session.sessionID)

@@ -119,14 +119,13 @@ struct SpendDashboardPane: View {
     @Bindable var settings: SettingsStore
     @Bindable var store: UsageStore
     @State private var isVisible = false
-    @State private var userSelectedBackground = false
-    @State private var isDataControlsExpanded = true
-    @State private var detailSelections: [String: SpendDashboardDetailSection] = [:]
+    @State private var navigation: SpendDashboardNavigation
     @State private var sessionNavigation = SessionUsageNavigation.shared
 
     init(settings: SettingsStore, store: UsageStore) {
         self.settings = settings
         self.store = store
+        self._navigation = State(initialValue: store.sharedSpendDashboardController().navigation)
     }
 
     var body: some View {
@@ -141,7 +140,8 @@ struct SpendDashboardPane: View {
                     SessionUsageBrowser(
                         context: request.context,
                         hidePersonalInfo: self.settings.hidePersonalInfo,
-                        selectedSessionID: request.sessionID)
+                        selectedSessionID: request.sessionID,
+                        state: self.sessionNavigation.browser(for: request))
                         .id(request.id)
                         .frame(height: 600)
                 } else {
@@ -158,6 +158,7 @@ struct SpendDashboardPane: View {
         .background(FocusResigningBackground())
         .onAppear {
             self.isVisible = true
+            self.controller.setDetailsVisible(true)
             self.controller.update(configuration: self.configuration)
             self.controller.refreshIfStale()
             if !self.controller.isRefreshing {
@@ -185,6 +186,7 @@ struct SpendDashboardPane: View {
         .onDisappear {
             self.isVisible = false
             self.synchronizeCodexCostCatchUp()
+            self.controller.setDetailsVisible(false)
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
             self.controller.refreshDateWindow()
@@ -212,7 +214,9 @@ struct SpendDashboardPane: View {
     }
 
     private func detailSelection(for currency: String) -> Binding<SpendDashboardDetailSection> {
-        Binding(get: { self.detailSelections[currency] ?? .providers }, set: { self.detailSelections[currency] = $0 })
+        Binding(
+            get: { self.navigation.detailSelections[currency] ?? .providers },
+            set: { self.navigation.detailSelections[currency] = $0 })
     }
 
     var header: some View {
@@ -326,7 +330,7 @@ struct SpendDashboardPane: View {
                             }
                         } else {
                             Button(L("Continue in background")) {
-                                self.userSelectedBackground = true
+                                self.navigation.userSelectedBackground = true
                                 self.startCodexCostCatchUp(mode: .automatic)
                             }
                         }
@@ -355,13 +359,13 @@ struct SpendDashboardPane: View {
 
     private func synchronizeCodexCostCatchUp() {
         guard self.isVisible else {
-            self.userSelectedBackground = false
+            self.navigation.userSelectedBackground = false
             self.store.synchronizeSpendDashboardCodexCostCatchUp(
                 accounts: self.codexSpendScanRequests,
                 preferredMode: .automatic)
             return
         }
-        let preferredMode: CodexCostCatchUpMode? = self.userSelectedBackground ? nil : .accelerated
+        let preferredMode: CodexCostCatchUpMode? = self.navigation.userSelectedBackground ? nil : .accelerated
         self.store.synchronizeSpendDashboardCodexCostCatchUp(
             accounts: self.codexSpendScanRequests,
             preferredMode: preferredMode)
@@ -369,7 +373,7 @@ struct SpendDashboardPane: View {
 
     private func startCodexCostCatchUp(mode: CodexCostCatchUpMode) {
         if mode == .accelerated {
-            self.userSelectedBackground = false
+            self.navigation.userSelectedBackground = false
         }
         self.store.startSpendDashboardCodexCostCatchUpIfNeeded(
             accounts: self.codexSpendScanRequests,
@@ -460,6 +464,7 @@ struct SpendDashboardPane: View {
                     requestedDays: self.controller.model.requestedDays,
                     hidePersonalInfo: self.settings.hidePersonalInfo,
                     detailSelection: self.detailSelection(for: group.id),
+                    navigation: self.navigation.currency(for: group.id),
                     supportsCodexDetails: self.controller.configuration?.supportsCodexDetails == true
                         && (group.currencyCode == "USD" || group.currencyCode == self.detailCurrency),
                     onSelectDay: { self.controller.selectDay($0) },
@@ -484,7 +489,7 @@ struct SpendDashboardPane: View {
 
     private var dataControls: some View {
         SpendDashboardPanel {
-            DisclosureGroup(isExpanded: self.$isDataControlsExpanded) {
+            DisclosureGroup(isExpanded: self.$navigation.isDataControlsExpanded) {
                 VStack(alignment: .leading, spacing: 12) {
                     self.provenance
                     Divider()
@@ -690,8 +695,7 @@ struct SpendDashboardCurrencySection: View {
     let onSelectDay: ((Date) -> Void)?
     let detailSelection: Binding<SpendDashboardDetailSection>?
     let supportsCodexDetails: Bool
-    @State private var selectedDetailSection: SpendDashboardDetailSection
-    @State private var selectedTrendSection: SpendDashboardTrendSection
+    @State private var navigation: SpendDashboardCurrencyNavigation
 
     init(
         group: SpendDashboardModel.CurrencyGroup,
@@ -700,6 +704,7 @@ struct SpendDashboardCurrencySection: View {
         initialDetailSection: SpendDashboardDetailSection = .providers,
         initialTrendSection: SpendDashboardTrendSection? = nil,
         detailSelection: Binding<SpendDashboardDetailSection>? = nil,
+        navigation: SpendDashboardCurrencyNavigation? = nil,
         supportsCodexDetails: Bool = false,
         onSelectDay: ((Date) -> Void)? = nil,
         onClearSelectedDay: (() -> Void)? = nil)
@@ -711,10 +716,13 @@ struct SpendDashboardCurrencySection: View {
         self.hidePersonalInfo = hidePersonalInfo
         self.onClearSelectedDay = onClearSelectedDay
         self.onSelectDay = onSelectDay
-        self._selectedDetailSection = State(initialValue: initialDetailSection)
-        self._selectedTrendSection = State(
-            initialValue: initialTrendSection
-                ?? (group.selectedDay != nil && !group.hourlyPoints.isEmpty ? .hourly : .daily))
+        let state = navigation ?? SpendDashboardCurrencyNavigation()
+        if navigation == nil {
+            state.detailSection = initialDetailSection
+            state.trendSection = initialTrendSection
+                ?? (group.selectedDay != nil && !group.hourlyPoints.isEmpty ? .hourly : .daily)
+        }
+        self._navigation = State(initialValue: state)
     }
 
     var body: some View {
@@ -735,12 +743,14 @@ struct SpendDashboardCurrencySection: View {
                 group: self.group,
                 hidePersonalInfo: self.hidePersonalInfo,
                 supportsCodexDetails: self.supportsCodexDetails,
-                selection: self.detailSelection ?? self.$selectedDetailSection)
+                selection: self.detailSelection ?? self.$navigation.detailSection,
+                navigation: self.navigation)
             SpendDashboardTrendPanel(
                 group: self.group,
-                selection: self.$selectedTrendSection,
+                selection: self.$navigation.trendSection,
                 onSelectDay: self.onSelectDay,
-                onClearSelectedDay: self.onClearSelectedDay)
+                onClearSelectedDay: self.onClearSelectedDay,
+                navigation: self.navigation)
             SpendDailyLedger(group: self.group)
         }
         .environment(\.timeZone, self.group.timeZone)
@@ -753,6 +763,7 @@ private struct SpendDashboardDetailPanel: View {
     let hidePersonalInfo: Bool
     var supportsCodexDetails = false
     @Binding var selection: SpendDashboardDetailSection
+    var navigation: SpendDashboardCurrencyNavigation?
 
     var body: some View {
         SpendDashboardPanel {
@@ -819,7 +830,10 @@ private struct SpendDashboardDetailPanel: View {
         case .chats:
             SpendProjectRows(group: self.group, hidePersonalInfo: self.hidePersonalInfo, isProjectless: true)
         case .sessions:
-            SpendSessionRows(group: self.group, hidePersonalInfo: self.hidePersonalInfo)
+            SpendSessionRows(
+                group: self.group,
+                hidePersonalInfo: self.hidePersonalInfo,
+                navigation: self.navigation ?? SpendDashboardCurrencyNavigation())
         }
     }
 }
@@ -1092,21 +1106,21 @@ private struct SpendDailyLedgerRow: View {
 struct SpendSessionRows: View {
     let group: SpendDashboardModel.CurrencyGroup
     let hidePersonalInfo: Bool
-    @State private var selectedSourceID: String?
+    @State var navigation = SpendDashboardCurrencyNavigation()
 
     private var sourceIDs: [String] {
         Array(Set(self.group.sessions.map(\.sourceID))).sorted()
     }
 
     private var sourceID: String? {
-        self.selectedSourceID.flatMap { self.sourceIDs.contains($0) ? $0 : nil } ?? self.sourceIDs.first
+        self.navigation.sessionSourceID.flatMap { self.sourceIDs.contains($0) ? $0 : nil } ?? self.sourceIDs.first
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if self.sourceIDs.count > 1 {
                 Picker(L("Sources"), selection: Binding(
-                    get: { self.sourceID ?? "" }, set: { self.selectedSourceID = $0 }))
+                    get: { self.sourceID ?? "" }, set: { self.navigation.sessionSourceID = $0 }))
                 {
                     ForEach(self.sourceIDs, id: \.self) { id in
                         Text(self.sourceName(id)).tag(id)
@@ -1114,7 +1128,10 @@ struct SpendSessionRows: View {
                 }
             }
             if let id = self.sourceID, let context = self.context(for: id) {
-                SessionUsageBrowser(context: context, hidePersonalInfo: self.hidePersonalInfo)
+                SessionUsageBrowser(
+                    context: context,
+                    hidePersonalInfo: self.hidePersonalInfo,
+                    state: self.navigation.browser(for: id))
                     .id(id)
                     .frame(height: 600)
             } else {

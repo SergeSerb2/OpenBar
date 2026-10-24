@@ -27,6 +27,7 @@ final class SettingsWindowController: NSWindowController {
     private let presentationFailed: @MainActor () -> Void
     private let logger = OpenBarLog.logger(LogCategories.app)
     private var retainedWindow: NSWindow?
+    private var didCloseWindow: (@MainActor () -> Void)?
 
     init(
         selection: PreferencesSelection,
@@ -98,6 +99,9 @@ final class SettingsWindowController: NSWindowController {
             window.setFrameAutosaveName(SettingsWindowIdentity.frameAutosaveName)
             return window
         }
+        self.didCloseWindow = { [weak store] in
+            store?.sharedSpendDashboardControllerStorage?.setDetailsVisible(false)
+        }
     }
 
     @available(*, unavailable)
@@ -125,6 +129,7 @@ final class SettingsWindowController: NSWindowController {
             SettingsWindowStageBehavior.applyCollectionBehavior(createdWindow)
             self.retainedWindow = createdWindow
             self.window = createdWindow
+            createdWindow.delegate = self
             window = createdWindow
             outcome = .created
         } else {
@@ -143,5 +148,16 @@ final class SettingsWindowController: NSWindowController {
                 "pane": self.selection.pane.persistenceToken,
             ])
         return outcome
+    }
+}
+
+extension SettingsWindowController: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === self.retainedWindow else { return }
+        window.contentViewController = nil
+        window.contentView = nil
+        self.retainedWindow = nil
+        self.window = nil
+        self.didCloseWindow?()
     }
 }

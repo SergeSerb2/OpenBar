@@ -1,7 +1,15 @@
 import AppKit
 import Charts
+import Observation
 import OpenBarCore
 import SwiftUI
+
+@MainActor
+@Observable
+final class CostHistoryChartNavigation {
+    var metric: CostHistoryChartMenuView.ChartMetric?
+    var selectedDateKey: String?
+}
 
 @MainActor
 // swiftlint:disable:next type_body_length
@@ -81,8 +89,11 @@ struct CostHistoryChartMenuView: View {
     private let width: CGFloat
     private let onMetricChanged: (@MainActor (ChartMetric) -> Void)?
     private let onBrowseSessions: (@MainActor (String?) -> Void)?
-    @State private var metric: ChartMetric
-    @State private var selectedDateKey: String?
+    @State private var navigation: CostHistoryChartNavigation
+
+    private var metric: ChartMetric {
+        self.navigation.metric ?? Self.defaultMetric(provider: self.provider, daily: self.daily)
+    }
 
     init(
         provider: UsageProvider,
@@ -97,6 +108,7 @@ struct CostHistoryChartMenuView: View {
         sessions: [CostUsageSessionBreakdown] = [],
         hidePersonalInfo: Bool,
         width: CGFloat,
+        navigation: CostHistoryChartNavigation? = nil,
         onMetricChanged: (@MainActor (ChartMetric) -> Void)? = nil,
         onBrowseSessions: (@MainActor (String?) -> Void)? = nil)
     {
@@ -113,7 +125,7 @@ struct CostHistoryChartMenuView: View {
         self.width = width
         self.onMetricChanged = onMetricChanged
         self.onBrowseSessions = onBrowseSessions
-        self._metric = State(initialValue: Self.defaultMetric(provider: provider, daily: daily))
+        self._navigation = State(initialValue: navigation ?? CostHistoryChartNavigation())
     }
 
     var body: some View {
@@ -126,7 +138,7 @@ struct CostHistoryChartMenuView: View {
             provider: self.provider,
             metric: activeMetric,
             historyCoverageIsEstablished: self.historyCoverageIsEstablished)
-        let selectedDateKey = self.selectedDateKey.flatMap { model.pointsByDateKey[$0] == nil ? nil : $0 }
+        let selectedDateKey = self.navigation.selectedDateKey.flatMap { model.pointsByDateKey[$0] == nil ? nil : $0 }
             ?? Self.defaultSelectedDateKey(model: model)
         let incompleteCount = CostUsageIncompleteRequests.sum(self.daily.map(\.incompleteRequestCount))
         let tokenValues = model.points.compactMap(\.totalTokens)
@@ -242,7 +254,9 @@ struct CostHistoryChartMenuView: View {
                         }
                         Spacer(minLength: 0)
                         if availableMetrics.count > 1 {
-                            Picker(L("Display mode"), selection: self.$metric) {
+                            Picker(L("Display mode"), selection: Binding(
+                                get: { self.metric }, set: { self.navigation.metric = $0 }))
+                            {
                                 ForEach(availableMetrics, id: \.self) { metric in
                                     Text(metric.title).tag(metric)
                                 }
@@ -857,7 +871,7 @@ struct CostHistoryChartMenuView: View {
     }
 
     private func selectionBandRect(model: Model, proxy: ChartProxy, geo: GeometryProxy) -> CGRect? {
-        guard let key = self.selectedDateKey else { return nil }
+        guard let key = self.navigation.selectedDateKey else { return nil }
         guard let index = model.dateKeys.firstIndex(where: { $0.key == key }) else { return nil }
         guard let geometry = self.hoverGeometry(model: model, proxy: proxy, geo: geo) else { return nil }
         return geometry.bars[index].frame
@@ -881,8 +895,8 @@ struct CostHistoryChartMenuView: View {
         else { return }
         let key = model.dateKeys[selection.index].key
 
-        if self.selectedDateKey != key {
-            self.selectedDateKey = key
+        if self.navigation.selectedDateKey != key {
+            self.navigation.selectedDateKey = key
         }
     }
 

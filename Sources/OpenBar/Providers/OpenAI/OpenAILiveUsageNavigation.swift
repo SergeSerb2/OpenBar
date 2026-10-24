@@ -23,6 +23,7 @@ final class OpenAILiveUsagePresenter {
 @MainActor
 final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegate {
     private let model: OpenAILiveUsageModel
+    private let makeContent: @MainActor () -> NSViewController
 
     init(settings: SettingsStore, openSettings: @escaping @MainActor () -> Void) {
         let model = OpenAILiveUsageModel(environment: {
@@ -37,6 +38,12 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
             settings.providerConfig(for: .openai)?.modelRateLimits(for: scope) ?? []
         })
         self.model = model
+        self.makeContent = {
+            let hosting = NSHostingController(rootView: OpenAILiveUsageView(
+                model: model, openSettings: openSettings).openBarLocalized())
+            hosting.sizingOptions = .minSize
+            return hosting
+        }
         let size = NSSize(width: 880, height: 640)
         let minimumSize = NSSize(width: 680, height: 500)
         let window = NSWindow(
@@ -49,10 +56,7 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
         window.tabbingMode = .disallowed
         window.isReleasedWhenClosed = false
         window.isRestorable = false
-        let hosting = NSHostingController(rootView: OpenAILiveUsageView(
-            model: model, openSettings: openSettings).openBarLocalized())
-        hosting.sizingOptions = .minSize
-        window.contentViewController = hosting
+        window.contentViewController = self.makeContent()
         window.contentMinSize = minimumSize
         window.setContentSize(size)
         window.center()
@@ -66,6 +70,9 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
     }
 
     func present() {
+        if self.window?.contentViewController == nil {
+            self.window?.contentViewController = self.makeContent()
+        }
         self.model.start()
         NSApp.activate()
         self.showWindow(nil)
@@ -75,6 +82,9 @@ final class OpenAILiveUsageWindowController: NSWindowController, NSWindowDelegat
 
     func windowWillClose(_: Notification) {
         self.model.stop()
+        self.window?.contentViewController = nil
+        self.window?.contentView = nil
+        self.model.releaseSnapshot()
     }
 }
 
