@@ -51,7 +51,11 @@ extension StatusItemController {
         if includesOverview {
             selections.insert(.overview, at: 0)
         }
-        for selection in selections where selection != currentSelection {
+        let currentIndex = selections.firstIndex(of: currentSelection) ?? 0
+        let nextSelections = (1...min(3, selections.count - 1)).map {
+            selections[(currentIndex + $0) % selections.count]
+        }
+        for selection in nextSelections {
             self.warmMergedSwitcherContentIfMissing(
                 for: selection,
                 in: menu,
