@@ -11,10 +11,10 @@ enum ChartAxisLabelLayout {
     @MainActor
     static func dateLabel(_ text: Text) -> some View {
         text
-            .font(.caption2)
+            .font(OpenBarTheme.Chart.axisFont)
             // Keep the full date even when the label hangs past the plot edge.
             .fixedSize(horizontal: true, vertical: false)
-            .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+            .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
     }
 
     /// Hangs a date label below the plot with its top center at `x`, as a top-anchored axis label.

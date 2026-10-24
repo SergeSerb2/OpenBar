@@ -2,13 +2,14 @@ import OpenBarCore
 import SwiftUI
 
 extension ProviderStatusIndicator {
-    /// Traffic-light color used for the per-component dot in the status submenu.
+    /// Status tone for the per-component dot in the status submenu. The status words beside the dot
+    /// carry the state too, so the dot never relies on color alone.
     fileprivate var dotColor: Color {
         switch self {
-        case .none: Color(red: 0.20, green: 0.78, blue: 0.35)
-        case .minor, .maintenance: Color(red: 0.96, green: 0.77, blue: 0.13)
-        case .major, .critical: Color(red: 0.91, green: 0.30, blue: 0.24)
-        case .unknown: Color.secondary
+        case .none: OpenBarTheme.Colors.ok
+        case .minor, .maintenance: OpenBarTheme.Colors.warning
+        case .major, .critical: OpenBarTheme.Colors.critical
+        case .unknown: OpenBarTheme.Colors.stale
         }
     }
 }
@@ -64,19 +65,18 @@ struct StatusComponentsMenuView: View {
                 .fill(component.indicator.dotColor)
                 .frame(width: 8, height: 8)
             Text(component.name)
-                .font(.system(size: 13))
+                .font(OpenBarTheme.Fonts.laneTitle)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             if let isExpanded {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.tertiary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    .animation(.easeInOut(duration: 0.16), value: isExpanded)
             }
             Spacer(minLength: 16)
             Text(component.statusLabel)
-                .font(.system(size: 12))
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }

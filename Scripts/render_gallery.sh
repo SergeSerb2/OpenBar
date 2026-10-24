@@ -3,7 +3,7 @@
 #
 #   ./Scripts/render_gallery.sh [output-dir] [sections]
 #
-# sections: comma-separated subset of tokens,menubar,menu,settings,widgets (default: all).
+# sections: comma-separated subset of tokens,menubar,menu,settings,widgets,charts (default: all).
 # Runs inside the scrubbed test environment: Keychain access suppressed, no network, no status items,
 # no OpenBar.app launch. Opens nothing; inspect <output-dir>/index.html or the PNGs yourself.
 set -euo pipefail
