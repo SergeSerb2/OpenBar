@@ -395,7 +395,7 @@ extension OpenBarCLI {
           work without the macOS app. Events are edge-triggered against the previous poll, so a
           persisting condition does not re-fire. The first successful poll can emit usage_updated;
           quota-transition baselines are established without firing. Keep one continuous process so transition
-          baselines and event rate limits survive between polls. Default interval 300s, minimum 60s.
+          baselines and event rate limits survive between polls. Default interval 300s, range 60...86400s.
 
         Examples:
           openbar hooks list

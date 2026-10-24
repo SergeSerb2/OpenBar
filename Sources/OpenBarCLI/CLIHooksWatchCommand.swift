@@ -10,6 +10,7 @@ extension OpenBarCLI {
     /// Floor for `--interval`. Rejected rather than clamped, so a mistyped value
     /// cannot silently turn `watch` into an unattended API hammer.
     static let hooksWatchMinimumInterval: TimeInterval = 60
+    static let hooksWatchMaximumInterval: TimeInterval = 86400
 
     static func runHooksWatch(_ values: ParsedValues) async {
         let output = CLIOutputPreferences.from(values: values)
@@ -282,7 +283,10 @@ extension OpenBarCLI {
         stop: HooksWatchStopSignal,
         sleep: (UInt64) async throws -> Void = { try await Task.sleep(nanoseconds: $0) }) async
     {
-        var remainingNanoseconds = UInt64((max(0, interval) * 1_000_000_000).rounded())
+        guard interval.isFinite, interval > 0,
+              var remainingNanoseconds = UInt64(exactly:
+                  (min(interval, hooksWatchMaximumInterval) * 1_000_000_000).rounded())
+        else { return }
         while remainingNanoseconds > 0, !stop.isRequested {
             let sleepNanoseconds = min(remainingNanoseconds, Self.hooksWatchSleepTickNanoseconds)
             try? await sleep(sleepNanoseconds)
@@ -318,6 +322,10 @@ extension OpenBarCLI {
         guard parsed >= Self.hooksWatchMinimumInterval else {
             return .failure(CLIArgumentError(
                 "--interval must be at least \(Int(Self.hooksWatchMinimumInterval)) seconds."))
+        }
+        guard parsed <= Self.hooksWatchMaximumInterval else {
+            return .failure(CLIArgumentError(
+                "--interval must be at most \(Int(Self.hooksWatchMaximumInterval)) seconds."))
         }
         return .success(parsed)
     }
@@ -385,7 +393,7 @@ final class HooksWatchStopSignal: @unchecked Sendable {
 }
 
 struct HooksWatchOptions: CommanderParsable {
-    @Option(name: .long("interval"), help: "Poll period in seconds (default 300, minimum 60)")
+    @Option(name: .long("interval"), help: "Poll period in seconds (default 300, range 60...86400)")
     var interval: String?
 
     @Option(name: .long("provider"), help: ProviderHelp.optionHelp)
