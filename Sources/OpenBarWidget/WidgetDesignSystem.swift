@@ -434,6 +434,9 @@ struct HeroBlock: View {
     var arrangement: Arrangement = .stacked
     /// Tighter vertical rhythm for the small tile, which has 131 pt for everything.
     var compact: Bool = false
+    /// Lets the reset line wrap to a second line. Tiles fall back to one (slightly scaled) line
+    /// before they drop a lane or a column.
+    var detailWraps: Bool = true
 
     @Environment(\.widgetPalette) private var palette
 
@@ -501,7 +504,7 @@ struct HeroBlock: View {
             detail
                 .font(WidgetTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .lineLimit(self.detailWraps ? 2 : 1)
                 .minimumScaleFactor(0.85)
         }
     }

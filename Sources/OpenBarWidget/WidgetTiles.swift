@@ -92,29 +92,38 @@ struct UsageTile<Header: View>: View {
 
     // MARK: Small
 
+    private struct SmallVariant: Hashable {
+        let lanes: Int
+        let detailWraps: Bool
+        let showsMetrics: Bool
+    }
+
     private func small(_ content: UsageTileContent) -> some View {
-        ViewThatFits(in: .vertical) {
-            ForEach([2, 1, 0], id: \.self) { capacity in
+        // More lanes first; for each lane count, a wrapped reset line before a one-line one.
+        var variants = [2, 1, 0].flatMap { lanes in
+            [true, false].map { SmallVariant(lanes: lanes, detailWraps: $0, showsMetrics: true) }
+        }
+        variants.append(SmallVariant(lanes: 0, detailWraps: false, showsMetrics: false))
+        return ViewThatFits(in: .vertical) {
+            ForEach(variants, id: \.self) { variant in
                 self.smallLayout(
                     content,
-                    plan: content.plan(maxSecondaryLanes: capacity, reservesOverflowRow: true),
-                    metrics: content.metrics)
+                    plan: content.plan(maxSecondaryLanes: variant.lanes, reservesOverflowRow: true),
+                    metrics: variant.showsMetrics ? content.metrics : [],
+                    detailWraps: variant.detailWraps)
             }
-            self.smallLayout(
-                content,
-                plan: content.plan(maxSecondaryLanes: 0, reservesOverflowRow: true),
-                metrics: [])
         }
     }
 
     private func smallLayout(
         _ content: UsageTileContent,
         plan: WidgetTilePlan,
-        metrics: [WidgetMetricRow]) -> some View
+        metrics: [WidgetMetricRow],
+        detailWraps: Bool) -> some View
     {
         VStack(alignment: .leading, spacing: 0) {
             self.header()
-            self.hero(content, plan: plan, spreads: true)
+            self.hero(content, plan: plan, spreads: true, detailWraps: detailWraps)
                 .padding(.top, 6)
             if !plan.lanes.isEmpty || plan.overflowCount > 0 || !metrics.isEmpty {
                 VStack(alignment: .leading, spacing: self.size.laneSpacing) {
@@ -132,24 +141,37 @@ struct UsageTile<Header: View>: View {
         let lanes: Int
         let showsResets: Bool
         let metricLimit: Int
+        let detailWraps: Bool
     }
 
     private func medium(_ content: UsageTileContent) -> some View {
         let capacity = self.size.secondaryLaneCapacity(hasMetrics: !content.metrics.isEmpty, hasChart: false)
+        let metricCount = content.metrics.count
         var variants: [MediumVariant] = []
+        // More lanes first. For each lane count: lane resets, then a wrapped headline reset, give way first.
         for lanes in stride(from: capacity, through: 0, by: -1) {
-            variants.append(MediumVariant(lanes: lanes, showsResets: true, metricLimit: content.metrics.count))
-            variants.append(MediumVariant(lanes: lanes, showsResets: false, metricLimit: content.metrics.count))
+            for (showsResets, detailWraps) in [(true, true), (false, true), (true, false), (false, false)] {
+                variants.append(MediumVariant(
+                    lanes: lanes,
+                    showsResets: showsResets,
+                    metricLimit: metricCount,
+                    detailWraps: detailWraps))
+            }
         }
-        variants.append(MediumVariant(lanes: 0, showsResets: false, metricLimit: min(1, content.metrics.count)))
-        variants.append(MediumVariant(lanes: 0, showsResets: false, metricLimit: 0))
+        variants.append(MediumVariant(
+            lanes: 0,
+            showsResets: false,
+            metricLimit: min(1, metricCount),
+            detailWraps: false))
+        variants.append(MediumVariant(lanes: 0, showsResets: false, metricLimit: 0, detailWraps: false))
         return ViewThatFits(in: .vertical) {
             ForEach(variants.uniqued(), id: \.self) { variant in
                 self.mediumLayout(
                     content,
                     plan: content.plan(maxSecondaryLanes: variant.lanes, reservesOverflowRow: true),
                     metrics: Array(content.metrics.prefix(variant.metricLimit)),
-                    showsResets: variant.showsResets)
+                    showsResets: variant.showsResets,
+                    detailWraps: variant.detailWraps)
             }
         }
     }
@@ -159,7 +181,8 @@ struct UsageTile<Header: View>: View {
         _ content: UsageTileContent,
         plan: WidgetTilePlan,
         metrics: [WidgetMetricRow],
-        showsResets: Bool) -> some View
+        showsResets: Bool,
+        detailWraps: Bool) -> some View
     {
         // Medium splits into columns only when there is something to fill the right one. A lone
         // "+N more" line stays under the headline instead.
@@ -172,11 +195,11 @@ struct UsageTile<Header: View>: View {
                 HStack(alignment: .top, spacing: 0) {
                     VStack(alignment: .leading, spacing: 0) {
                         if self.headerSpansColumns {
-                            self.hero(content, plan: plan, spreads: true)
+                            self.hero(content, plan: plan, spreads: true, detailWraps: detailWraps)
                         } else {
                             self.header()
                             Spacer(minLength: 8)
-                            self.hero(content, plan: plan, spreads: false)
+                            self.hero(content, plan: plan, spreads: false, detailWraps: detailWraps)
                         }
                     }
                     .frame(width: WidgetLayout.heroColumnWidth, alignment: .leading)
@@ -211,7 +234,7 @@ struct UsageTile<Header: View>: View {
             VStack(alignment: .leading, spacing: 0) {
                 self.header()
                 Spacer(minLength: 8)
-                self.hero(content, plan: plan, spreads: false)
+                self.hero(content, plan: plan, spreads: false, detailWraps: detailWraps)
                 if plan.overflowCount > 0 {
                     self.overflowLine(plan.overflowCount)
                         .padding(.top, 4)
@@ -310,7 +333,8 @@ struct UsageTile<Header: View>: View {
         _ content: UsageTileContent,
         plan: WidgetTilePlan,
         spreads: Bool,
-        arrangement: HeroBlock.Arrangement = .stacked) -> some View
+        arrangement: HeroBlock.Arrangement = .stacked,
+        detailWraps: Bool = true) -> some View
     {
         if let lane = plan.hero {
             let displayed = WidgetUsageDisplay.percent(
@@ -326,7 +350,8 @@ struct UsageTile<Header: View>: View {
                 numberSize: self.size.heroNumberSize,
                 spreads: spreads,
                 arrangement: arrangement,
-                compact: self.size == .small)
+                compact: self.size == .small,
+                detailWraps: detailWraps)
                 .accessibilityElement(children: .combine)
         } else if let fallback = content.fallback {
             HeroBlock(
@@ -340,7 +365,8 @@ struct UsageTile<Header: View>: View {
                 numberSize: self.size.heroNumberSize,
                 spreads: spreads,
                 arrangement: arrangement,
-                compact: self.size == .small)
+                compact: self.size == .small,
+                detailWraps: detailWraps)
                 .accessibilityElement(children: .combine)
         }
     }
