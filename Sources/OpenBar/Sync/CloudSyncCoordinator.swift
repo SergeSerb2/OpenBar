@@ -150,6 +150,7 @@ final class CloudSyncCoordinator {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.observeSettings()
+                self.engine.snapshotConsentDidChange()
                 let enabled = self.settings.iCloudSyncEnabled
                 if enabled != self.observedEnabled {
                     self.observedEnabled = enabled
