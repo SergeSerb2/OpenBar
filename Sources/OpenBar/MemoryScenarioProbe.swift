@@ -248,7 +248,6 @@ enum MemoryScenarioProbe {
                 let switcher = menu.items.first?.view as? ProviderSwitcherView
                 self.segmentCount = switcher?.segmentCountForProbe ?? 0
                 self.session.record("\(self.label)-open")
-                self.session.writeCensus(of: menu, label: self.label)
                 return
             }
             // Advance one segment per second, then close.
@@ -261,6 +260,9 @@ enum MemoryScenarioProbe {
                 return
             }
             self.session.record("\(self.label)-before-close")
+            if let menu {
+                self.session.writeCensus(of: menu, label: self.label)
+            }
             self.stop()
             menu?.cancelTracking()
         }
