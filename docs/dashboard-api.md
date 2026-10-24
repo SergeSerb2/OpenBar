@@ -276,7 +276,7 @@ The snapshot is a stable display contract, not a raw dump of provider internals.
         "last30DaysUSD": 18.22
       },
       "display": {
-        "accentColor": "#49A3B0",
+        "accentColor": "#10A37F",
         "sortKey": 0,
         "priority": "normal"
       },
