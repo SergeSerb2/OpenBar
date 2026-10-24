@@ -45,6 +45,7 @@ extension SettingsStore {
         LoginShellPathCache.shared.captureOnce { [weak self] _ in
             Task { @MainActor in
                 await self?.applyProviderDetection(
+                    force: force,
                     enablementRevisions: enablementRevisions,
                     generation: generation)
             }
@@ -52,10 +53,11 @@ extension SettingsStore {
     }
 
     func applyProviderDetection(
+        force: Bool = false,
         enablementRevisions: [ProviderInstanceID: UInt64]? = nil,
         generation: UInt64? = nil) async
     {
-        guard !self.providerDetectionCompleted else { return }
+        guard force || !self.providerDetectionCompleted else { return }
         guard generation == nil || generation == self.providerDetectionGeneration else { return }
         let expectedRevisions = enablementRevisions ?? self.providerEnablementRevisions
         // Provider-specific by design: detection reads each provider's installed app, CLI, or credential artifact.
@@ -68,7 +70,7 @@ extension SettingsStore {
             atPath: FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent(".gemini/oauth_creds.json").path)
         let antigravityRunning = await AntigravityStatusProbe.isRunning()
-        guard !Task.isCancelled, !self.providerDetectionCompleted,
+        guard !Task.isCancelled, force || !self.providerDetectionCompleted,
               generation == nil || generation == self.providerDetectionGeneration else { return }
         let antigravityLoggedIn = FileManager.default.fileExists(
             atPath: AntigravityOAuthCredentialsStore().fileURL.path)
