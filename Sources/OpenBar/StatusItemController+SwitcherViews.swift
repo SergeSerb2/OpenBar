@@ -15,7 +15,8 @@ final class ProviderSwitcherView: NSView {
     }
 
     fileprivate struct QuotaIndicator {
-        let track: NSView
+        /// The strip's full-width container. Its track capsule is a sublayer laid out after the fill.
+        let track: SwitcherQuotaStripView
         let fill: NSView
         var fillWidthConstraint: NSLayoutConstraint
         var fillRatio: CGFloat
@@ -30,14 +31,13 @@ final class ProviderSwitcherView: NSView {
     private let onSelect: (ProviderSwitcherSelection) -> Void
     private let showsIcons: Bool
     private let weeklyRemainingProvider: (ProviderInstanceID) -> Double?
+    private let quotaSummaryProvider: (ProviderInstanceID) -> ProviderSwitcherQuotaSummary?
     private var buttons: [NSButton] = []
     private var quotaIndicators: [ObjectIdentifier: QuotaIndicator] = [:]
     private var hoverTrackingArea: NSTrackingArea?
     private var segmentWidths: [CGFloat] = []
-    private let selectedBackground = NSColor.controlAccentColor.cgColor
-    private let unselectedBackground = NSColor.clear.cgColor
-    private let selectedTextColor = NSColor.white
-    private let unselectedTextColor = NSColor.secondaryLabelColor
+    /// One flat `cardFill` shape behind the segments; `layout()` keeps it on the segments' bounds.
+    private let railView = SwitcherRailView()
     private let stackedIcons: Bool
     private let rowCount: Int
     private let rowSpacing: CGFloat
@@ -46,9 +46,10 @@ final class ProviderSwitcherView: NSView {
     private var hoveredButtonTag: Int?
     private var pressedButtonTag: Int?
     private var selectedSegmentIndex: Int?
-    private static let quotaIndicatorHeight: CGFloat = 2
+    fileprivate static let quotaIndicatorHeight: CGFloat = 2
     private static let quotaIndicatorBottomInset: CGFloat = 2
     private static let quotaIndicatorHorizontalInset: CGFloat = 8
+    private static let railPadding = OpenBarTheme.Switcher.railPadding
 
     init(
         providers: [UsageProvider],
@@ -60,6 +61,7 @@ final class ProviderSwitcherView: NSView {
         iconProvider: (UsageProvider) -> NSImage,
         pluginIconProvider: (UserProviderPlugin) -> NSImage = { _ in NSImage() },
         weeklyRemainingProvider: @escaping (ProviderInstanceID) -> Double?,
+        quotaSummaryProvider: @escaping (ProviderInstanceID) -> ProviderSwitcherQuotaSummary? = { _ in nil },
         onSelect: @escaping (ProviderSwitcherSelection) -> Void)
     {
         let minimumGap: CGFloat = 1
@@ -95,7 +97,10 @@ final class ProviderSwitcherView: NSView {
         self.onSelect = onSelect
         self.showsIcons = showsIcons
         self.weeklyRemainingProvider = weeklyRemainingProvider
-        self.stackedIcons = showsIcons && self.segments.count > 3
+        self.quotaSummaryProvider = quotaSummaryProvider
+        let quotaSummaries = segments.map { Self.quotaSummary(for: $0.selection, provider: quotaSummaryProvider) }
+        self.stackedIcons = Self.usesStackedSegments(
+            count: self.segments.count, showsIcons: showsIcons, hasQuotaFigures: quotaSummaries.contains { $0 != nil })
         let initialOuterPadding = Self.switcherOuterPadding(
             for: width,
             count: self.segments.count,
@@ -112,13 +117,16 @@ final class ProviderSwitcherView: NSView {
             stackedIcons: self.stackedIcons)
         self.rowSpacing = self.stackedIcons ? 4 : 2
         self.rowHeight = Self.switcherButtonHeight(stackedIcons: self.stackedIcons, rowCount: self.rowCount)
+        // The rail adds its padding above and below the segment rows.
         let height: CGFloat = self.rowHeight * CGFloat(self.rowCount)
             + self.rowSpacing * CGFloat(max(0, self.rowCount - 1))
+            + Self.railPadding * 2
         self.preferredWidth = width
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
         Self.clearButtonWidthCache()
         self.wantsLayer = true
         self.layer?.masksToBounds = false
+        self.installRail()
 
         func makeButton(index: Int, segment: Segment) -> NSButton {
             let button: NSButton
@@ -129,7 +137,8 @@ final class ProviderSwitcherView: NSView {
                     target: self,
                     action: #selector(self.handleSelection(_:)))
                 if self.rowCount >= 4 {
-                    stacked.setTitleFontSize(NSFont.smallSystemFontSize - 3)
+                    // The dense four-row form keeps its title one point smaller, as before.
+                    stacked.setTitleFontSize(OpenBarTheme.Switcher.stackedTitleSize - 1)
                 }
                 button = stacked
             } else if self.showsIcons {
@@ -146,13 +155,8 @@ final class ProviderSwitcherView: NSView {
                     action: #selector(self.handleSelection(_:)))
             }
             button.tag = index
-            if self.showsIcons {
-                if self.stackedIcons {
-                    // StackedToggleButton manages its own image view.
-                } else {
-                    // InlineIconToggleButton manages its own image view.
-                }
-            } else {
+            // StackedToggleButton and InlineIconToggleButton manage their own image views.
+            if !self.showsIcons {
                 button.image = nil
                 button.imagePosition = .noImage
             }
@@ -162,10 +166,9 @@ final class ProviderSwitcherView: NSView {
             button.controlSize = .small
             button.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
             button.setButtonType(.toggle)
-            button.contentTintColor = self.unselectedTextColor
+            button.contentTintColor = SwitcherChrome.contentColor(selected: false)
             button.alignment = .center
-            button.wantsLayer = true
-            button.layer?.cornerRadius = 6
+            SwitcherChrome.prepareSegment(button)
             button.state = (selected == segment.selection) ? .on : .off
             button.toolTip = nil
             button.translatesAutoresizingMaskIntoConstraints = false
@@ -176,6 +179,8 @@ final class ProviderSwitcherView: NSView {
 
         for (index, segment) in self.segments.enumerated() {
             let button = makeButton(index: index, segment: segment)
+            // Before the widths are measured, so a segment's figure counts toward its width.
+            (button as? SwitcherQuotaSegment)?.setQuotaSummary(quotaSummaries[index])
             self.addSubview(button)
             self.addQuotaIndicator(
                 to: button,
@@ -218,6 +223,7 @@ final class ProviderSwitcherView: NSView {
             self.preferredWidth = width
             self.frame.size.width = width
         }
+        self.fitQuotaFigures()
 
         self.updateButtonStyles()
     }
@@ -225,6 +231,31 @@ final class ProviderSwitcherView: NSView {
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         self.updateButtonStyles()
+    }
+
+    /// The rail goes in first, behind every segment. Increase Contrast changes its border and the layer colors.
+    private func installRail() {
+        self.addSubview(self.railView)
+        SwitcherChrome.observeAccessibilityDisplayOptions(self, selector: #selector(self.displayOptionsDidChange))
+    }
+
+    @objc private func displayOptionsDidChange(_: Notification) {
+        self.railView.applyStyle()
+        self.updateButtonStyles()
+    }
+
+    override func layout() {
+        super.layout()
+        // The rail hugs the segments with its padding on every side, whatever outer padding the layout chose.
+        let segmentBounds = self.buttons.reduce(NSRect.null) { $0.union($1.frame) }
+        let railFrame = segmentBounds.isNull
+            ? .zero
+            : segmentBounds.insetBy(dx: -Self.railPadding, dy: -Self.railPadding)
+        guard self.railView.frame != railFrame else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        self.railView.frame = railFrame
     }
 
     override func viewDidMoveToWindow() {
@@ -426,8 +457,8 @@ final class ProviderSwitcherView: NSView {
             self.addSubview(rowContainer)
 
             NSLayoutConstraint.activate([
-                rowContainer.topAnchor.constraint(equalTo: self.topAnchor),
-                rowContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+                rowContainer.topAnchor.constraint(equalTo: self.topAnchor, constant: Self.railPadding),
+                rowContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -Self.railPadding),
                 rowContainer.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: outerPadding),
                 rowContainer.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -outerPadding),
             ])
@@ -479,8 +510,8 @@ final class ProviderSwitcherView: NSView {
         self.addSubview(gridContainer)
 
         NSLayoutConstraint.activate([
-            gridContainer.topAnchor.constraint(equalTo: self.topAnchor),
-            gridContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+            gridContainer.topAnchor.constraint(equalTo: self.topAnchor, constant: Self.railPadding),
+            gridContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor, constant: -Self.railPadding),
             gridContainer.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: outerPadding),
             gridContainer.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -outerPadding),
         ])
@@ -586,9 +617,9 @@ final class ProviderSwitcherView: NSView {
         minimumGap: CGFloat,
         requiredSegmentWidth: CGFloat? = nil) -> CGFloat
     {
-        // Align with the card's left/right content grid when possible.
-        let preferred: CGFloat = 16
-        let reduced: CGFloat = 10
+        // Put the rail on the cards' inset when possible: rail inset 8 plus its 2-pt padding. The rail follows the
+        // segments when the padding has to shrink.
+        let preferred: CGFloat = OpenBarTheme.Switcher.railInset + OpenBarTheme.Switcher.railPadding
         let minimal: CGFloat = 6
 
         func averageButtonWidth(outerPadding: CGFloat) -> CGFloat {
@@ -620,7 +651,6 @@ final class ProviderSwitcherView: NSView {
         }
 
         if fits(outerPadding: preferred) { return preferred }
-        if fits(outerPadding: reduced) { return reduced }
         return minimal
     }
 
@@ -654,6 +684,11 @@ final class ProviderSwitcherView: NSView {
         for (index, button) in self.buttons.enumerated() {
             guard self.segments.indices.contains(index) else { continue }
             let segment = self.segments[index]
+            if let quotaSegment = button as? SwitcherQuotaSegment,
+               quotaSegment.setQuotaSummary(self.quotaSummary(for: segment.selection))
+            {
+                quotaSegment.fitQuota(segmentWidth: self.segmentWidth(at: index))
+            }
             let remaining = self.remainingPercent(for: segment.selection)
 
             let key = ObjectIdentifier(button)
@@ -682,6 +717,8 @@ final class ProviderSwitcherView: NSView {
             }
             self.updateQuotaIndicatorVisibility(for: button)
         }
+        // New strips and figures take the selected or unselected colors.
+        self.updateButtonStyles()
     }
 
     private func remainingPercent(for selection: ProviderSwitcherSelection) -> Double? {
@@ -704,32 +741,17 @@ final class ProviderSwitcherView: NSView {
         CATransaction.setDisableActions(true)
         defer { CATransaction.commit() }
 
+        let appearance = self.effectiveAppearance
         for button in self.buttons {
             let isSelected = button.state == .on
             let isHovered = self.hoveredButtonTag == button.tag
-            button.contentTintColor = isSelected ? self.selectedTextColor : self.unselectedTextColor
-            button.layer?.backgroundColor = if isSelected {
-                self.selectedBackground
-            } else if isHovered {
-                self.hoverPlateColor()
-            } else {
-                self.unselectedBackground
-            }
+            SwitcherChrome.styleSegment(button, selected: isSelected, hovered: isHovered, appearance: appearance)
             self.updateQuotaIndicatorVisibility(for: button)
+            self.styleQuotaIndicator(for: button, selected: isSelected, appearance: appearance)
             (button as? StackedToggleButton)?.setContentTintColor(button.contentTintColor)
             (button as? InlineIconToggleButton)?.setContentTintColor(button.contentTintColor)
+            (button as? SwitcherQuotaSegment)?.setQuotaOnAccent(isSelected)
         }
-    }
-
-    private func isLightMode() -> Bool {
-        self.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .aqua
-    }
-
-    private func hoverPlateColor() -> CGColor {
-        if self.isLightMode() {
-            return NSColor.black.withAlphaComponent(0.095).cgColor
-        }
-        return NSColor.labelColor.withAlphaComponent(0.06).cgColor
     }
 
     /// Cache for button width measurements to avoid repeated layout passes.
@@ -777,9 +799,11 @@ final class ProviderSwitcherView: NSView {
                 let titleWidth = ceil(
                     (self.segments[index].title as NSString).size(withAttributes: [.font: font])
                         .width)
+                // The icon row also carries the quota figure ("◉ 62%") when there is one.
+                let iconRowWidth = (button as? StackedToggleButton)?.quotaRowFittingWidth ?? 0
                 let contentPadding: CGFloat = 4 + 4
                 let extraSlack: CGFloat = 1
-                desiredWidths.append(ceil(titleWidth + contentPadding + extraSlack))
+                desiredWidths.append(ceil(max(titleWidth, iconRowWidth) + contentPadding + extraSlack))
             } else {
                 desiredWidths.append(ceil(Self.maxToggleWidth(for: button)))
             }
@@ -825,6 +849,7 @@ final class ProviderSwitcherView: NSView {
             return v
         }
 
+        self.suppressQuotaSymbolsIfCrowded(available: available)
         let desired = self.buttons.map { ceil(Self.maxToggleWidth(for: $0)) }
         let desiredSum = desired.reduce(0, +)
         let avg = floor(available / CGFloat(count))
@@ -924,6 +949,56 @@ extension ProviderSwitcherView {
 extension ProviderSwitcherView {
     fileprivate func button(at location: NSPoint) -> NSButton? {
         self.buttons.first { $0.frame.contains(location) }
+    }
+}
+
+extension ProviderSwitcherView {
+    /// Worst-lane figure for a segment. The Overview segment has none.
+    fileprivate static func quotaSummary(
+        for selection: ProviderSwitcherSelection,
+        provider: (ProviderInstanceID) -> ProviderSwitcherQuotaSummary?) -> ProviderSwitcherQuotaSummary?
+    {
+        switch selection {
+        case let .provider(instanceID): provider(instanceID)
+        case .overview: nil
+        }
+    }
+
+    /// Inline when segments fit, stacked otherwise (spec §9.2). Quota figures stack sooner: three inline segments
+    /// cannot fit "◉ Claude 62%" in a third of the menu, and a text-only segment puts its figure over its title.
+    private static func usesStackedSegments(count: Int, showsIcons: Bool, hasQuotaFigures: Bool) -> Bool {
+        hasQuotaFigures ? !showsIcons || count > 2 : showsIcons && count > 3
+    }
+
+    private func quotaSummary(for selection: ProviderSwitcherSelection) -> ProviderSwitcherQuotaSummary? {
+        Self.quotaSummary(for: selection, provider: self.quotaSummaryProvider)
+    }
+
+    private func segmentWidth(at index: Int) -> CGFloat? {
+        self.segmentWidths.indices.contains(index) ? self.segmentWidths[index] : nil
+    }
+
+    /// In a crowded single row, measures the widest figures without their tone symbols until the row fits, so every
+    /// figure keeps its room. `fitQuotaFigures()` puts a symbol back wherever the final width allows.
+    private func suppressQuotaSymbolsIfCrowded(available: CGFloat) {
+        var desired = self.buttons.map { ceil(Self.maxToggleWidth(for: $0)) }
+        var suppressed = Set<Int>()
+        while desired.reduce(0, +) > available,
+              let index = desired.indices.filter({ !suppressed.contains($0) }).max(by: { desired[$0] < desired[$1] })
+        {
+            suppressed.insert(index)
+            guard let segment = self.buttons[index] as? SwitcherQuotaSegment else { continue }
+            segment.suppressQuotaSymbol()
+            Self.buttonWidthCache[ObjectIdentifier(self.buttons[index])] = nil
+            desired[index] = ceil(Self.maxToggleWidth(for: self.buttons[index]))
+        }
+    }
+
+    /// Drops a figure's tone symbol, then the figure, only in a segment too narrow for it.
+    private func fitQuotaFigures() {
+        for (index, button) in self.buttons.enumerated() {
+            (button as? SwitcherQuotaSegment)?.fitQuota(segmentWidth: self.segmentWidth(at: index))
+        }
     }
 }
 
@@ -1079,11 +1154,7 @@ extension ProviderSwitcherView {
     private func addQuotaIndicator(to view: NSView, selection: ProviderSwitcherSelection, remainingPercent: Double?) {
         guard let remainingPercent else { return }
 
-        let track = NSView()
-        track.wantsLayer = true
-        track.layer?.backgroundColor = NSColor.tertiaryLabelColor.withAlphaComponent(0.22).cgColor
-        track.layer?.cornerRadius = Self.quotaIndicatorHeight / 2
-        track.layer?.masksToBounds = true
+        let track = SwitcherQuotaStripView()
         track.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(track)
 
@@ -1093,9 +1164,9 @@ extension ProviderSwitcherView {
             for: selection,
             remainingPercent: remainingPercent).cgColor
         fill.layer?.cornerRadius = Self.quotaIndicatorHeight / 2
-        fill.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
         fill.translatesAutoresizingMaskIntoConstraints = false
         track.addSubview(fill)
+        track.fill = fill
 
         let ratio = Self.quotaIndicatorRatio(remainingPercent: remainingPercent)
         let fillWidthConstraint = Self.quotaIndicatorFillWidthConstraint(fill: fill, track: track, ratio: ratio)
@@ -1130,7 +1201,27 @@ extension ProviderSwitcherView {
         // Keep the provider's quota visible while its tab is selected as well. The
         // indicator is the cross-provider status cue, not part of the selection chrome.
         indicator.track.isHidden = false
-        indicator.fill.isHidden = indicator.fillRatio <= 0
+        let fillHidden = indicator.fillRatio <= 0
+        if indicator.fill.isHidden != fillHidden {
+            indicator.fill.isHidden = fillHidden
+            indicator.track.needsLayout = true
+        }
+    }
+
+    /// Fill in the provider color; track in `meterTrack`, or white 30 % on the selected (`accentFill`) segment.
+    /// Both resolve for `appearance`.
+    private func styleQuotaIndicator(for button: NSButton, selected: Bool, appearance: NSAppearance) {
+        guard let indicator = self.quotaIndicators[ObjectIdentifier(button)],
+              self.segments.indices.contains(button.tag)
+        else { return }
+        let selection = self.segments[button.tag].selection
+        let remaining = indicator.fillRatio * 100
+        indicator.fill.layer?.backgroundColor = SwitcherChrome.cgColor(
+            { Self.quotaIndicatorColor(for: selection, remainingPercent: remaining) },
+            for: appearance)
+        indicator.track.trackColor = SwitcherChrome.cgColor(
+            { selected ? OpenBarTheme.NSColors.switcherSelectedTrack : OpenBarTheme.NSColors.meterTrack },
+            for: appearance)
     }
 
     fileprivate static func updateQuotaIndicatorFill(
@@ -1151,9 +1242,9 @@ extension ProviderSwitcherView {
             for: selection,
             remainingPercent: remainingPercent).cgColor
         indicator.fill.layer?.cornerRadius = Self.quotaIndicatorHeight / 2
-        indicator.fill.layer?.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
         indicator.track.isHidden = false
         indicator.fill.isHidden = ratio <= 0
+        indicator.track.needsLayout = true
     }
 
     fileprivate static func quotaIndicatorColor(
@@ -1187,6 +1278,49 @@ extension ProviderSwitcherView {
     }
 }
 
+/// The weekly strip inside a segment (spec §9.2): the provider-color fill capsule from the leading edge, a 1-pt
+/// gap, then a track capsule to the end; no gap and a full track when the fill is empty, no track when it is full.
+/// The fill is a subview sized by its width constraint; the track is one sublayer placed from the fill's frame.
+final class SwitcherQuotaStripView: NSView {
+    weak var fill: NSView?
+    private let trackLayer = CALayer()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.wantsLayer = true
+        self.trackLayer.cornerRadius = ProviderSwitcherView.quotaIndicatorHeight / 2
+        self.layer?.addSublayer(self.trackLayer)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    var trackColor: CGColor? {
+        get { self.trackLayer.backgroundColor }
+        set { self.trackLayer.backgroundColor = newValue }
+    }
+
+    override func layout() {
+        super.layout()
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        var trackStart = self.bounds.minX
+        if let fill, !fill.isHidden, fill.frame.width > 0 {
+            trackStart = fill.frame.maxX + OpenBarTheme.Switcher.stripSplitGap
+        }
+        let trackWidth = self.bounds.maxX - trackStart
+        self.trackLayer.isHidden = trackWidth <= 0
+        self.trackLayer.frame = CGRect(
+            x: trackStart,
+            y: self.bounds.minY,
+            width: max(0, trackWidth),
+            height: self.bounds.height)
+    }
+}
+
 final class TokenAccountSwitcherView: NSView {
     private let accounts: [ProviderTokenAccount]
     private let hidePersonalInfo: Bool
@@ -1196,10 +1330,10 @@ final class TokenAccountSwitcherView: NSView {
     private let preferredSize: NSSize
     private let rowSpacing: CGFloat = 4
     private let rowHeight: CGFloat = 26
-    private let selectedBackground = NSColor.controlAccentColor.cgColor
-    private let unselectedBackground = NSColor.clear.cgColor
-    private let selectedTextColor = NSColor.white
-    private let unselectedTextColor = NSColor.secondaryLabelColor
+    /// The button stack doubles as the rail: `cardFill`, radius 9, 2-pt padding around the segments.
+    private let rail = NSStackView()
+    private static let railInset = OpenBarTheme.Switcher.railInset
+    private static let railPadding = OpenBarTheme.Switcher.railPadding
 
     init(
         accounts: [ProviderTokenAccount],
@@ -1214,12 +1348,13 @@ final class TokenAccountSwitcherView: NSView {
         self.selectedIndex = min(max(selectedIndex, 0), max(0, accounts.count - 1))
         let useTwoRows = accounts.count > 3
         let rows = useTwoRows ? 2 : 1
-        let height = self.rowHeight * CGFloat(rows) + (useTwoRows ? self.rowSpacing : 0)
+        let height = self.rowHeight * CGFloat(rows) + (useTwoRows ? self.rowSpacing : 0) + Self.railPadding * 2
         self.preferredSize = NSSize(width: width, height: height)
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
         self.wantsLayer = true
         self.buildButtons(useTwoRows: useTwoRows)
         self.updateButtonStyles()
+        SwitcherChrome.observeAccessibilityDisplayOptions(self, selector: #selector(self.displayOptionsDidChange))
     }
 
     @available(*, unavailable)
@@ -1235,6 +1370,16 @@ final class TokenAccountSwitcherView: NSView {
         self.preferredSize
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        self.updateButtonStyles()
+    }
+
+    /// Increase Contrast changes the rail border and the resolved layer colors.
+    @objc private func displayOptionsDidChange(_: Notification) {
+        self.updateButtonStyles()
+    }
+
     private func buildButtons(useTwoRows: Bool) {
         let perRow = useTwoRows ? Int(ceil(Double(self.accounts.count) / 2.0)) : self.accounts.count
         let rows: [[ProviderTokenAccount]] = {
@@ -1244,10 +1389,16 @@ final class TokenAccountSwitcherView: NSView {
             return [first, second]
         }()
 
-        let stack = NSStackView()
+        let stack = self.rail
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = self.rowSpacing
+        stack.edgeInsets = NSEdgeInsets(
+            top: Self.railPadding,
+            left: Self.railPadding,
+            bottom: Self.railPadding,
+            right: Self.railPadding)
+        stack.wantsLayer = true
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         var globalIndex = 0
@@ -1277,34 +1428,38 @@ final class TokenAccountSwitcherView: NSView {
                 button.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
                 button.cell?.lineBreakMode = label.contains("@") ? .byTruncatingMiddle : .byTruncatingTail
                 button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-                button.wantsLayer = true
-                button.layer?.cornerRadius = 6
+                SwitcherChrome.prepareSegment(button)
                 row.addArrangedSubview(button)
                 self.buttons.append(button)
                 globalIndex += 1
             }
 
             stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -Self.railPadding * 2).isActive = true
         }
 
         self.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 6),
-            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -6),
+            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: Self.railInset),
+            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -Self.railInset),
             stack.topAnchor.constraint(equalTo: self.topAnchor),
             stack.bottomAnchor.constraint(equalTo: self.bottomAnchor),
             stack.heightAnchor.constraint(equalToConstant: self.rowHeight * CGFloat(rows.count) +
-                (useTwoRows ? self.rowSpacing : 0)),
+                (useTwoRows ? self.rowSpacing : 0) + Self.railPadding * 2),
         ])
     }
 
     private func updateButtonStyles() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+
+        let appearance = self.effectiveAppearance
+        SwitcherChrome.styleRail(self.rail.layer, appearance: appearance)
         for (index, button) in self.buttons.enumerated() {
             let selected = index == self.selectedIndex
             button.state = selected ? .on : .off
-            button.layer?.backgroundColor = selected ? self.selectedBackground : self.unselectedBackground
-            button.contentTintColor = selected ? self.selectedTextColor : self.unselectedTextColor
+            SwitcherChrome.styleSegment(button, selected: selected, appearance: appearance)
         }
     }
 
