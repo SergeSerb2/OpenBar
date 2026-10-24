@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 [![Fork of CodexBar](https://img.shields.io/badge/fork%20of-CodexBar-16d3b4?style=flat-square)](https://github.com/steipete/CodexBar)
 
+<img src="docs/social.png?v=c67a9f96edb3250c" alt="OpenBar — every AI coding limit in your menu bar." width="100%" />
+
 OpenBar is a lightweight fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps
 CodexBar's features — usage limits, reset countdowns, credits, local cost scans, and 100+ providers — and focuses on
 keeping the app small in memory.
