@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "serbinenko.openbar",
+  "name": "OpenBar",
+  "version": "1.0.0",
+  "author": "steipete",
+  "description": "AI usage meters powered by the OpenBar Linux CLI",
+  "kinds": ["bar-widget"],
+  "entryPoints": {"barWidget": "Panel.qml"},
+  "barWidget": {
+    "displayName": "OpenBar",
+    "description": "Usage, reset times, and credits for your AI providers",
+    "category": "Info",
+    "allowMultiple": false
+  }
+}

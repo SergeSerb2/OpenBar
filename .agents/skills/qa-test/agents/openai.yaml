@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenBar QA Test"
+  short_description: "Run live OpenBar CLI and menu QA safely."
+  default_prompt: "Run OpenBar live QA with CLI, Peekaboo, browser docs, and 1Password-safe credential checks."

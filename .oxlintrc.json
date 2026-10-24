@@ -1,0 +1,28 @@
+{
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": [
+    "Sources/OpenBarCore/Resources/Plugins/sucrase-*.min.js"
+  ],
+  "overrides": [
+    {
+      "files": ["Sources/OpenBarCore/Resources/Plugins/*.{js,ts}"],
+      "globals": {
+        "defineProvider": "readonly"
+      }
+    },
+    {
+      "files": ["docs/site.js"],
+      "env": {
+        "browser": true
+      }
+    },
+    {
+      "files": ["Scripts/*.mjs"],
+      "env": {
+        "node": true
+      }
+    }
+  ]
+}
