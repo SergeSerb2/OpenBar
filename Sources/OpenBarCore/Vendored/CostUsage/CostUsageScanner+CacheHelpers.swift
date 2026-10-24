@@ -1245,7 +1245,7 @@ extension CostUsageScanner {
             modelsDevCacheRoot: modelsDevCacheRoot,
             customPricing: customPricing,
             pricingResolver: pricingResolver ?? CostUsagePricing.CodexResolver(catalog: catalog))
-        for usage in reportCache.files.values {
+        for (_, usage) in reportCache.files.sorted(by: { $0.key < $1.key }) {
             let reconciled = self.codexCanonicalPricingRows(usage)
             pricing.unresolvedRowGroups.formUnion(reconciled.unresolvedGroups)
             let modeEvidence = self.codexPricingModeEvidence(

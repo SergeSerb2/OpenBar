@@ -1,7 +1,7 @@
 import Foundation
 
 /// One retained, de-duplicated model request. Counts follow the provider's inclusive input/output buckets.
-public struct CostUsageSessionRequest: Sendable, Equatable, Identifiable {
+public struct CostUsageSessionRequest: Sendable, Equatable, Identifiable, Codable {
     public let id: String
     public let modelName: String
     public let timestamp: Date?
@@ -37,7 +37,7 @@ public struct CostUsageSessionRequest: Sendable, Equatable, Identifiable {
 
 /// Request-ledger usage grouped by turn inside the selected reporting window.
 /// A nil turn ID represents usage that cannot be attributed to an individual turn.
-public struct CostUsageSessionTurn: Sendable, Equatable, Identifiable {
+public struct CostUsageSessionTurn: Sendable, Equatable, Identifiable, Codable {
     public let turnID: String?
     public let firstActivity: Date?
     public let lastActivity: Date?

@@ -46,7 +46,7 @@ extension CostUsageScanner {
         var latestSessions: [String: (usage: CostUsageFileUsage, report: CostUsageDailyReport, path: String)] = [:]
         let projectPathResolver = CodexCanonicalProjectPathResolver()
         var accumulatorsByProjectPath: [String: CodexProjectBreakdownAccumulator] = [:]
-        for (filePath, usage) in cache.files {
+        for (filePath, usage) in cache.files.sorted(by: { $0.key < $1.key }) {
             guard usage.touchesCodexScanWindow(
                 sinceKey: range.scanSinceKey,
                 untilKey: range.scanUntilKey,
@@ -112,7 +112,9 @@ extension CostUsageScanner {
             if lhsRank != rhsRank {
                 return lhsRank > rhsRank
             }
-            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            let nameOrder = lhs.name.localizedStandardCompare(rhs.name)
+            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
+            return (lhs.path ?? "") < (rhs.path ?? "")
         }
         let databaseURL = CostUsageStore.databaseURL(cacheRoot: modelsDevCacheRoot)
         let sessions = latestSessions.compactMap { id, file -> CostUsageSessionBreakdown? in
@@ -203,7 +205,9 @@ extension CostUsageScanner {
             if lhsRank != rhsRank {
                 return lhsRank > rhsRank
             }
-            return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            let nameOrder = lhs.name.localizedStandardCompare(rhs.name)
+            if nameOrder != .orderedSame { return nameOrder == .orderedAscending }
+            return (lhs.path ?? "") < (rhs.path ?? "")
         }
     }
 

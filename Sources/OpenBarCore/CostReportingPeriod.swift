@@ -128,3 +128,31 @@ extension CostUsageTokenSnapshot {
         return result
     }
 }
+
+extension CostReportingPeriod: Codable {
+    private enum CodingKeys: String, CodingKey { case kind, days }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(String.self, forKey: .kind) {
+        case "rolling": self = try .rolling(days: container.decode(Int.self, forKey: .days))
+        case "monthToDate": self = .monthToDate
+        case "allTime": self = .allTime
+        default: throw DecodingError.dataCorruptedError(
+                forKey: .kind,
+                in: container,
+                debugDescription: "Unknown period")
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .rolling(days):
+            try container.encode("rolling", forKey: .kind)
+            try container.encode(days, forKey: .days)
+        case .monthToDate: try container.encode("monthToDate", forKey: .kind)
+        case .allTime: try container.encode("allTime", forKey: .kind)
+        }
+    }
+}

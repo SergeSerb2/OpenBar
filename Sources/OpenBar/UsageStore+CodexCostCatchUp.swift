@@ -162,10 +162,12 @@ extension UsageStore {
                     let result = try await self.advanceCodexCostCatchUp(
                         codexHomePath: context.codexHomePath,
                         historyDays: context.historyDays,
-                        previousActiveDuration: previousActiveDuration)
+                        previousActiveDuration: previousActiveDuration,
+                        completedPasses: completedPasses,
+                        knownProgressKeys: seenProgressKeys)
                     let nextStatus = result.value
                     previousActiveDuration = (previousActiveDuration ?? 0) + result.activeDuration
-                    completedPasses += 1
+                    completedPasses += result.completedPasses
                     didAdvance = true
                     try self.checkCodexCostCatchUpContinuation(status: nextStatus, context: context)
                     publish(nextStatus, nextStatus.pending ? .indexing : .complete)
@@ -177,7 +179,8 @@ extension UsageStore {
                         status = publishedStatus
                         guard status.pending else { return }
                     }
-                    if nextStatus.pending, !seenProgressKeys.insert(nextStatus.progressKey).inserted {
+                    let progressKeys = result.progressKeys.isEmpty ? [nextStatus.progressKey] : result.progressKeys
+                    if nextStatus.pending, !progressKeys.allSatisfy({ seenProgressKeys.insert($0).inserted }) {
                         if !recoveredEmptyPass, nextStatus.progressKey == previousProgressKey,
                            nextStatus.yieldedBeforeFileAttempt
                         {
@@ -325,7 +328,9 @@ extension UsageStore {
     private func advanceCodexCostCatchUp(
         codexHomePath: String?,
         historyDays: Int,
-        previousActiveDuration: TimeInterval?) async throws
+        previousActiveDuration: TimeInterval?,
+        completedPasses: Int,
+        knownProgressKeys: Set<String>) async throws
         -> CostUsageScanExecutor.TimedResult<CostUsageFetcher.CodexScanCatchUpStatus>
     {
         let durationBudget = self.codexCostCatchUpMode.scanDurationPerRefresh(after: previousActiveDuration)
@@ -341,6 +346,8 @@ extension UsageStore {
             codexHomePath: codexHomePath,
             historyDays: historyDays,
             scanDurationPerRefresh: durationBudget,
+            maximumPasses: max(1, 8 - completedPasses),
+            knownProgressKeys: knownProgressKeys,
             calendar: self.settings.costUsageBucketCalendar)
     }
 
