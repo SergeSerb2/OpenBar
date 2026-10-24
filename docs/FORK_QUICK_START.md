@@ -13,7 +13,7 @@ read_when:
 
 **Fork Maintainer:** Brandon Charleson ([topoffunnel.com](https://topoffunnel.com))  
 **Original Author:** Peter Steinberger ([steipete](https://twitter.com/steipete))  
-**Fork Repository:** https://github.com/topoffunnel/OpenBar
+**Fork Repository:** https://github.com/topoffunnel/CodexBar
 
 ---
 
@@ -221,7 +221,7 @@ See `docs/FORK_ROADMAP.md` for contribution strategy.
 ## 📞 Support
 
 ### Fork-Specific Issues
-- GitHub Issues: https://github.com/topoffunnel/OpenBar/issues
+- GitHub Issues: https://github.com/topoffunnel/CodexBar/issues
 - Email: [your-email]@topoffunnel.com
 
 ### Upstream Issues

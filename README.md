@@ -6,7 +6,7 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-0a0a0c?style=flat-square)](https://github.com/SergeSerb2/OpenBar/releases/latest)
 [![Linux desktop](https://img.shields.io/badge/Linux-Qt_6-1793d1?style=flat-square)](Integrations/Linux/README.md)
 [![Homebrew](https://img.shields.io/badge/brew-steipete%2Ftap%2Fopenbar-orange?style=flat-square)](https://github.com/SergeSerb2/homebrew-tap)
-[![AUR](https://img.shields.io/aur/version/openbar-cli?style=flat-square&color=1793d1)](https://aur.archlinux.org/packages/openbar-cli)
+[![AUR](https://img.shields.io/aur/version/codexbar-cli?style=flat-square&color=1793d1)](https://aur.archlinux.org/packages/codexbar-cli)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
 [![Site](https://img.shields.io/badge/site-sergeserb2.github.io/OpenBar-16d3b4?style=flat-square)](https://sergeserb2.github.io/OpenBar)
 
@@ -298,24 +298,24 @@ CLI install:
 - 🧿 [oracle](https://askoracle.dev) — Ask the oracle when you're stuck. Invoke GPT-5 Pro with a custom context and files.
 
 ## Looking for a Windows version?
-- [Win-OpenBar](https://github.com/Finesssee/Win-OpenBar)
-- [OpenBar for Windows](https://github.com/hinneslung/OpenBar-for-Windows) — Native Windows tray app powered by the original OpenBar CLI through WSL2; x64 and ARM64 installers.
+- [Win-OpenBar](https://github.com/Finesssee/Win-CodexBar)
+- [OpenBar for Windows](https://github.com/hinneslung/CodexBar-for-Windows) — Native Windows tray app powered by the original OpenBar CLI through WSL2; x64 and ARM64 installers.
 
 ## Linux desktop integration?
 - [Linux desktop app](Integrations/Linux/README.md) — x86_64/ARM64 release archives with an installer; Qt 6 usage and spending windows, separate settings, optional system tray, and desktop notifications using the Linux CLI.
 - [Omarchy native widget](Integrations/Omarchy/README.md) — Compact Quickshell usage popup sharing the Linux desktop app’s backend.
-- [OpenBar GTK](https://github.com/SaahiilM/openbar-gtk) — Community GTK4/libadwaita front-end with usage, spending, and agent sessions from the OpenBar Linux CLI.
-- [openbar-waybar](https://github.com/Marouan-chak/openbar-waybar) — Waybar custom module + GTK4 popover for Hyprland / Sway / other Wayland compositors, built on top of the bundled Linux CLI.
-- [openbar-cosmic-applet](https://github.com/andrew-verde/openbar-cosmic-applet) — Native COSMIC (System76) desktop panel applet with a tab per provider, pace projections, and cost/token stats, built on top of the bundled Linux CLI.
-- [Openbar GNOME](https://extensions.gnome.org/extension/9841/openbar/) — GNOME Shell extension that brings OpenBar usage into the desktop panel.
-- [openbar-cinnamon-applet](https://github.com/jacobcalvert/openbar-cinnamon-applet) — Linux Mint Cinnamon panel applet powered by OpenBar's JSON output.
+- [OpenBar GTK](https://github.com/SaahiilM/codexbar-gtk) — Community GTK4/libadwaita front-end with usage, spending, and agent sessions from the OpenBar Linux CLI.
+- [openbar-waybar](https://github.com/Marouan-chak/codexbar-waybar) — Waybar custom module + GTK4 popover for Hyprland / Sway / other Wayland compositors, built on top of the bundled Linux CLI.
+- [openbar-cosmic-applet](https://github.com/andrew-verde/codexbar-cosmic-applet) — Native COSMIC (System76) desktop panel applet with a tab per provider, pace projections, and cost/token stats, built on top of the bundled Linux CLI.
+- [Openbar GNOME](https://extensions.gnome.org/extension/9841/codexbar/) — GNOME Shell extension that brings OpenBar usage into the desktop panel.
+- [openbar-cinnamon-applet](https://github.com/jacobcalvert/codexbar-cinnamon-applet) — Linux Mint Cinnamon panel applet powered by OpenBar's JSON output.
 - [noctalia-codex-usage](https://github.com/rayoplateado/noctalia-codex-usage) — Noctalia/Quickshell plugin that shows Codex 5-hour and weekly usage limits, built on top of the bundled Linux CLI.
 - [KodexBar](https://github.com/tylxr59/KodexBar) — KDE Plasma widget that shows OpenBar usage in the Plasma panel, built on top of the bundled Linux CLI.
-- [openbar-plasmoid](https://github.com/psimaker/openbar-plasmoid) — KDE Plasma 6 widget for OpenBar's meter icon, provider switcher, quota windows, pace, credits, local cost, and status, powered by the bundled Linux CLI.
-- [OpenBar Plasma](https://github.com/Lucenx9/openbar-plasma) — KDE Plasma 6 widget with multi-provider views, account selection, cost history, notifications, configurable providers, and installable `.plasmoid` releases, powered by the bundled Linux CLI.
-- [OpenBar AgentView](https://github.com/materemias/openbar-agentview) — KDE Plasma 6 widget with usage meters, agent-session search, terminal focus, and kitty session restoration, powered by the bundled Linux CLI.
-- [OpenBar Meter](https://github.com/noctalia-dev/community-plugins/tree/main/openbar-meter) — Noctalia v5 bar widget and panel showing every enabled provider's quota windows, credits, and pace, installable from Noctalia's plugin store, built on the bundled Linux CLI.
-- [openbar-dms](https://github.com/quantmind-br/openbar-dms) — DankMaterialShell bar widget with provider logo pills, a popout of quota windows, reset times, and local spending, and shortcuts to the Linux desktop app's Usage & Spend and Settings windows, sharing that app's backend.
+- [openbar-plasmoid](https://github.com/psimaker/codexbar-plasmoid) — KDE Plasma 6 widget for OpenBar's meter icon, provider switcher, quota windows, pace, credits, local cost, and status, powered by the bundled Linux CLI.
+- [OpenBar Plasma](https://github.com/Lucenx9/codexbar-plasma) — KDE Plasma 6 widget with multi-provider views, account selection, cost history, notifications, configurable providers, and installable `.plasmoid` releases, powered by the bundled Linux CLI.
+- [OpenBar AgentView](https://github.com/materemias/codexbar-agentview) — KDE Plasma 6 widget with usage meters, agent-session search, terminal focus, and kitty session restoration, powered by the bundled Linux CLI.
+- [OpenBar Meter](https://github.com/noctalia-dev/community-plugins/tree/main/codexbar-meter) — Noctalia v5 bar widget and panel showing every enabled provider's quota windows, credits, and pace, installable from Noctalia's plugin store, built on the bundled Linux CLI.
+- [openbar-dms](https://github.com/quantmind-br/codexbar-dms) — DankMaterialShell bar widget with provider logo pills, a popout of quota windows, reset times, and local spending, and shortcuts to the Linux desktop app's Usage & Spend and Settings windows, sharing that app's backend.
 
 ## Desk display
 - [AI Monitor](https://github.com/tobymarks/esp32-ai-monitor) — ESP32 desk display (Cheap Yellow Display) plus a macOS companion app that shows Claude, ChatGPT, Gemini, Copilot, Cursor and Antigravity limits as rings or bars, fed over USB by the bundled CLI. No Wi-Fi on the device, 3D-printable case.
@@ -329,7 +329,7 @@ CLI install:
 ## Phone & web
 
 - [Starbridge](https://github.com/T0mSIlver/starbridge) — Community-maintained Android and web app that displays quota windows from the OpenBar CLI on macOS and Linux, with optional quota alerts.
-- [Notify! OpenBar](https://github.com/simplytoast1/notify-openbar) — Community-maintained macOS companion that reads OpenBar CLI or local `openbar serve` output and sends selected usage through [Notify!](https://getnotifyapp.com/) for iPhone/iPad widgets, Live Activities, and quota notifications.
+- [Notify! OpenBar](https://github.com/simplytoast1/notify-codexbar) — Community-maintained macOS companion that reads OpenBar CLI or local `openbar serve` output and sends selected usage through [Notify!](https://getnotifyapp.com/) for iPhone/iPad widgets, Live Activities, and quota notifications.
 
 ## Credits
 Inspired by [ccusage](https://github.com/ryoppippi/ccusage) (MIT), specifically the cost usage tracking.

@@ -1433,7 +1433,7 @@ gh repo fork SergeSerb2/OpenBar --remote=false --clone=false
 - [ ] **Step 12.2: Add fork as a remote (if missing) and push**
 
 ```bash
-git remote get-url fork 2>/dev/null || git remote add fork https://github.com/noefabris/OpenBar.git
+git remote get-url fork 2>/dev/null || git remote add fork https://github.com/noefabris/CodexBar.git
 git push -u fork feat/kilo-organization-selection
 ```
 
