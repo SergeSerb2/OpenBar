@@ -39,7 +39,10 @@ struct PoePluginGoldenTests {
         #expect(snapshot.identity?.loginMethod == "Balance: 1,500 points")
         #expect(try snapshot.details == [ProviderDetailSection(
             title: "Points",
-            rows: [.init(label: "Current balance", value: "1,500 points")])])
+            rows: [
+                .init(label: "Current balance", value: "1,500 points"),
+                .init(label: "History", value: "Incomplete"),
+            ])])
     }
 
     private static func fetch(balance: String, historyStatus: Int = 200) async throws -> UsageSnapshot {
