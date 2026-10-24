@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Bar outlines with the corner rounding Swift Charts used on macOS 26: bars that grow from zero round
-/// their top corners, and floating ranges round every corner.
+/// Batched bar outlines (docs/design/README.md §8): bars that grow from the baseline round only their
+/// data end and keep a square baseline end; floating ranges round every corner.
 enum ChartBarPath {
-    static let cornerRadius: CGFloat = 2
+    static let cornerRadius: CGFloat = OpenBarTheme.Chart.barCornerRadius
 
     static func path(_ rects: [CGRect], roundsBottom: Bool, cornerRadius: CGFloat = Self.cornerRadius) -> Path {
         var path = Path()

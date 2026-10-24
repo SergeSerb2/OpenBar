@@ -117,7 +117,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
             if model.points.isEmpty {
                 ZStack {
                     Text(Self.emptyStateText(title: effectiveSelectedSeries?.title))
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
@@ -134,11 +134,11 @@ struct PlanUtilizationHistoryChartMenuView: View {
                             : String(format: L("%d utilization samples"), model.points.count))
 
                 Text(self.detailLine(model: model, windowMinutes: effectiveSelectedSeries?.history.windowMinutes ?? 0))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(height: Layout.detailHeight, alignment: .leading)
+                    .frame(minHeight: Layout.detailHeight, alignment: .leading)
             }
         }
         .padding(.horizontal, 16)
@@ -289,7 +289,7 @@ struct PlanUtilizationHistoryChartMenuView: View {
         let pointsByIndex = Dictionary(uniqueKeysWithValues: points.map { ($0.index, $0) })
         let color = ProviderAccentPalette.color(for: provider)
         let barColor = Color(red: color.red, green: color.green, blue: color.blue)
-        let trackColor = MenuHighlightStyle.progressTrack(false)
+        let trackColor = OpenBarTheme.Colors.meterTrack
 
         return Model(
             points: points,
@@ -703,9 +703,10 @@ struct PlanUtilizationHistoryChartMenuView: View {
     }
     #endif
 
-    /// Track and fill bars, the hover rule, and date labels drawn with plain shapes and text. Swift Charts
-    /// renders through RenderBox's Metal backend on macOS 26+, which commits about 100 MB of GPU memory the
-    /// first time a menu draws a chart.
+    /// Track and fill columns and date labels drawn with plain shapes and text. Swift Charts renders through
+    /// RenderBox's Metal backend on macOS 26+, which commits about 100 MB of GPU memory the first time a menu
+    /// draws a chart. Columns keep a 2-pt gap where the width allows; while one is hovered, the other fills
+    /// draw at the dimmed opacity.
     private func utilizationChart(model: Model, windowMinutes: Int) -> some View {
         GeometryReader { proxy in
             let plotFrame = CGRect(
@@ -714,28 +715,32 @@ struct PlanUtilizationHistoryChartMenuView: View {
                 width: proxy.size.width,
                 height: max(0, proxy.size.height - ChartAxisLabelLayout.xAxisHeight))
             let scale = Self.xScale(model: model, plotWidth: plotFrame.width)
+            let barWidth = OpenBarTheme.Chart.barWidth(
+                Layout.barWidth,
+                pitch: abs(scale.position(1) - scale.position(0)))
             let barRect = { (point: Point, usedPercent: Double) in
                 let height = plotFrame.height * CGFloat(min(max(usedPercent, 0), 100) / 100)
                 return CGRect(
-                    x: scale.position(Double(point.index)) - Layout.barWidth / 2,
+                    x: scale.position(Double(point.index)) - barWidth / 2,
                     y: plotFrame.maxY - height,
-                    width: Layout.barWidth,
+                    width: barWidth,
                     height: height)
             }
+            let selected = self.selectedPoint(model: model)
+            let axisIndexes = Self.visibleAxisIndexes(model: model, scale: scale, windowMinutes: windowMinutes)
+            let fills = model.points.filter { $0.id != selected?.id }.map { barRect($0, $0.usedPercent) }
             ZStack(alignment: .topLeading) {
-                ChartBarPath.path(model.points.map { barRect($0, 100) }, roundsBottom: true)
+                ChartBarPath.path(model.points.map { barRect($0, 100) }, roundsBottom: false)
                     .fill(model.trackColor)
-                ChartBarPath.path(model.points.map { barRect($0, $0.usedPercent) }, roundsBottom: true)
-                    .fill(model.barColor)
-                if let selected = self.selectedPoint(model: model) {
-                    let x = scale.position(Double(selected.index))
-                    Path { path in
-                        path.move(to: CGPoint(x: x, y: plotFrame.minY))
-                        path.addLine(to: CGPoint(x: x, y: plotFrame.maxY))
-                    }
-                    .stroke(Color(nsColor: .tertiaryLabelColor), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                ChartBarPath.path(fills, roundsBottom: false)
+                    .fill(selected == nil ? model.barColor : model.barColor.opacity(OpenBarTheme.Chart.dimmedOpacity))
+                if let selected {
+                    ChartBarPath.path([barRect(selected, selected.usedPercent)], roundsBottom: false)
+                        .fill(model.barColor)
                 }
-                ForEach(model.axisIndexes, id: \.self) { raw in
+                OpenBarTheme.Chart.baselinePath(width: plotFrame.width, bottom: plotFrame.maxY)
+                    .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.baselineWidth)
+                ForEach(axisIndexes, id: \.self) { raw in
                     if let point = model.pointsByIndex[Int(raw.rounded())] {
                         Self.axisLabel(for: point, windowMinutes: windowMinutes)
                             .frame(width: 0, height: 0, alignment: .top)
@@ -776,6 +781,22 @@ struct PlanUtilizationHistoryChartMenuView: View {
             guard width > 0 else { return self.domain.lowerBound }
             let fraction = Double((position - self.range.lowerBound) / width)
             return self.domain.lowerBound + fraction * (self.domain.upperBound - self.domain.lowerBound)
+        }
+    }
+
+    /// The model's axis ticks, minus any label that would run into the one before it.
+    private static func visibleAxisIndexes(model: Model, scale: XScale, windowMinutes: Int) -> [Double] {
+        let font = OpenBarTheme.Chart.axisNSFont
+        let minimumSpacing: CGFloat = 4
+        var previousTrailingEdge = -CGFloat.infinity
+        return model.axisIndexes.filter { raw in
+            guard let point = model.pointsByIndex[Int(raw.rounded())] else { return false }
+            let text = point.date.formatted(self.axisFormat(windowMinutes: windowMinutes))
+            let halfWidth = (text as NSString).size(withAttributes: [.font: font]).width / 2
+            let x = scale.position(raw)
+            guard x - halfWidth >= previousTrailingEdge + minimumSpacing else { return false }
+            previousTrailingEdge = x + halfWidth
+            return true
         }
     }
 

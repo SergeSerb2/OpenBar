@@ -34,11 +34,9 @@ struct MenuBarTokensSparkline: Hashable {
                 let barHeight = MenuUsageBarMetrics.height(value: value, scale: scale, available: size.height)
                 NSColor.black.withAlphaComponent(MenuUsageBarMetrics.opacity(
                     value: value, scale: scale, highlighted: highlighted)).setFill()
-                NSBezierPath(
-                    roundedRect: NSRect(
-                        x: CGFloat(index) * (width + spacing), y: 0, width: width, height: barHeight),
-                    xRadius: min(1.5, width / 2),
-                    yRadius: 1.5).fill()
+                Self.barPath(
+                    NSRect(x: CGFloat(index) * (width + spacing), y: 0, width: width, height: barHeight))
+                    .fill()
             }
             NSColor.black.withAlphaComponent(0.22).setFill()
             NSRect(x: 0, y: 0, width: size.width, height: 1).fill()
@@ -46,5 +44,23 @@ struct MenuBarTokensSparkline: Hashable {
         }
         image.isTemplate = true
         return image
+    }
+
+    /// A bar with a 1-point rounded data end and a square baseline end (docs/design/README.md §8).
+    private static func barPath(_ rect: NSRect) -> NSBezierPath {
+        let radius = min(1, rect.width / 2, rect.height)
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: rect.minX, y: rect.minY))
+        path.line(to: NSPoint(x: rect.maxX, y: rect.minY))
+        path.appendArc(
+            from: NSPoint(x: rect.maxX, y: rect.maxY),
+            to: NSPoint(x: rect.minX, y: rect.maxY),
+            radius: radius)
+        path.appendArc(
+            from: NSPoint(x: rect.minX, y: rect.maxY),
+            to: NSPoint(x: rect.minX, y: rect.minY),
+            radius: radius)
+        path.close()
+        return path
     }
 }

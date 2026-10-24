@@ -63,8 +63,9 @@ struct UsageBreakdownChartMenuView: View {
 
             if presentationState == .empty {
                 Text(L("No usage breakdown data."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 130)
                     .accessibilityLabel(L("No usage breakdown data available."))
             } else if presentationState == .chart {
                 DailyBarChart(
@@ -98,17 +99,17 @@ struct UsageBreakdownChartMenuView: View {
                 let detail = self.detailLines(model: model)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(detail.primary)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(height: 16, alignment: .leading)
+                        .frame(minHeight: 16, alignment: .leading)
                     Text(detail.secondary ?? " ")
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(height: 16, alignment: .leading)
+                        .frame(minHeight: 16, alignment: .leading)
                         .opacity(detail.secondary == nil ? 0 : 1)
                 }
 
@@ -121,9 +122,9 @@ struct UsageBreakdownChartMenuView: View {
                         HStack(spacing: 6) {
                             Circle()
                                 .fill(model.color(for: service))
-                                .frame(width: 7, height: 7)
+                                .frame(width: 8, height: 8)
                             Text(service)
-                                .font(.caption2)
+                                .font(OpenBarTheme.Fonts.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                         }
@@ -158,7 +159,7 @@ struct UsageBreakdownChartMenuView: View {
 
         func color(for service: String) -> Color {
             guard let idx = self.services.firstIndex(of: service), idx < self.serviceColors.count else {
-                return .secondary
+                return OpenBarTheme.Chart.otherSeriesColor
             }
             return self.serviceColors[idx]
         }
@@ -167,12 +168,10 @@ struct UsageBreakdownChartMenuView: View {
     private func summaryMetric(title: String, credits: Double?) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(title)
-                .font(.caption2)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
             Text(Self.creditsString(credits))
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .monospacedDigit()
+                .font(OpenBarTheme.Fonts.laneValue)
         }
         .accessibilityElement(children: .combine)
     }
@@ -225,7 +224,8 @@ struct UsageBreakdownChartMenuView: View {
         }
 
         let services = Self.serviceOrder(from: sorted)
-        let colors = services.map { Self.colorForService($0) }
+        // Busiest service first, in the fixed chart palette order; a seventh service takes the neutral color.
+        let colors = services.indices.map(OpenBarTheme.Chart.seriesColor)
         let axisDates = Self.axisDates(fromSortedDays: sorted)
 
         return Model(
@@ -262,24 +262,6 @@ struct UsageBreakdownChartMenuView: View {
                 return lhs.value > rhs.value
             }
             .map(\.key)
-    }
-
-    private static func colorForService(_ service: String) -> Color {
-        let lower = service.lowercased()
-        if lower == "cli" {
-            return Color(red: 0.26, green: 0.55, blue: 0.96)
-        }
-        if lower.contains("github"), lower.contains("review") {
-            return Color(red: 0.94, green: 0.53, blue: 0.18)
-        }
-        let palette: [Color] = [
-            Color(red: 0.46, green: 0.75, blue: 0.36),
-            Color(red: 0.80, green: 0.45, blue: 0.92),
-            Color(red: 0.26, green: 0.78, blue: 0.86),
-            Color(red: 0.94, green: 0.74, blue: 0.26),
-        ]
-        let idx = abs(service.hashValue) % palette.count
-        return palette[idx]
     }
 
     private static func axisDates(fromSortedDays sortedDays: [OpenAIDashboardDailyBreakdown]) -> [Date] {

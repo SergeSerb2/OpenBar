@@ -4,14 +4,13 @@ struct SpendActivityPalette {
     let colorScheme: ColorScheme
     var contrast: ColorSchemeContrast = .standard
 
+    /// The single-hue Iris ramp from `OpenBarTheme.Chart.activityRamp`, resolved for this scheme and contrast.
     func color(forLevel level: Int) -> Color {
-        let colors: [UInt32] = switch (self.colorScheme, self.contrast) {
-        case (.dark, .increased): [0x484C52, 0x469960, 0x58B872, 0x7DDF96, 0xADF0BC]
-        case (.dark, _): [0x30353A, 0x347D4E, 0x43985D, 0x58B872, 0x7DDF96]
-        case (_, .increased): [0xE1E5E9, 0x519C66, 0x34804C, 0x24693B, 0x17552E]
-        default: [0xEBEDF0, 0x9BE9A8, 0x40C463, 0x30A14E, 0x216E39]
-        }
-        return Self.rgb(colors[min(max(level, 0), 4)])
+        let ramp = OpenBarTheme.Chart.activityRamp
+        let value = ramp[min(max(level, 0), ramp.count - 1)].value(
+            isDark: self.colorScheme == .dark,
+            increasedContrast: self.contrast == .increased)
+        return Color(.sRGB, red: value.red, green: value.green, blue: value.blue, opacity: value.alpha)
     }
 
     var unavailableFill: Color {

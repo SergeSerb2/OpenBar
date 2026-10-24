@@ -5,13 +5,16 @@ import SwiftUI
 /// Day-bucketed bar chart shared by the cost, credits, and usage-breakdown submenus.
 ///
 /// Plain shapes and text instead of Swift Charts: Charts renders through RenderBox's Metal backend on
-/// macOS 26+, which commits about 100 MB of GPU memory the first time a menu draws a chart. The geometry
-/// follows the Charts layout these submenus used: whole-day bars at `ChartBarHoverSelection.barWidthRatio`,
-/// a y scale from zero to the tallest mark, and caption dates centered under their bars.
+/// macOS 26+, which commits about 100 MB of GPU memory the first time a menu draws a chart. Bars sit in
+/// whole-day slots at `ChartBarHoverSelection.barWidthRatio` (hit-testing uses the same slots), the y scale
+/// runs from zero to the tallest mark, and caption dates center under their bars. Styling follows
+/// docs/design/README.md §8: one batched path per color, a 2-pt gap between bars and stacked segments,
+/// a 1-pt baseline, and recessive grid lines at the y-axis ticks.
 struct DailyBarChart: View {
     struct Day {
         let date: Date
-        /// Stacked bottom to top. An empty stack still takes part in hover selection.
+        /// Stacked bottom to top. An empty stack still takes part in hover selection and draws a
+        /// track-colored stub, so a day without a value reads as missing rather than as a gap.
         var segments: [Segment]
         /// Height of the incomplete-usage diamond, when the day has one.
         var incompleteMarkerValue: Double?
@@ -39,9 +42,14 @@ struct DailyBarChart: View {
     let onHover: (Int?) -> Void
 
     @Environment(\.locale) private var locale
+    @Environment(\.colorSchemeContrast) private var contrast
 
-    private static let selectionBandColor = Color(nsColor: .labelColor).opacity(0.1)
-    private static let markerColor = Color.secondary
+    /// The peak day's cap: a thin text-colored tip, so it reads as an annotation, never as a series or a tone.
+    private static let peakColor = Color(nsColor: .labelColor)
+    private static let peakCapHeight: CGFloat = 3
+    /// Incomplete requests are a data-quality warning; the diamond shape carries it without color.
+    private static let markerColor = OpenBarTheme.Colors.warning
+    private static let stubColor = OpenBarTheme.Colors.meterTrack
     /// Diagonal of a diamond covering the 20 square points of the former `symbolSize(20)` point mark.
     private static let markerSize = CGFloat(40).squareRoot()
     /// Swift Charts kept this much room between leading y labels and the plot.
@@ -89,8 +97,8 @@ struct DailyBarChart: View {
             ForEach(yAxis.values.indices, id: \.self) { index in
                 let value = yAxis.values[index]
                 Text(yAxis.label(value))
-                    .font(.caption2)
-                    .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
+                    .font(OpenBarTheme.Chart.axisFont)
+                    .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                     .padding(.leading, Self.yAxisLabelPadding)
                     .fixedSize()
                     // A zero-height frame centers the label on its value's line.
@@ -110,22 +118,26 @@ struct DailyBarChart: View {
                 position: position)
         } ?? []
         let y = { (value: Double) in frame.maxY - frame.height * CGFloat(scale.fraction(for: value)) }
+        let marks = self.marks(bars: bars.map { Self.drawnFrame($0.frame) }, y: y)
+        let gridValues = OpenBarTheme.Chart.gridValues(self.yAxis?.values ?? [])
 
         return ZStack(alignment: .topLeading) {
-            ForEach(self.segmentPaths(bars: bars, y: y), id: \.color) { group in
+            if !gridValues.isEmpty {
+                OpenBarTheme.Chart.gridPath(values: gridValues, width: frame.width, y: y)
+                    .stroke(OpenBarTheme.Chart.gridColor(self.contrast), lineWidth: OpenBarTheme.Chart.gridLineWidth)
+            }
+            ForEach(marks.groups, id: \.color) { group in
                 group.path.fill(group.color)
             }
+            if !marks.stubs.isEmpty {
+                marks.stubs.fill(Self.stubColor)
+            }
+            if let peakCap = marks.peakCap {
+                peakCap.path.fill(Self.peakColor.opacity(peakCap.opacity))
+            }
             self.markerPath(bars: bars, y: y).fill(Self.markerColor)
-            if let peak = self.peak, let bar = self.bar(for: peak.date, bars: bars) {
-                let capStart = max(peak.value - scale.maximum * 0.05, 0)
-                ChartBarPath.path(
-                    [CGRect(x: bar.minX, y: y(peak.value), width: bar.width, height: y(capStart) - y(peak.value))],
-                    roundsBottom: true)
-                    .fill(Color(nsColor: .systemYellow))
-            }
-            if let index = self.selectedIndex, bars.indices.contains(index) {
-                Path(bars[index].frame).fill(Self.selectionBandColor)
-            }
+            OpenBarTheme.Chart.baselinePath(width: frame.width, bottom: frame.maxY)
+                .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.baselineWidth)
             ForEach(self.axisLabels(position: position, frame: frame), id: \.date) { label in
                 ChartAxisLabelLayout.xAxisDateLabel(Text(label.text), x: label.x, plotBottom: frame.maxY)
             }
@@ -135,6 +147,13 @@ struct DailyBarChart: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
+    }
+
+    /// The drawn part of a day slot: the hit-test frame narrowed so neighbors keep a 2-pt gap.
+    private static func drawnFrame(_ frame: CGRect) -> CGRect {
+        let pitch = frame.width / ChartBarHoverSelection.barWidthRatio
+        let width = OpenBarTheme.Chart.barWidth(frame.width, pitch: pitch)
+        return CGRect(x: frame.midX - width / 2, y: frame.minY, width: width, height: frame.height)
     }
 
     /// Plot-relative x for a date over whole days, from the first marked day's start to the last one's end.
@@ -153,43 +172,62 @@ struct DailyBarChart: View {
         }
     }
 
-    private func bar(for date: Date, bars: [ChartBarHoverSelection.Bar]) -> CGRect? {
-        let calendar = Calendar.current
-        guard let index = self.days.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: date) }),
-              bars.indices.contains(index)
-        else { return nil }
-        return bars[index].frame
-    }
-
     private struct SegmentGroup {
         let color: Color
         var path: Path
     }
 
-    /// One path per color; only the top of each stack is rounded.
-    private func segmentPaths(
-        bars: [ChartBarHoverSelection.Bar],
-        y: (Double) -> CGFloat) -> [SegmentGroup]
-    {
+    private struct Marks {
         var groups: [SegmentGroup] = []
-        for (day, bar) in zip(self.days, bars) {
+        var stubs = Path()
+        var peakCap: (path: Path, opacity: Double)?
+    }
+
+    /// One path per drawn color. Only the top of each stack is rounded; stacked segments keep a 2-pt
+    /// gap. While a day is selected, the other days draw at the dimmed opacity.
+    private func marks(bars: [CGRect], y: (Double) -> CGFloat) -> Marks {
+        var marks = Marks()
+        let calendar = Calendar.current
+        for (index, (day, bar)) in zip(self.days, bars).enumerated() {
+            let opacity = self.selectedIndex.map { $0 == index ? 1 : OpenBarTheme.Chart.dimmedOpacity } ?? 1
+            if day.segments.isEmpty {
+                let height = min(OpenBarTheme.Chart.missingStubHeight, bar.height)
+                marks.stubs.addPath(ChartBarPath.path(
+                    [CGRect(x: bar.minX, y: bar.maxY - height, width: bar.width, height: height)],
+                    roundsBottom: false,
+                    cornerRadius: height / 2))
+                continue
+            }
             var base = 0.0
             let segments = day.segments.filter { $0.value > 0 }
             for (offset, segment) in segments.enumerated() {
                 let top = base + segment.value
-                let rect = CGRect(x: bar.frame.minX, y: y(top), width: bar.frame.width, height: y(base) - y(top))
+                var rect = CGRect(x: bar.minX, y: y(top), width: bar.width, height: y(base) - y(top))
+                if offset > 0 {
+                    rect.size.height -= OpenBarTheme.Chart.stackGap(segmentHeight: rect.height)
+                }
                 let path = offset == segments.count - 1
                     ? ChartBarPath.path([rect], roundsBottom: false)
                     : Path(rect)
-                if let index = groups.firstIndex(where: { $0.color == segment.color }) {
-                    groups[index].path.addPath(path)
+                let color = opacity < 1 ? segment.color.opacity(opacity) : segment.color
+                if let groupIndex = marks.groups.firstIndex(where: { $0.color == color }) {
+                    marks.groups[groupIndex].path.addPath(path)
                 } else {
-                    groups.append(SegmentGroup(color: segment.color, path: path))
+                    marks.groups.append(SegmentGroup(color: color, path: path))
                 }
                 base = top
             }
+            if let peak = self.peak, calendar.isDate(peak.date, inSameDayAs: day.date) {
+                let top = y(peak.value)
+                let height = min(Self.peakCapHeight, max(0, y(0) - top))
+                marks.peakCap = (
+                    ChartBarPath.path(
+                        [CGRect(x: bar.minX, y: top, width: bar.width, height: height)],
+                        roundsBottom: false),
+                    opacity)
+            }
         }
-        return groups
+        return marks
     }
 
     private func markerPath(bars: [ChartBarHoverSelection.Bar], y: (Double) -> CGFloat) -> Path {
@@ -218,7 +256,7 @@ struct DailyBarChart: View {
     /// Drops a label that would run into the y-axis labels, as Swift Charts did.
     private func axisLabels(position: ((Date) -> CGFloat?)?, frame: CGRect) -> [AxisLabel] {
         guard let position else { return [] }
-        let font = NSFont.preferredFont(forTextStyle: .caption2)
+        let font = OpenBarTheme.Chart.axisNSFont
         let hasYAxis = !(self.yAxis?.values.isEmpty ?? true)
         return self.axisDates.compactMap { date in
             guard let x = position(date) else { return nil }

@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 enum LoadingPattern: String, CaseIterable, Identifiable {
     case knightRider
@@ -21,6 +21,12 @@ enum LoadingPattern: String, CaseIterable, Identifiable {
         case .pulse: "Pulse"
         case .unbraid: "Unbraid (logo → bars)"
         }
+    }
+
+    /// Loading patterns hold still under Reduce Motion (docs/design/README.md §7): the glyph shows its
+    /// no-data rails instead of animating them.
+    static var isMotionReduced: Bool {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
     /// Secondary offset so the lower bar moves differently.
