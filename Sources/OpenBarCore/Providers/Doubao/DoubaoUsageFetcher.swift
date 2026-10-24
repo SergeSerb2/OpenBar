@@ -820,9 +820,11 @@ public struct DoubaoUsageFetcher: Sendable {
         }
 
         var seconds: TimeInterval = 0
-        let pattern = /(\d+)([dhms])/
+        let pattern = /(\d+(?:\.\d+)?)([dhms])/
+        var end = trimmed.startIndex
         for match in trimmed.matches(of: pattern) {
-            guard let num = Double(match.1) else { continue }
+            guard match.range.lowerBound == end, let num = Double(match.1), num.isFinite else { return nil }
+            end = match.range.upperBound
             switch match.2 {
             case "d": seconds += num * 86400
             case "h": seconds += num * 3600
@@ -831,11 +833,11 @@ public struct DoubaoUsageFetcher: Sendable {
             default: break
             }
         }
-        if seconds > 0 {
+        if end == trimmed.endIndex, seconds.isFinite, seconds > 0 {
             return Date().addingTimeInterval(seconds)
         }
 
-        if let secs = TimeInterval(trimmed) {
+        if let secs = TimeInterval(trimmed), secs.isFinite, secs >= 0 {
             return Date().addingTimeInterval(secs)
         }
 
