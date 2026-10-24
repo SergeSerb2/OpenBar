@@ -49,7 +49,6 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.2"),
         .package(url: "https://github.com/apple/swift-log", from: "1.15.1"),
         .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "3.1.0"),
-        .package(url: "https://github.com/zats/Vortex", revision: "ef5392088d4aeb255c4eee83157dbdafcd31bf07"),
         sweetCookieKitDependency,
     ],
     targets: {
@@ -193,7 +192,6 @@ let package = Package(
                 dependencies: [
                     .product(name: "Sparkle", package: "Sparkle"),
                     .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts"),
-                    .product(name: "Vortex", package: "Vortex"),
                     "AdaptiveRefreshCore",
                     "OpenBarCore",
                 ],
