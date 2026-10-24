@@ -212,11 +212,6 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         let deadline: Date
     }
 
-    private struct CacheEntry {
-        let json: String
-        let expiresAt: Date
-    }
-
     // @unchecked Sendable is safe because every mutable engine field and QuickJS API call is confined
     // to this serial worker. requestInterrupt() is the watchdog's explicitly thread-safe escape hatch.
     private let worker: QuickJSSerialWorker
@@ -234,7 +229,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
     private var fetchUsage: JSValue?
     private var loadedManifest: ProviderPluginManifest?
     private var fetchState: FetchState?
-    private var cache: [String: CacheEntry] = [:]
+    private var cache = ProviderPluginRuntimeCache<String>()
 
     var manifest: ProviderPluginManifest {
         guard let loadedManifest = self.loadedManifest else {
@@ -760,11 +755,8 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
             else { return cqjs_undefined() }
             return try self.parseJSON(json)
         }
-        guard let entry = self.cache[key], entry.expiresAt > Date() else {
-            self.cache[key] = nil
-            return cqjs_undefined()
-        }
-        return try self.parseJSON(entry.json)
+        guard let json = self.cache.get(key) else { return cqjs_undefined() }
+        return try self.parseJSON(json)
     }
 
     private func hostCacheSet(_ arguments: UnsafeBufferPointer<JSValue>) throws {
@@ -777,7 +769,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
             ProviderPluginMemoryCache.shared.set(namespace: self.manifest.id.rawValue, key: key, json: json, ttl: ttl)
             return
         }
-        self.cache[key] = CacheEntry(json: json, expiresAt: Date().addingTimeInterval(min(ttl, 86400)))
+        self.cache.set(key, value: json, valueBytes: json.utf8.count, ttl: ttl)
     }
 
     private func hostAddMonths(_ arguments: UnsafeBufferPointer<JSValue>) throws -> JSValue {

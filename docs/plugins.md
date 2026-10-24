@@ -295,7 +295,9 @@ so portable third-party plugins must use the host helpers below instead of ECMA-
 - `ctx.html.matchFirst(html, regexSource, flags?)` returns the first capture/full match or `null`.
 - `ctx.log(...values)` writes to the instance-scoped plugin log. Known secrets and cookie values are redacted.
 - `ctx.cache.get(key)` and `ctx.cache.set(key, value, ttlSeconds)` provide a per-runtime memory cache. TTL is capped at
-  24 hours.
+  24 hours. The cache holds at most 128 entries with keys up to 128 bytes and values up to 16 KiB of JSON. A larger
+  value is not stored and clears that key; a new key is not stored while the cache is full. Expired entries are
+  dropped on each write.
 - `ctx.storage.get(key)`, `set(key, value)`, and `remove(key)` provide persistent, non-secret string state with the
   `persistent-storage` capability. Missing keys return `null`; empty string values are valid. Keys must contain
   1–128 UTF-8 bytes, each value at most 16 KiB, and each plugin at most 64 entries and 64 KiB of combined key/value

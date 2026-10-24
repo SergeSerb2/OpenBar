@@ -487,7 +487,7 @@ final class JavaScriptCoreProviderPluginEngine: ProviderPluginEngine, @unchecked
     private let transport: any ProviderHTTPTransport
     private let responseSizeLimit: Int
     private let enforcesUserResponsePolicy: Bool
-    private var cache: [String: (value: JSValue, expiresAt: Date)] = [:]
+    private var cache = ProviderPluginRuntimeCache<JSValue>()
     private var retainedCallbacks: [UUID: [Any]] = [:]
     private let requestLock = NSLock()
     private var requests: [UUID: Task<Void, Never>] = [:]
@@ -872,11 +872,7 @@ final class JavaScriptCoreProviderPluginEngine: ProviderPluginEngine, @unchecked
                 else { return JSValue(undefinedIn: self.context) }
                 return self.context.objectForKeyedSubscript("JSON").invokeMethod("parse", withArguments: [json])
             }
-            guard let entry = self.cache[key], entry.expiresAt > Date() else {
-                self.cache[key] = nil
-                return JSValue(undefinedIn: self.context)
-            }
-            return entry.value
+            return self.cache.get(key) ?? JSValue(undefinedIn: self.context)
         }
         let cacheSet: @convention(block) (String, JSValue, Double) -> Void = { [weak self] key, value, ttl in
             guard let self, ttl.isFinite, ttl > 0 else { return }
@@ -890,7 +886,10 @@ final class JavaScriptCoreProviderPluginEngine: ProviderPluginEngine, @unchecked
                     ttl: ttl)
                 return
             }
-            self.cache[key] = (value, Date().addingTimeInterval(min(ttl, 86400)))
+            // Size the value as QuickJS stores it, so both engines share the same bounds.
+            let json = self.context.objectForKeyedSubscript("JSON")
+                .invokeMethod("stringify", withArguments: [value])?.toString() ?? ""
+            self.cache.set(key, value: value, valueBytes: json.utf8.count, ttl: ttl)
         }
         host.setObject(cacheGet, forKeyedSubscript: "cacheGet" as NSString)
         host.setObject(cacheSet, forKeyedSubscript: "cacheSet" as NSString)
