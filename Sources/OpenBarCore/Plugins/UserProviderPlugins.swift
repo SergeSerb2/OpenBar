@@ -177,12 +177,24 @@ public struct UserProviderPlugin: @unchecked Sendable {
         }
     }
 
-    public static func environmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String {
-        let id = instanceID.rawValue.uppercased().replacingOccurrences(of: "-", with: "_")
-        let key = settingKey.uppercased().map { character in
+    /// `OPENBAR_PLUGIN_<ID>__<KEY>`. IDs map `-` to `_` and keys start with a letter, so the `__` boundary
+    /// names exactly one plugin and setting. An ID containing `--` would blur that boundary and gets no override.
+    public static func environmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String? {
+        guard !instanceID.rawValue.contains("--") else { return nil }
+        return "OPENBAR_PLUGIN_\(self.environmentName(instanceID.rawValue))__\(self.environmentName(settingKey))"
+    }
+
+    /// The original single-underscore name. It is honored only when it has one reading: a hyphen-free ID and an
+    /// underscore-free key. Otherwise `acme` + `PROD_TOKEN` and `acme-prod` + `TOKEN` would share one variable.
+    static func legacyEnvironmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String? {
+        guard !instanceID.rawValue.contains("-"), !settingKey.contains("_") else { return nil }
+        return "OPENBAR_PLUGIN_\(self.environmentName(instanceID.rawValue))_\(self.environmentName(settingKey))"
+    }
+
+    private static func environmentName(_ value: String) -> String {
+        String(value.uppercased().map { character in
             character.isASCII && (character.isLetter || character.isNumber) ? character : "_"
-        }
-        return "OPENBAR_PLUGIN_\(id)_\(String(key))"
+        })
     }
 
     private static func applyingEnvironmentOverrides(
@@ -192,8 +204,14 @@ public struct UserProviderPlugin: @unchecked Sendable {
     {
         var resolved = secrets
         for setting in manifest.settings where setting.kind == .secure {
-            let key = self.environmentKey(instanceID: manifest.id, settingKey: setting.key)
-            if let value = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+            let names = [
+                self.environmentKey(instanceID: manifest.id, settingKey: setting.key),
+                self.legacyEnvironmentKey(instanceID: manifest.id, settingKey: setting.key),
+            ].compactMap(\.self)
+            let value = names.lazy.compactMap { name in
+                environment[name]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }.first { !$0.isEmpty }
+            if let value {
                 resolved[setting.key] = value
             }
         }

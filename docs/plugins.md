@@ -180,8 +180,16 @@ auth: { type: "authorization-scheme", scheme: "Token", secret: "API_KEY" }
 The host owns the authentication header; plugin request options cannot override it. Authenticated public origins must be
 HTTPS; authenticated private-network HTTP requires `https-or-private-network-http` plus typed approval. Secure settings
 can be overridden for CLI use with
-`OPENBAR_PLUGIN_<PLUGIN_ID>_<SETTING_KEY>`, uppercased with non-alphanumeric characters replaced by underscores. For
-example, `acme-usage` and `API_KEY` use `OPENBAR_PLUGIN_ACME_USAGE_API_KEY`.
+`OPENBAR_PLUGIN_<PLUGIN_ID>__<SETTING_KEY>` (two underscores between the ID and the key), uppercased with
+non-alphanumeric characters replaced by underscores. For example, `acme-usage` and `API_KEY` use
+`OPENBAR_PLUGIN_ACME_USAGE__API_KEY`. The double underscore keeps each variable bound to one plugin: with a single
+underscore, `acme` + `PROD_TOKEN` and `acme-prod` + `TOKEN` would both read `OPENBAR_PLUGIN_ACME_PROD_TOKEN`.
+Plugin IDs that contain `--` have no environment override.
+
+Migration: the older single-underscore form, `OPENBAR_PLUGIN_<PLUGIN_ID>_<SETTING_KEY>`, still works only when the
+plugin ID has no hyphen and the setting key has no underscore (for example `OPENBAR_PLUGIN_ACME_TOKEN`), because only
+then can it name no other plugin. Rename any other variable to the double-underscore form. If both are set, the
+double-underscore form wins.
 
 ### Bundled cookie header echo
 
