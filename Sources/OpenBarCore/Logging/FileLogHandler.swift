@@ -16,6 +16,7 @@ final class FileLogSink: @unchecked Sendable {
     private let fileManager: FileManager
     private var isEnabled = false
     private var fileHandle: FileHandle?
+    private var fileBytes: UInt64 = 0
     private var fileURL: URL = FileLogSink.defaultURL
     private let maxBytes: Int64 = 10 * 1024 * 1024
 
@@ -49,7 +50,14 @@ final class FileLogSink: @unchecked Sendable {
             guard let data = text.data(using: .utf8) else { return }
             guard let handle = self.openHandleIfNeeded() else { return }
             do {
+                guard UInt64(data.count) <= UInt64(self.maxBytes) else { return }
+                if self.fileBytes > UInt64(self.maxBytes) - UInt64(data.count) {
+                    try handle.truncate(atOffset: 0)
+                    try handle.seek(toOffset: 0)
+                    self.fileBytes = 0
+                }
                 try handle.write(contentsOf: data)
+                self.fileBytes += UInt64(data.count)
             } catch {
                 self.isEnabled = false
                 self.closeHandle()
@@ -63,7 +71,7 @@ final class FileLogSink: @unchecked Sendable {
             try self.prepareFile(at: self.fileURL)
             let handle = try FileHandle(forWritingTo: self.fileURL)
             do {
-                try handle.seekToEnd()
+                self.fileBytes = try handle.seekToEnd()
             } catch {
                 try? handle.close()
                 throw error
@@ -98,6 +106,7 @@ final class FileLogSink: @unchecked Sendable {
             try? handle.close()
         }
         self.fileHandle = nil
+        self.fileBytes = 0
     }
 }
 
