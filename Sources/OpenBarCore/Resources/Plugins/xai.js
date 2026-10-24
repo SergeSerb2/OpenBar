@@ -72,11 +72,6 @@ defineProvider({
           },
         },
       });
-      if (usage.status === 401 || usage.status === 403) {
-        throw ctx.fail.authenticationExpired(
-          "xAI rejected the Management API key. Create one in the xAI Console under Settings > Management Keys; inference API keys are not accepted.",
-        );
-      }
       if (usage.status >= 200 && usage.status < 300) {
         if (!usage.json || !Array.isArray(usage.json.timeSeries)) {
           throw new Error("invalid xAI usage history");
@@ -103,7 +98,7 @@ defineProvider({
         historyAvailable = true;
       }
     } catch (error) {
-      if (/rejected the Management API key/.test(error.message)) throw error;
+      if (error.transportClass === "cancelled") throw error;
     }
     return {
       cost: { used: balance, currency: "USD", period: "Prepaid credits" },

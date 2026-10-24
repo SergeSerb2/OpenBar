@@ -105,3 +105,5 @@ openbar --provider xai
 
 The Last 30 days spend row is shown only when analytics succeeds. A successful empty history is a measured zero;
 unavailable analytics omits the spend row and chart.
+Optional analytics permission errors also retain a valid prepaid balance. Authentication errors from the required
+balance request still fail the refresh.
