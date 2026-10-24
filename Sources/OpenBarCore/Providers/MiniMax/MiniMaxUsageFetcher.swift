@@ -910,7 +910,7 @@ enum MiniMaxUsageParser {
             return end
         }
         guard let remains, remains > 0 else { return nil }
-        let seconds: TimeInterval = remains > 1_000_000 ? TimeInterval(remains) / 1000 : TimeInterval(remains)
+        let seconds = TimeInterval(remains) / 1000
         return now.addingTimeInterval(seconds)
     }
 
