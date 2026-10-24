@@ -231,7 +231,7 @@ struct StatusMenuPersistentRefreshTests {
         let updateItem = try #require(menu.items.first { $0.title == "Update ready, restart now?" })
         let refreshItem = try #require(menu.items.first { $0.title == "Refresh" })
         #expect(MenuDescriptor.MenuAction.installUpdate.systemImageName == "arrow.down.circle")
-        #expect(MenuDescriptor.MenuAction.dashboard.systemImageName == "chart.xyaxis.line")
+        #expect(MenuDescriptor.MenuAction.dashboard.systemImageName == "chart.bar")
         #expect(updateItem.image != nil)
         #expect(refreshItem.view is any MenuCardHighlighting)
         #expect(refreshItem.action == nil)
@@ -1244,10 +1244,12 @@ extension StatusMenuPersistentRefreshTests {
         let shortcutFont = try #require(shortcutField.font)
         #expect(abs(shortcutFont.pointSize - PersistentRefreshRowMetrics.defaults.shortcutFontSize) < 0.001)
 
-        #expect(refreshView.subviews.compactMap { $0 as? NSImageView }.isEmpty)
+        // The Calm native menu shows `arrow.clockwise` beside Refresh, like the native action rows.
+        let metrics = PersistentRefreshRowMetrics.defaults
+        #expect(refreshView.subviews.compactMap { $0 as? NSImageView }.count == 1)
         let titleField = try #require(
             refreshView.subviews.compactMap { $0 as? NSTextField }.first { $0.stringValue == "Refresh" })
-        #expect(titleField.frame.minX == PersistentRefreshRowMetrics.defaults.leadingPadding)
+        #expect(titleField.frame.minX == metrics.leadingPadding + metrics.iconWidth + metrics.iconTitleSpacing)
     }
 
     @Test
