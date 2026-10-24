@@ -132,7 +132,9 @@ enum DashboardSnapshotBuilder {
         let error = (payload.error ?? cost?.error).map {
             ProviderErrorPayload(
                 code: $0.code,
-                message: accountPayloads != nil && identityMode != .full ? "Account usage unavailable" : $0.message,
+                message: accountPayloads != nil && identityMode != .full || identityMode == .none
+                    ? "Account usage unavailable"
+                    : self.redactEmailShapedText($0.message, mode: identityMode),
                 kind: $0.kind)
         }
         let collectedAccounts = accountPayloads?.enumerated().compactMap { index, payload in
@@ -171,7 +173,9 @@ enum DashboardSnapshotBuilder {
                 (collectedAccounts?.isEmpty == false ? collectedAccounts : nil),
             accountsError: accountCollection != nil
                 ? accountCollection?.adapterError.map {
-                    accountPayloads != nil && identityMode != .full ? "Account list unavailable" : $0
+                    accountPayloads != nil && identityMode != .full || identityMode == .none
+                        ? "Account list unavailable"
+                        : self.redactEmailShapedText($0, mode: identityMode)
                 }
                 : accountCollectionIncomplete ? "Account list incomplete" : nil)
     }

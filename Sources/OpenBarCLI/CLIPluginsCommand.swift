@@ -123,7 +123,8 @@ extension OpenBarCLI {
             ("Primary", snapshot.primary), ("Secondary", snapshot.secondary), ("Tertiary", snapshot.tertiary),
         ] {
             if let window {
-                lines.append("\(window.title ?? fallback): \(Int(window.usedPercent.rounded()))% used")
+                let percent = String(format: "%.0f", window.usedPercent.rounded())
+                lines.append("\(window.title ?? fallback): \(percent)% used")
             }
         }
         if let cost = snapshot.providerCost {

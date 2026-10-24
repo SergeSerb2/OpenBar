@@ -18,6 +18,13 @@ import CoreFoundation
 extension OpenBarCLI {
     static func decodeProvider(from values: ParsedValues, config: OpenBarConfig) -> ProviderSelection {
         let rawOverride = values.options["provider"]?.last
+        if let rawOverride, ProviderSelection(argument: rawOverride) == nil {
+            Self.exit(
+                code: .failure,
+                message: "Unknown provider: \(rawOverride). Use --provider <name>, both, or all.",
+                output: CLIOutputPreferences.from(values: values),
+                kind: .args)
+        }
         return Self.providerSelection(
             rawOverride: rawOverride,
             enabled: config.enabledProviders().compactMap(\.firstPartyProvider))

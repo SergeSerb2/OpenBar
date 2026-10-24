@@ -9,6 +9,8 @@ enum ConfigChangeOrigin: Equatable {
 
 extension SettingsStore {
     func startConfigFileWatcher() {
+        self.configPersistenceCoordinator.recordInitialConfig(
+            FileManager.default.fileExists(atPath: self.configStore.fileURL.path) ? self.config : nil)
         let watcher = ConfigFileWatcher(fileURL: self.configStore.fileURL) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.reloadConfig(reason: "file-watch", origin: .localFile)
@@ -339,18 +341,28 @@ extension SettingsStore {
     {
         let data = try store.encodedData(for: config)
         var publicationLocked = false
-        defer { if publicationLocked { permit.endPublication() } }
-        try ConfigFileWatcher.withAppWrite(data, watcher: watcher) {
-            try store.saveEncodedData(data) {
+        var published = false
+        defer { if publicationLocked { permit.endPublication(data: published ? data : nil) } }
+        do {
+            try store.withTransaction { current, publish in
                 try permit.beginPublication(validating: store)
                 publicationLocked = true
+                let rebased = try permit.rebase(config, onto: current ?? .makeDefault())
+                let rebasedData = try store.encodedData(for: rebased)
+                try ConfigFileWatcher.withAppWrite(rebasedData, watcher: watcher) {
+                    try publish(rebased)
+                }
             }
+        } catch {
+            if !publicationLocked, !(error is CancellationError) { permit.recordReadFailure() }
+            throw error
         }
+        published = true
     }
 }
 
-/// Reloads invalidate every older snapshot. Only the final publication and reload read share
-/// this lock; staging and fsync never hold it or need the main actor.
+/// Reloads invalidate every older snapshot. Writers acquire this lock after the file lock,
+/// and complete their transaction without needing the main actor.
 final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
     struct WritePermit: Sendable {
         fileprivate let coordinator: SettingsConfigPersistenceCoordinator
@@ -371,7 +383,23 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
             }
         }
 
-        func endPublication() {
+        func rebase(_ edited: OpenBarConfig, onto current: OpenBarConfig) throws -> OpenBarConfig {
+            let original = try self.coordinator.observedConfigData.map(OpenBarConfig.decode(from:)) ?? current
+            return try current.applyingChanges(from: original, to: edited)
+        }
+
+        func recordReadFailure() {
+            self.coordinator.lock.withLock {
+                if self.generation == self.coordinator.generation { self.coordinator.readFailed = true }
+            }
+        }
+
+        func endPublication(data: Data?) {
+            if let data {
+                // Keep the app's edit baseline, rather than treating concurrent file edits as
+                // local changes to undo on its next debounced save.
+                self.coordinator.observedConfigData = data
+            }
             self.coordinator.lock.unlock()
         }
     }
@@ -379,6 +407,13 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
     private let lock = NSLock()
     private var generation: UInt64 = 0
     private var readFailed = false
+    private var observedConfigData: Data?
+
+    func recordInitialConfig(_ config: OpenBarConfig?) {
+        self.lock.withLock {
+            self.observedConfigData = try? config?.encodedData()
+        }
+    }
 
     func makeWritePermit() -> WritePermit {
         self.lock.withLock { WritePermit(coordinator: self, generation: self.generation) }
@@ -388,6 +423,7 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
         try self.lock.withLock {
             self.generation &+= 1
             let config = try store.load()
+            self.observedConfigData = try config?.encodedData()
             if reload, config != nil { self.readFailed = false }
             return config
         }

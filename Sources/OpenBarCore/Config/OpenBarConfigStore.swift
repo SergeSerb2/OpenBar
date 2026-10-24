@@ -51,9 +51,32 @@ public struct OpenBarConfigStore: @unchecked Sendable {
         if let existing = try self.load() {
             return existing
         }
-        let config = OpenBarConfig.makeDefault()
-        try self.save(config)
-        return config
+        return try self.update { _ in }
+    }
+
+    /// Serialize the entire read-modify-write across processes, then publish atomically.
+    @discardableResult
+    public func update(_ update: (inout OpenBarConfig) throws -> Void) throws -> OpenBarConfig {
+        try self.withTransaction { existing, publish in
+            var config = existing ?? .makeDefault()
+            try update(&config)
+            try publish(config)
+            return config
+        }
+    }
+
+    /// Legacy migration also needs to defer cleanup until publication succeeds, under the same lock.
+    package func withTransaction<T>(
+        _ operation: (OpenBarConfig?, (OpenBarConfig) throws -> Void) throws -> T) throws -> T
+    {
+        var result: T?
+        try self.withWriteLock {
+            result = try operation(self.load()) { config in
+                try CredentialFileWriter.writePrivate(self.encodedData(for: config), to: self.fileURL)
+            }
+        }
+        guard let result else { throw POSIXError(.EIO) }
+        return result
     }
 
     public func save(_ config: OpenBarConfig) throws {

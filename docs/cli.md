@@ -151,7 +151,7 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   - Provider failures remain row-level errors alongside healthy rows; a valid partial snapshot exits `0`.
   - Stdout contains only the snapshot document. Diagnostics and optional `--json-output` logs go to stderr.
   - `--pretty` formats the document. `--timeout <seconds>` accepts `0...86400`, defaults to `30`, and uses `0` to disable the command deadline.
-  - `--output <path>` atomically writes the snapshot to a file (`0644`) instead of stdout — staged in the destination directory, fsync'd, then renamed over the target so readers never observe a partial document. The parent directory must already exist (it is not created), and stdout stays silent on success.
+  - `--output <path>` atomically writes the snapshot to a private file (`0600`, preserving narrower existing owner permissions) instead of stdout — staged in the destination directory, fsync'd, then renamed over the target so readers never observe a partial document. The parent directory must already exist (it is not created), and stdout stays silent on success.
   - Starts no HTTP server and requires no dashboard bearer token. See `docs/dashboard-api.md` for the shared payload contract.
 - `openbar serve` starts a foreground HTTP server for usage and cost JSON, a token-gated dashboard snapshot, and a built-in web UI at `/`.
   - On Linux, exited Codex and Grok RPC children release their output pipes after each refresh, preventing descriptor accumulation during long-running server sessions. Child-tree cleanup also reads empty procfs child lists without retaining Foundation read buffers.
@@ -164,7 +164,8 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   - `--host <host>` accepts `localhost` or an IPv4 address and defaults to `127.0.0.1`; `localhost` is normalized to `127.0.0.1`. Binding a non-loopback host requires a dashboard token **and** `--allow-plain-http` (see `docs/dashboard-api.md` for the threat model).
   - `--port <port>` defaults to `8080`.
   - `--refresh-interval <seconds>` defaults to `60` and controls the in-memory response cache TTL.
-  - `--request-timeout <seconds>` defaults to `30` and bounds each request before returning `504 Gateway Timeout`; use `0` to keep waiting indefinitely. Slow builds continue past the deadline, commit their finished result to the cache, and feed any same-config request already waiting so a 504 self-heals on retry.
+  - `--request-timeout <seconds>` defaults to `30` and bounds response generation before returning `504 Gateway Timeout`; use `0` to keep waiting indefinitely. Slow builds continue past the deadline, commit their finished result to the cache, and feed any same-config request already waiting so a 504 self-heals on retry.
+  - Socket I/O has separate fixed limits: five seconds of idle time while reading a request head, ten seconds for the whole request head, and five seconds for the whole response write. Expired connections close and release their slots, including with `--request-timeout 0`.
   - `--dashboard-token <token>` sets the static bearer token for `GET /dashboard/v1/snapshot`. Prefer the `OPENBAR_DASHBOARD_TOKEN` environment variable (it wins over the flag; a flag value leaks via `ps`). Empty or whitespace-only tokens are startup errors. Without a token the snapshot route fails closed with `401`.
   - On a **non-loopback** host the token gates **all data routes** — `/usage`, `/cost`, and `/dashboard/v1/snapshot` all require `Authorization: Bearer YOUR_TOKEN`, so account data is never exposed to the network unauthenticated. The static web UI at `/` and `/health` are always open. On the default loopback bind, `/usage` and `/cost` stay unauthenticated.
   - `--allow-plain-http` is the explicit acknowledgment that the bearer token crosses the network **in cleartext on every request** when serving on a non-loopback host. `serve` refuses to start on a non-loopback host without it.
@@ -245,8 +246,8 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   minutes. Synthetic placeholder windows are omitted.
 - `openbar hooks watch` polls enabled providers and fires matching hooks on real quota and status transitions.
   Without it, hook rules only ever fire from the macOS app, so a headless install can configure hooks that never run.
-  - `--interval <seconds>`: poll period. Default `300`, minimum `60`; a smaller value is rejected rather than
-    clamped, because each tick fetches every selected provider.
+  - `--interval <seconds>`: poll period. Default `300`, range `60...86400`; values outside this range are rejected.
+    The minimum limits traffic because each tick fetches every selected provider.
   - `--provider <id|both|all>`: restrict polling; repeatable. Defaults to every enabled provider. `both` selects the primary providers; `all` selects every registered provider, including providers not enabled in the config.
   - `--format json`/`--json`/`--pretty`: emit each attempted event as JSON, excluding throttled candidates.
   - Events are edge-triggered against the previous poll, so a condition that merely persists (a saturated window,
@@ -347,7 +348,7 @@ openbar guard --provider codex --min-remaining 20 --window weekly --json
 openbar cost --provider cursor   # Cursor dashboard cost (API-rate + Cursor-metered)
 openbar dashboard | jq '.providers[] | {id, windows, error}'
 openbar serve --port 8080        # localhost HTTP JSON server
-openbar serve --request-timeout 0 # disable serve request deadlines
+openbar serve --request-timeout 0 # disable response generation deadlines
 OPENBAR_DASHBOARD_TOKEN=YOUR_TOKEN openbar serve # token-gated dashboard snapshot
 OPENBAR_DASHBOARD_TOKEN=... openbar serve --host 0.0.0.0 --allow-plain-http # LAN, cleartext accepted
 COPILOT_API_TOKEN=... openbar --provider copilot --format json --pretty

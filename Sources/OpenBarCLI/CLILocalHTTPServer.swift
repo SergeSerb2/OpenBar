@@ -11,11 +11,11 @@ private let requestReadTimeoutMilliseconds: Int32 = 5000
 /// Ceiling on how long one client may take to deliver a complete request head.
 ///
 /// `requestReadTimeoutMilliseconds` only bounds a single `recv`, so a client that
-/// sends one byte just inside that window can hold its connection — and the
-/// cooperative-executor thread serving it — indefinitely. Both the Host allowlist
+/// sends one byte just inside that window can hold its connection indefinitely. Both the Host allowlist
 /// and the bearer-token check run only after the head has been read, so without an
 /// overall bound a few such clients exhaust `maximumConnections` pre-auth.
 private let requestTotalReadTimeoutMilliseconds: Int64 = 10000
+private let responseWriteTimeoutMilliseconds: Int64 = 5000
 
 /// Host header values a `CLILocalHTTPServer` accepts. Loopback names are always allowed;
 /// non-loopback bind hosts extend the set instead of replacing the loopback check.
@@ -28,7 +28,7 @@ enum CLILocalHTTPAllowedHosts: Equatable, Sendable {
     case any
 }
 
-struct CLILocalHTTPRequest {
+struct CLILocalHTTPRequest: Sendable {
     let method: String
     let target: String
     let host: String
@@ -207,7 +207,7 @@ enum CLIHTTPStatus {
     }
 }
 
-struct CLILocalHTTPResponse {
+struct CLILocalHTTPResponse: Sendable {
     let status: CLIHTTPStatus
     let body: Data
     let contentType: String
@@ -408,6 +408,12 @@ final class CLILocalHTTPServer: @unchecked Sendable {
                 closeSocket(clientFD)
                 continue
             }
+            let flags = fcntl(clientFD, F_GETFL, 0)
+            guard flags >= 0, fcntl(clientFD, F_SETFL, flags | O_NONBLOCK) == 0 else {
+                closeSocket(clientFD)
+                self.connectionGate.release()
+                continue
+            }
             let handler = self.handler
             let allowedHosts = self.allowedHosts
             let connectionGate = self.connectionGate
@@ -469,15 +475,16 @@ private func handleClient(
     handler: @Sendable (CLILocalHTTPRequest) async -> CLILocalHTTPResponse) async
 {
     let request: CLILocalHTTPRequest
-    switch readRequest(
-        clientFD,
-        allowedHosts: allowedHosts,
-        totalReadTimeoutMilliseconds: totalReadTimeoutMilliseconds)
-    {
+    switch await socketIO({
+        readRequest(
+            clientFD,
+            allowedHosts: allowedHosts,
+            totalReadTimeoutMilliseconds: totalReadTimeoutMilliseconds)
+    }) {
     case let .success(parsedRequest):
         request = parsedRequest
     case .failure(.disallowedHost):
-        sendResponse(
+        await writeResponse(
             CLILocalHTTPResponse(
                 status: .forbidden,
                 body: Data(#"{"error":"forbidden host"}"#.utf8),
@@ -485,7 +492,7 @@ private func handleClient(
             to: clientFD)
         return
     case .failure:
-        sendResponse(
+        await writeResponse(
             CLILocalHTTPResponse(
                 status: .badRequest,
                 body: Data(#"{"error":"invalid request"}"#.utf8),
@@ -495,7 +502,20 @@ private func handleClient(
     }
 
     let response = await handler(request)
-    sendResponse(response, to: clientFD)
+    await writeResponse(response, to: clientFD)
+}
+
+/// Socket polling and copying must not occupy Swift's cooperative executor.
+private func socketIO<T: Sendable>(_ operation: @escaping @Sendable () -> T) async -> T {
+    await withCheckedContinuation { continuation in
+        DispatchQueue.global(qos: .utility).async {
+            continuation.resume(returning: operation())
+        }
+    }
+}
+
+private func writeResponse(_ response: CLILocalHTTPResponse, to fd: Int32) async {
+    await socketIO { sendResponse(response, to: fd) }
 }
 
 private func readRequest(
@@ -525,6 +545,7 @@ private func readRequest(
         let count = buffer.withUnsafeMutableBytes { rawBuffer in
             recv(fd, rawBuffer.baseAddress, bufferSize, 0)
         }
+        if count < 0, errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK { continue }
         guard count > 0 else { break }
         data.append(buffer, count: count)
         if data.range(of: Data("\r\n\r\n".utf8)) != nil {
@@ -539,11 +560,18 @@ private func readRequest(
 
 private func sendResponse(_ response: CLILocalHTTPResponse, to fd: Int32) {
     let data = response.serialized
+    let startedAt = DispatchTime.now().uptimeNanoseconds
     data.withUnsafeBytes { rawBuffer in
         guard let base = rawBuffer.baseAddress else { return }
         var sent = 0
         while sent < data.count {
+            let elapsed = Int64((DispatchTime.now().uptimeNanoseconds &- startedAt) / 1_000_000)
+            let remaining = responseWriteTimeoutMilliseconds - elapsed
+            guard remaining > 0,
+                  waitForSocket(fd, events: Int16(POLLOUT), timeoutMilliseconds: Int32(remaining))
+            else { break }
             let count = send(fd, base.advanced(by: sent), data.count - sent, sendNoSignalFlags())
+            if count < 0, errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK { continue }
             guard count > 0 else { break }
             sent += count
         }
@@ -551,11 +579,18 @@ private func sendResponse(_ response: CLILocalHTTPResponse, to fd: Int32) {
 }
 
 private func waitForReadable(_ fd: Int32, timeoutMilliseconds: Int32) -> Bool {
-    var pollFD = pollfd(fd: fd, events: Int16(POLLIN), revents: 0)
+    waitForSocket(fd, events: Int16(POLLIN), timeoutMilliseconds: timeoutMilliseconds)
+}
+
+private func waitForSocket(_ fd: Int32, events: Int16, timeoutMilliseconds: Int32) -> Bool {
+    var pollFD = pollfd(fd: fd, events: events, revents: 0)
+    let startedAt = DispatchTime.now().uptimeNanoseconds
     while true {
-        let result = poll(&pollFD, 1, timeoutMilliseconds)
+        let elapsed = (DispatchTime.now().uptimeNanoseconds &- startedAt) / 1_000_000
+        guard elapsed < UInt64(max(0, timeoutMilliseconds)) else { return false }
+        let result = poll(&pollFD, 1, timeoutMilliseconds - Int32(elapsed))
         if result > 0 {
-            return (pollFD.revents & Int16(POLLIN)) != 0
+            return (pollFD.revents & events) != 0
         }
         if result == -1, errno == EINTR {
             continue

@@ -106,11 +106,10 @@ extension OpenBarCLI {
         }
 
         let store = OpenBarConfigStore()
-        var config = Self.loadConfig(output: output)
-        config = Self.configSettingProviderEnabled(config, provider: provider, enabled: enabled)
-
         do {
-            try store.save(config)
+            try store.update { config in
+                config = Self.configSettingProviderEnabled(config, provider: provider, enabled: enabled)
+            }
         } catch {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .config)
         }
@@ -173,7 +172,6 @@ extension OpenBarCLI {
 
         let enableProvider = !values.flags.contains("noEnable")
         let store = OpenBarConfigStore()
-        var config = Self.loadConfig(output: output)
         let accountOptions: ConfigAPIKeyAccountOptions?
         do {
             accountOptions = try Self.resolveConfigAPIKeyAccountOptions(
@@ -185,15 +183,16 @@ extension OpenBarCLI {
         } catch {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .args)
         }
-        config = Self.configSettingAPIKey(
-            config,
-            provider: provider,
-            apiKey: apiKey,
-            enableProvider: enableProvider,
-            accountOptions: accountOptions)
-
+        let config: OpenBarConfig
         do {
-            try store.save(config)
+            config = try store.update { config in
+                config = Self.configSettingAPIKey(
+                    config,
+                    provider: provider,
+                    apiKey: apiKey,
+                    enableProvider: enableProvider,
+                    accountOptions: accountOptions)
+            }
         } catch {
             Self.exit(code: .failure, message: error.localizedDescription, output: output, kind: .config)
         }

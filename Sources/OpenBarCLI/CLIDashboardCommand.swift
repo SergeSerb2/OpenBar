@@ -35,7 +35,7 @@ struct DashboardOptions: CommanderParsable {
 
     @Option(
         name: .long("output"),
-        help: "Write the snapshot atomically to this file (0644) instead of stdout. " +
+        help: "Write the snapshot atomically to this private file (0600) instead of stdout. " +
             "The parent directory must already exist; it is not created.")
     var output: String?
 }
@@ -299,11 +299,19 @@ extension OpenBarCLI {
 
     /// Atomically publish the snapshot: stage a temp file in the destination
     /// directory, fsync, then `rename(2)` over the target so readers (e.g. a
-    /// static webroot) never observe a partial document. The file is world-
-    /// readable (`0644`) — dashboard snapshots are meant to be served. The
+    /// static webroot) never observe a partial document. Account data is owner-only
+    /// (`0600`), preserving any narrower owner permissions on an existing file. The
     /// parent directory must already exist; it is deliberately not created.
     static func writeDashboardSnapshotAtomically(_ data: Data, toPath path: String) throws {
         let url = URL(fileURLWithPath: path)
+        var existing = stat()
+        let permissions: mode_t = if lstat(url.path, &existing) == 0,
+                                     existing.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG)
+        {
+            existing.st_mode & 0o600
+        } else {
+            0o600
+        }
         let directory = url.deletingLastPathComponent()
         var isDirectory: ObjCBool = false
         guard FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
@@ -322,18 +330,21 @@ extension OpenBarCLI {
         let staged = directory.appendingPathComponent(
             ".\(url.lastPathComponent).openbar-dashboard-\(UUID().uuidString)", isDirectory: false)
         let descriptor = staged.path.withCString {
-            open($0, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode_t(0o644))
+            open($0, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, mode_t(0o600))
         }
         guard descriptor >= 0 else { throw Self.dashboardOutputPOSIXError(errno, path: staged.path) }
 
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         var handleOpen = true
         do {
-            // Force 0644 even if umask narrowed the O_CREAT mode.
-            guard fchmod(descriptor, mode_t(0o644)) == 0 else {
+            // Establish owner-only access before writing account data, regardless of umask.
+            guard fchmod(descriptor, mode_t(0o600)) == 0 else {
                 throw Self.dashboardOutputPOSIXError(errno, path: staged.path)
             }
             try handle.write(contentsOf: data)
+            guard fchmod(descriptor, permissions) == 0 else {
+                throw Self.dashboardOutputPOSIXError(errno, path: staged.path)
+            }
             try handle.synchronize()
             try handle.close()
             handleOpen = false

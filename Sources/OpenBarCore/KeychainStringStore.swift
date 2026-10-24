@@ -17,6 +17,13 @@ package enum KeychainStringStoreError: LocalizedError, Equatable {
 /// Stores a trimmed string in an existing generic-password item. Provider adapters retain their
 /// account names, validation, and caching; this host owns the Security operations and access policy.
 package struct KeychainStringStore: Sendable {
+    @TaskLocal private static var noninteractiveAccess = false
+
+    /// Automatic legacy migration must never request permission, even during a manual refresh.
+    package static func withNoninteractiveAccess<T>(_ operation: () throws -> T) rethrows -> T {
+        try self.$noninteractiveAccess.withValue(true, operation: operation)
+    }
+
     struct Operations: Sendable {
         var read: @Sendable ([String: Any]) -> (OSStatus, Data?)
         var update: @Sendable ([String: Any], [String: Any]) -> OSStatus
@@ -75,7 +82,25 @@ package struct KeychainStringStore: Sendable {
         var query = self.query
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         query[kSecReturnData as String] = true
-        self.operations.preflight(self.context)
+        if Self.noninteractiveAccess {
+            // Inspect attributes/ACLs without fetching secret data. Legacy Keychain ACLs can
+            // otherwise prompt on data reads even when the request carries UI-fail flags.
+            switch KeychainAccessPreflight.checkGenericPassword(
+                service: self.context.service, account: self.context.account)
+            {
+            case .allowed:
+                break
+            case .notFound:
+                return nil
+            case .interactionRequired, .temporarilyUnavailable:
+                throw KeychainStringStoreError.keychainStatus(errSecInteractionNotAllowed)
+            case let .failure(status):
+                throw KeychainStringStoreError.keychainStatus(OSStatus(clamping: status))
+            }
+            KeychainNoUIQuery.apply(to: &query)
+        } else {
+            self.operations.preflight(self.context)
+        }
         let (status, data) = self.operations.read(query)
         if status == errSecItemNotFound { return nil }
         try self.check(status, operation: "read")
@@ -106,7 +131,11 @@ package struct KeychainStringStore: Sendable {
 
     private func delete() throws {
         guard !KeychainAccessGate.isDisabled else { return }
-        let status = self.operations.delete(self.query)
+        var query = self.query
+        if Self.noninteractiveAccess {
+            KeychainNoUIQuery.apply(to: &query)
+        }
+        let status = self.operations.delete(query)
         if status != errSecItemNotFound {
             try self.check(status, operation: "delete")
         }
