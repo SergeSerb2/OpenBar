@@ -10,6 +10,18 @@ import Musl
 package enum CostUsageWorker {
     static let maximumRequestBytes = 8 * 1024 * 1024
     static let maximumResponseBytes = 64 * 1024 * 1024
+    private static var timeout: Duration {
+        #if DEBUG
+        // Diagnostic CLI runs can exercise the real deadline path without a 15-minute wait.
+        if let raw = ProcessInfo.processInfo.environment["OPENBAR_COST_WORKER_TIMEOUT_PROBE_SECONDS"],
+           let seconds = TimeInterval(raw), seconds.isFinite, seconds > 0, seconds <= 15 * 60
+        {
+            return .seconds(seconds)
+        }
+        #endif
+        return .seconds(15 * 60)
+    }
+
     @TaskLocal static var isWorker = false
     @TaskLocal static var pricingJobs: CostUsageScanExecutor.LockedState<[CostUsageWorkerPricingJob]>?
 
@@ -50,9 +62,20 @@ package enum CostUsageWorker {
     {
         guard let executable = self.executable else { return .unavailable }
         do {
-            let value = try await CostUsageScanExecutor.run { checkCancellation in
-                try checkCancellation()
-                return try self.exchange(request, executable: executable, checkCancellation: checkCancellation)
+            let wakeup = DispatchSemaphore(value: 0)
+            let cancelled = CostUsageScanExecutor.LockedState(false)
+            let value = try await withTaskCancellationHandler {
+                try await CostUsageScanExecutor.run { checkCancellation in
+                    try self.exchange(request, executable: executable, wakeup: wakeup, checkCancellation: {
+                        try checkCancellation()
+                        if cancelled.withLock({ $0 }) { throw CancellationError() }
+                    })
+                }
+            } onCancel: {
+                // Publish cancellation before waking: the executor's own cancellation handler can
+                // run in either order, and a cancelled exchange must never go back to sleep.
+                cancelled.withLock { $0 = true }
+                wakeup.signal()
             }
             try Task.checkCancellation()
             guard let result = value.result else { throw WorkerError.protocolFailure }
@@ -74,6 +97,7 @@ package enum CostUsageWorker {
     private static func exchange(
         _ request: CostUsageWorkerRequest,
         executable: URL,
+        wakeup: DispatchSemaphore,
         checkCancellation: @escaping @Sendable () throws -> Void) throws -> CostUsageWorkerResponse
     {
         let encoder = PropertyListEncoder()
@@ -98,6 +122,7 @@ package enum CostUsageWorker {
         try input.seek(toOffset: 0)
 
         let process = Process()
+        process.terminationHandler = { _ in wakeup.signal() }
         process.executableURL = executable
         process.arguments = ["__cost-worker"]
         process.environment = request.processEnvironment
@@ -106,7 +131,9 @@ package enum CostUsageWorker {
         let errors = Pipe()
         process.standardOutput = output
         process.standardError = errors
-        let stdout = ProcessPipeCapture(pipe: output, maxBytes: self.maximumResponseBytes + 1)
+        let stdout = ProcessPipeCapture(pipe: output, maxBytes: self.maximumResponseBytes + 1) {
+            wakeup.signal()
+        }
         let stderr = ProcessPipeCapture(pipe: errors, maxBytes: 64 * 1024)
         defer {
             stdout.stop()
@@ -122,13 +149,25 @@ package enum CostUsageWorker {
             if process.isRunning { kill(process.processIdentifier, SIGKILL) }
             process.waitUntilExit()
         }
-        let deadline = ContinuousClock.now.advanced(by: .seconds(15 * 60))
+        let deadline = ContinuousClock.now.advanced(by: self.timeout)
+        let timeoutTask = Task.detached(priority: .utility) {
+            do {
+                // This is a hard deadline: default clock tolerance may coalesce the wake past it.
+                try await Task.sleep(until: deadline, tolerance: .zero, clock: .continuous)
+            } catch {
+                return
+            }
+            wakeup.signal()
+        }
+        defer { timeoutTask.cancel() }
         while process.isRunning {
             try checkCancellation()
             guard ContinuousClock.now < deadline, stdout.currentSnapshot().count <= self.maximumResponseBytes else {
                 throw WorkerError.protocolFailure
             }
-            Thread.sleep(forTimeInterval: 0.01)
+            // Pipe output, process exit, and cancellation each signal this wait. The deadline
+            // uses the same continuous clock, including system sleep, as the original timeout.
+            wakeup.wait()
         }
         process.waitUntilExit()
         let response = stdout.finishSynchronously(timeout: 5)
