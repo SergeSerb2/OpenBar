@@ -54,7 +54,7 @@ The UI does not change the transport threat model: `openbar serve` is plain HTTP
 
 - `openbar dashboard` reads enabled providers from OpenBar config, emits them in stable order, and carries configured
   ordering through each row's `display.sortKey`.
-- Identity defaults to full account emails. Pass `--identity redacted` to hide email local parts. Provider failures stay
+- Identity defaults to full account emails. Pass `--identity redacted` to hide email local parts, including in provider error messages. Provider failures stay
   in their rows without discarding healthy rows.
 - `openbar serve` differs on one point: without `--identity` it follows the app's "Hide personal information" setting
   per request, so the web UI matches the menu UI. `openbar dashboard` always defaults to full identity.
@@ -231,7 +231,7 @@ After a fresh usage or cost cache entry expires, `openbar serve` may answer imme
 
 ## Payload
 
-The snapshot is a stable display contract, not a raw dump of provider internals. Without `--all-accounts`, identity defaults to full account emails and plan labels. Pass `--identity redacted` to replace email local parts with `redacted` while keeping domains and plan labels. On `openbar serve` an absent `--identity` follows the app's "Hide personal information" setting instead of the full default.
+The snapshot is a stable display contract, not a raw dump of provider internals. Without `--all-accounts`, identity defaults to full account emails and plan labels. Pass `--identity redacted` to replace email local parts with `redacted` while keeping domains and plan labels. This also masks emails in provider and account-list error messages. On `openbar serve` an absent `--identity` follows the app's "Hide personal information" setting instead of the full default.
 
 ```json
 {
