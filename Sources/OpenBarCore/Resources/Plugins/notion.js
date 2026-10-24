@@ -190,10 +190,9 @@ defineProvider({
               const record = unwrap(records[key]);
               return record ? [{ ...record, id: _nullishCoalesce(text(record.id), () => key) }] : [];
             });
-          workspace = _nullishCoalesce(
-            _nullishCoalesce(
-              preferred ? workspaces.find((space) => normalize(space.id) === preferred) : undefined,
-              () =>
+          workspace = preferred
+            ? workspaces.find((space) => normalize(space.id) === preferred)
+            : _nullishCoalesce(
                 workspaces.find((space) =>
                   ["business", "enterprise"].includes(
                     _nullishCoalesce(
@@ -210,9 +209,12 @@ defineProvider({
                     ),
                   ),
                 ),
-            ),
-            () => workspaces[0],
-          );
+                () => workspaces[0],
+              );
+          if (preferred && !workspace)
+            throw ctx.fail.apiFailure(
+              "The pinned Notion workspace is not available to this account. Check Workspace ID and the selected browser account.",
+            );
         } catch (error) {
           // A pinned workspace can fetch allowances without the oversized identity record map.
           if (!/Provider plugin HTTP error: response exceeded the \d+-byte limit/.test(String(error))) throw error;

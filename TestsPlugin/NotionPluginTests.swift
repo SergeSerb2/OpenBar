@@ -7,7 +7,38 @@ import Testing
 
 struct NotionPluginTests {
     private static let now = Date(timeIntervalSince1970: 1_785_600_000)
-    private static let spaces = #"{"user":{"notion_user":{"user":{"value":{"value":{"id":"user","email":"fixture@example.test"}}}},"space":{"free":{"value":{"id":"00000000-0000-0000-0000-000000000000","name":"Personal","subscription_tier":"free"}},"paid":{"value":{"id":"11111111-2222-3333-4444-555555555555","name":"Fixture team","subscription_tier":"business"}}}}}"#
+    private static let spaces = #"""
+    {
+      "user": {
+        "notion_user": {
+          "user": {
+            "value": {
+              "value": {
+                "id": "user",
+                "email": "fixture@example.test"
+              }
+            }
+          }
+        },
+        "space": {
+          "free": {
+            "value": {
+              "id": "00000000-0000-0000-0000-000000000000",
+              "name": "Personal",
+              "subscription_tier": "free"
+            }
+          },
+          "paid": {
+            "value": {
+              "id": "11111111-2222-3333-4444-555555555555",
+              "name": "Fixture team",
+              "subscription_tier": "business"
+            }
+          }
+        }
+      }
+    }
+    """#
 
     private static func oversizedSpaces() throws -> String {
         var spaces = try #require(JSONSerialization.jsonObject(with: Data(Self.spaces.utf8)) as? [String: Any])
@@ -31,7 +62,21 @@ struct NotionPluginTests {
             let validated = Calls()
             let runtime = try Self.runtime(
                 engine: engine,
-                usage: #"{"window":{"window":"6h","used":25,"limit":100},"resetsInSeconds":3600,"billingPeriodWindow":{"used":18,"limit":100,"periodEndMs":1788000000000}}"#,
+                usage: #"""
+                {
+                  "window": {
+                    "window": "6h",
+                    "used": 25,
+                    "limit": 100
+                  },
+                  "resetsInSeconds": 3600,
+                  "billingPeriodWindow": {
+                    "used": 18,
+                    "limit": 100,
+                    "periodEndMs": 1788000000000
+                  }
+                }
+                """#,
                 spaces: spaces,
                 calls: calls)
             let usage = try await runtime.fetchUsage(
@@ -135,7 +180,9 @@ struct NotionPluginTests {
                                     .value: "synthetic", .secure: "TRUE",
                                 ]))
                                 return [.init(
-                                    header: "", source: "Microsoft Edge Profile 2", origin: "",
+                                    header: "",
+                                    source: "Microsoft Edge Profile 2",
+                                    origin: "",
                                     records: [ProviderPluginCookieRecord(cookie: cookie)])]
                             }))
                     },
@@ -186,7 +233,34 @@ struct NotionPluginTests {
         for preferred in ["", "11111111222233334444555555555555", "unknown"] {
             let runtime = try Self.runtime(
                 engine: engine,
-                usage: #"{"window":{"window":"6h","used":60,"limit":50},"resetsInSeconds":0,"billingPeriodWindow":{"used":18,"limit":100,"periodEndMs":1788000000000}}"#)
+                usage: #"""
+                {
+                  "window": {
+                    "window": "6h",
+                    "used": 60,
+                    "limit": 50
+                  },
+                  "resetsInSeconds": 0,
+                  "billingPeriodWindow": {
+                    "used": 18,
+                    "limit": 100,
+                    "periodEndMs": 1788000000000
+                  }
+                }
+                """#)
+            if preferred == "unknown" {
+                do {
+                    _ = try await runtime.fetchUsage(
+                        settings: ["WORKSPACE_ID": preferred],
+                        now: Self.now,
+                        cookieSource: .manual,
+                        cookieSessionResolver: Self.session)
+                    Issue.record("An unavailable pinned workspace must fail")
+                } catch let error as ProviderFetchClassifiedError {
+                    #expect(error.kind == .apiFailure)
+                }
+                continue
+            }
             let usage = try await runtime.fetchUsage(
                 settings: ["WORKSPACE_ID": preferred],
                 now: Self.now,
