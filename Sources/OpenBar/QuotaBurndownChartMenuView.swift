@@ -85,21 +85,21 @@ struct QuotaBurndownChartMenuView: View {
                     Spacer()
                     self.axisLabel(for: selected.model.reset, model: selected.model, alignment: .trailing)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(OpenBarTheme.Chart.axisFont)
+                .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
 
                 if let remaining = selected.model.samples.last?.remainingPercent {
                     Text("\(remaining.formatted(.number.precision(.fractionLength(0))))% \(L("Usage remaining"))")
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
                 Text(selected.lastKnownUsageMessage)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text(L("No data"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 146)
@@ -162,14 +162,13 @@ struct QuotaBurndownChartMenuView: View {
 private struct QuotaBurndownPlot: View {
     let model: QuotaBurndownModel
     let color: Color
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private static let gridValues: [Double] = [0, 50, 100]
     /// Gap between the plot and its trailing percentage labels.
     private static let labelSpacing: CGFloat = 4
     /// Swift Charts reserved this width for the "100" label column.
     private static let labelColumnMinWidth: CGFloat = 20
-    /// Swift Charts' default axis label size.
-    private static let labelFont = Font.system(size: 11)
     /// Diameter of a circle covering the 35 square points of the former `symbolSize(35)` point mark.
     private static let currentDotDiameter = 2 * (35 / CGFloat.pi).squareRoot()
 
@@ -182,8 +181,8 @@ private struct QuotaBurndownPlot: View {
                 ZStack(alignment: .topLeading) {
                     ForEach(Self.gridValues, id: \.self) { value in
                         Text(value, format: .number)
-                            .font(Self.labelFont)
-                            .foregroundStyle(.secondary)
+                            .font(OpenBarTheme.Chart.axisFont)
+                            .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                             .fixedSize()
                             // A zero-height frame centers the label on its grid line.
                             .frame(height: 0)
@@ -202,19 +201,21 @@ private struct QuotaBurndownPlot: View {
                 x: size.width * CGFloat(sample.date.timeIntervalSince(self.model.start) / span),
                 y: size.height * (1 - CGFloat(sample.remainingPercent) / 100))
         }
+        let y = { (value: Double) in size.height * (1 - CGFloat(value) / 100) }
         return ZStack(alignment: .topLeading) {
-            Path { path in
-                for value in Self.gridValues {
-                    let y = size.height * (1 - value / 100)
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: size.width, y: y))
-                }
-            }
-            .stroke(Color(nsColor: .tertiaryLabelColor), lineWidth: 0.5)
+            OpenBarTheme.Chart.gridPath(
+                values: OpenBarTheme.Chart.gridValues(Self.gridValues),
+                width: size.width,
+                y: y)
+                .stroke(OpenBarTheme.Chart.gridColor(self.contrast), lineWidth: OpenBarTheme.Chart.gridLineWidth)
+            OpenBarTheme.Chart.baselinePath(width: size.width, bottom: size.height)
+                .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.baselineWidth)
             Path { $0.addLines(self.model.ideal.map(point)) }
-                .stroke(Color(nsColor: .secondaryLabelColor), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                .stroke(OpenBarTheme.Chart.ruleColor, style: OpenBarTheme.Chart.ruleStyle)
             Path { $0.addLines(self.model.samples.map(point)) }
-                .stroke(self.color, style: StrokeStyle(lineWidth: 2))
+                .stroke(
+                    self.color,
+                    style: StrokeStyle(lineWidth: OpenBarTheme.Chart.lineWidth, lineCap: .round, lineJoin: .round))
             if let current = self.model.samples.last {
                 let center = point(current)
                 let diameter = Self.currentDotDiameter

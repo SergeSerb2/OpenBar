@@ -145,8 +145,9 @@ struct CostHistoryChartMenuView: View {
         VStack(alignment: .leading, spacing: Self.outerSpacing) {
             if model.points.isEmpty {
                 Text(L("No data available"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: Self.chartHeight)
                     .accessibilityLabel(L("No data available"))
             } else {
                 // Keep hoverable content below AppKit's native top auto-scroll gutter.
@@ -192,7 +193,7 @@ struct CostHistoryChartMenuView: View {
                     HStack {
                         if showsHistoryRefreshing {
                             Text(L("Refreshing"))
-                                .font(.caption2)
+                                .font(OpenBarTheme.Fonts.caption)
                                 .foregroundStyle(.secondary)
                                 .accessibilityLabel(L("Refreshing"))
                         }
@@ -218,7 +219,7 @@ struct CostHistoryChartMenuView: View {
                 let detail = self.detailContent(selectedDateKey: selectedDateKey, model: model)
                 VStack(alignment: .leading, spacing: Self.detailSpacing) {
                     Text(detail.primary)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -228,7 +229,7 @@ struct CostHistoryChartMenuView: View {
                             VStack(alignment: .leading, spacing: Self.detailSpacing) {
                                 ForEach(detail.rows) { row in
                                     HStack(alignment: .top, spacing: 8) {
-                                        Rectangle()
+                                        RoundedRectangle(cornerRadius: 1, style: .continuous)
                                             .fill(row.accentColor)
                                             .frame(
                                                 width: 2,
@@ -239,14 +240,14 @@ struct CostHistoryChartMenuView: View {
 
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(row.title)
-                                                .font(.caption)
+                                                .font(OpenBarTheme.Fonts.meta)
                                                 .foregroundStyle(.secondary)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
                                                 .frame(height: Self.detailTitleLineHeight, alignment: .leading)
                                             if let subtitle = row.subtitle {
                                                 Text(subtitle)
-                                                    .font(.caption2)
+                                                    .font(OpenBarTheme.Fonts.caption)
                                                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                                                     .lineLimit(1)
                                                     .truncationMode(.tail)
@@ -256,7 +257,7 @@ struct CostHistoryChartMenuView: View {
                                             }
                                             if let modeSubtitle = row.modeSubtitle {
                                                 Text(modeSubtitle)
-                                                    .font(.caption2)
+                                                    .font(OpenBarTheme.Fonts.caption)
                                                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                                                     .lineLimit(1)
                                                     .truncationMode(.tail)
@@ -281,7 +282,7 @@ struct CostHistoryChartMenuView: View {
 
                         if model.hasDetailOverflow {
                             Text(Self.detailOverflowHint(itemCount: detail.rows.count) ?? " ")
-                                .font(.caption2)
+                                .font(OpenBarTheme.Fonts.caption)
                                 .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                                 .frame(height: Self.detailHintHeight, alignment: .leading)
                                 .accessibilityHidden(!Self.detailRowsNeedScrolling(itemCount: detail.rows.count))
@@ -303,7 +304,7 @@ struct CostHistoryChartMenuView: View {
                         self.windowLabel,
                         self.totalCostUSD.map(self.costString) ?? "—")
                         + UsageFormatter.incompleteUsageSuffix(incompleteCount))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.head)
@@ -313,7 +314,7 @@ struct CostHistoryChartMenuView: View {
                     {
                         Text(disclaimer)
                             .help(disclaimer)
-                            .font(.caption2)
+                            .font(OpenBarTheme.Fonts.caption)
                             .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -324,7 +325,7 @@ struct CostHistoryChartMenuView: View {
             if !self.projects.isEmpty {
                 VStack(alignment: .leading, spacing: Self.projectRowSpacing) {
                     Text(L("Projects"))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.laneTitle)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .frame(height: Self.detailPrimaryLineHeight, alignment: .leading)
@@ -345,7 +346,7 @@ struct CostHistoryChartMenuView: View {
                                 let hiddenSourceCount = visibleSources.count - Self.maxVisibleProjectSourceRows
                                 if hiddenSourceCount > 0 {
                                     Text(L("+ %d more", hiddenSourceCount))
-                                        .font(.caption2)
+                                        .font(OpenBarTheme.Fonts.caption)
                                         .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                                         .lineLimit(1)
                                         .padding(.leading, Self.projectSourceIndent)
@@ -426,12 +427,12 @@ struct CostHistoryChartMenuView: View {
         return VStack(alignment: .leading, spacing: Self.sessionRowSpacing) {
             HStack {
                 Text(L("Conversations (%@)", self.windowLabel))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer()
                 Text("\(self.sessions.count)")
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                 if let onBrowseSessions = self.onBrowseSessions {
                     Image(systemName: "magnifyingglass")
@@ -473,23 +474,22 @@ struct CostHistoryChartMenuView: View {
         let content = HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(identity.name)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Text(Self.sessionUsageLine(session))
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Text(session.lastActivity, format: .dateTime.month(.abbreviated).day().hour().minute())
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             Text(session.costUSD.map(self.costString) ?? "—")
-                .font(.caption)
-                .monospacedDigit()
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -821,20 +821,20 @@ struct CostHistoryChartMenuView: View {
         return VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 8) {
                 Text(identity.name)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 8)
                 Text(self.projectSummary(project))
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.head)
             }
             if let path = identity.path {
                 Text(path)
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -848,20 +848,20 @@ struct CostHistoryChartMenuView: View {
         return VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 6) {
                 Text(identity.name)
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.tail)
                 Spacer(minLength: 6)
                 Text(self.projectSourceSummary(source))
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .tertiaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.head)
             }
             if let path = identity.path {
                 Text(path)
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(Color(nsColor: .quaternaryLabelColor))
                     .lineLimit(1)
                     .truncationMode(.middle)
