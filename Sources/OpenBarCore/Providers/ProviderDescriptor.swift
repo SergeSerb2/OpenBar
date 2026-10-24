@@ -332,7 +332,9 @@ public struct ProviderPaceCapability: Sendable {
     }
 }
 
-public struct ProviderDescriptor: Sendable {
+/// Shared immutable registration data. Keeping this behind one reference avoids embedding the large
+/// descriptor value in every manifest, registry array, and app-side provider-spec dictionary bucket.
+public final class ProviderDescriptor: Sendable {
     public let id: UsageProvider
     public let metadata: ProviderMetadata
     public let branding: ProviderBranding
