@@ -37,7 +37,7 @@ public struct BedrockUsageSnapshot: Codable, Sendable {
 
     public var totalTokens: Int? {
         guard let input = self.inputTokens, let output = self.outputTokens else { return nil }
-        return input + output
+        return ProviderUsageCounter.sum([input, output])
     }
 }
 
@@ -47,7 +47,7 @@ extension BedrockUsageSnapshot {
             RateWindow(
                 usedPercent: usedPercent,
                 windowMinutes: nil,
-                resetsAt: Self.endOfCurrentMonth(),
+                resetsAt: Self.endOfCurrentMonth(now: self.updatedAt),
                 resetDescription: "Monthly budget")
         } else {
             nil
@@ -58,7 +58,7 @@ extension BedrockUsageSnapshot {
             limit: self.monthlyBudget ?? 0,
             currencyCode: "USD",
             period: "Monthly",
-            resetsAt: Self.endOfCurrentMonth(),
+            resetsAt: Self.endOfCurrentMonth(now: self.updatedAt),
             updatedAt: self.updatedAt)
 
         var loginParts: [String] = []
@@ -88,12 +88,9 @@ extension BedrockUsageSnapshot {
             identity: identity)
     }
 
-    private static func endOfCurrentMonth() -> Date? {
-        let calendar = Calendar.current
-        guard let range = calendar.range(of: .day, in: .month, for: Date()) else { return nil }
-        let components = calendar.dateComponents([.year, .month], from: Date())
-        guard let startOfMonth = calendar.date(from: components) else { return nil }
-        return calendar.date(byAdding: .day, value: range.count, to: startOfMonth)
+    private static func endOfCurrentMonth(now: Date) -> Date? {
+        let calendar = CostUsageBucketTimeZone.calendar(identifier: "UTC")
+        return calendar.dateInterval(of: .month, for: now)?.end
     }
 
     static func formattedTokenCount(_ count: Int) -> String {
@@ -128,7 +125,8 @@ enum BedrockUsageFetcher {
     {
         let spend = try await Self.fetchMonthlyCost(
             credentials: credentials,
-            environment: environment)
+            environment: environment,
+            now: now)
 
         var activity: BedrockClaudeActivity?
         let cloudWatchOverride = environment[BedrockSettingsReader.cloudWatchAPIURLKey]
@@ -179,9 +177,10 @@ enum BedrockUsageFetcher {
 
     private static func fetchMonthlyCost(
         credentials: BedrockAWSSigner.Credentials,
-        environment: [String: String]) async throws -> Double
+        environment: [String: String],
+        now: Date) async throws -> Double
     {
-        let (startDate, endDate) = Self.currentMonthRange()
+        let (startDate, endDate) = Self.currentMonthRange(now: now)
 
         let pages = try await Self.callCostExplorerPages(
             startDate: startDate,
@@ -279,8 +278,7 @@ enum BedrockUsageFetcher {
                 Self.log.info("AWS Cost Explorer data unavailable, assuming zero usage.")
                 return Data(#"{"ResultsByTime":[]}"#.utf8)
             }
-            let summary = Self.sanitizedResponseBody(response.data)
-            Self.log.error("AWS Cost Explorer returned \(response.statusCode): \(summary)")
+            Self.log.error("AWS Cost Explorer returned \(response.statusCode)")
             throw BedrockUsageError.apiError("HTTP \(response.statusCode)")
         }
 

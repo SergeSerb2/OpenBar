@@ -83,7 +83,7 @@ struct OpenCodeUsageFetcherErrorTests {
             switch error {
             case let .apiError(message):
                 #expect(message.contains("HTTP 500"))
-                #expect(message.contains("403 Forbidden"))
+                #expect(!message.contains("403 Forbidden"))
             default:
                 Issue.record("Expected apiError, got: \(error)")
             }
@@ -113,7 +113,7 @@ struct OpenCodeUsageFetcherErrorTests {
             switch error {
             case let .apiError(message):
                 #expect(message.contains("HTTP 500"))
-                #expect(message.contains("Workspace missing"))
+                #expect(!message.contains("Workspace missing"))
             default:
                 Issue.record("Expected apiError, got: \(error)")
             }

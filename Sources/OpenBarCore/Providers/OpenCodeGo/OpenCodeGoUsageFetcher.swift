@@ -203,10 +203,6 @@ public struct OpenCodeGoUsageFetcher: Sendable {
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw OpenCodeGoUsageError.invalidCredentials
             }
-            let body = String(data: response.data, encoding: .utf8) ?? ""
-            if let message = OpenCodeWebParsing.extractServerErrorMessage(from: body) {
-                throw OpenCodeGoUsageError.apiError("HTTP \(response.statusCode): \(message)")
-            }
             throw OpenCodeGoUsageError.apiError("HTTP \(response.statusCode)")
         }
         guard let text = String(data: response.data, encoding: .utf8) else {
@@ -491,12 +487,8 @@ extension OpenCodeGoUsageFetcher {
 
         let httpResponse = try await session.response(for: request)
         guard httpResponse.statusCode == 200 else {
-            let bodyText = String(data: httpResponse.data, encoding: .utf8) ?? ""
             if httpResponse.statusCode == 401 {
                 throw OpenCodeGoUsageError.invalidCredentials
-            }
-            if let message = OpenCodeWebParsing.extractServerErrorMessage(from: bodyText) {
-                throw OpenCodeGoUsageError.apiError("HTTP \(httpResponse.statusCode): \(message)")
             }
             throw OpenCodeGoUsageError.apiError("HTTP \(httpResponse.statusCode)")
         }
@@ -814,9 +806,6 @@ extension OpenCodeGoUsageFetcher {
             }
             if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
                 throw OpenCodeGoUsageError.invalidCredentials
-            }
-            if let message = OpenCodeWebParsing.extractServerErrorMessage(from: bodyText) {
-                throw OpenCodeGoUsageError.apiError("HTTP \(httpResponse.statusCode): \(message)")
             }
             throw OpenCodeGoUsageError.apiError("HTTP \(httpResponse.statusCode)")
         }

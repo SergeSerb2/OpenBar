@@ -197,7 +197,8 @@ public struct GroqUsageFetcher: Sendable {
 
         let response = try await transport.response(for: request)
         guard (200..<300).contains(response.statusCode) else {
-            let summary = Self.responseSummary(response.data)
+            let summary = Self.responseSummary(Data((String(bytes: response.data, encoding: .utf8) ?? "")
+                    .replacingOccurrences(of: apiKey, with: "<redacted>").utf8))
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw GroqUsageError.accessDenied(summary)
             }

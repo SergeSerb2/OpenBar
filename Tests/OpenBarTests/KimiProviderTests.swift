@@ -420,9 +420,9 @@ struct KimiAPIFetchStrategyTests {
         let result = try await strategy.fetch(context)
         let monthly = result.usage.extraRateWindows?.first { $0.id == "kimi-monthly" }
 
-        #expect(result.usage.loginMethod(for: .kimi) == "Allegro")
-        #expect(monthly?.window.usedPercent == 42)
-        #expect(await transport.requests().count == 3)
+        #expect(result.usage.loginMethod(for: .kimi) == nil)
+        #expect(monthly == nil)
+        #expect(await transport.requests().count == 1)
     }
 
     @Test

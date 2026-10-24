@@ -187,13 +187,20 @@ defineProvider({
         if (otherGrants.length > 0) {
           details.push({
             title: "Other credit grants",
-            rows: otherGrants.map((grant) => ({
+            rows: otherGrants.slice(0, otherGrants.length > 24 ? 23 : 24).map((grant) => ({
               label: grant.label,
               value: amounts(grant),
               secondaryValue: grant.expiresAt ? expiry(grant.expiresAt) : null,
               progress: (grant.granted - Math.min(grant.remaining, grant.granted)) / grant.granted,
             })),
           });
+          if (otherGrants.length > 24) {
+            const remaining = otherGrants.slice(23);
+            details[details.length - 1].rows.push({
+              label: `${remaining.length} more grants`,
+              value: `${money(remaining.reduce((total, grant) => total + grant.remaining, 0))} left`,
+            });
+          }
         }
 
         // Spend is optional: a broken report must not discard an authenticated balance.

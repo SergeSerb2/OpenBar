@@ -158,9 +158,7 @@ final class GrokRPCClient: @unchecked Sendable {
 
     private func sendPayload(_ payload: [String: Any]) throws {
         var data = try JSONSerialization.data(withJSONObject: payload, options: [.withoutEscapingSlashes])
-        if let preview = String(data: data.prefix(200), encoding: .utf8) {
-            Self.log.debug("grok rpc -> \(preview)")
-        }
+        Self.log.debug("grok rpc request (\(data.count) bytes)")
         data.append(0x0A)
         do {
             try self.stdin.write(data)
@@ -172,9 +170,7 @@ final class GrokRPCClient: @unchecked Sendable {
     private func readNextMessage() async throws -> [String: Any] {
         for await lineData in self.output.lines {
             if lineData.isEmpty { continue }
-            if let preview = String(data: lineData.prefix(300), encoding: .utf8) {
-                Self.log.debug("grok rpc <- \(preview)")
-            }
+            Self.log.debug("grok rpc response (\(lineData.count) bytes)")
             if let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] {
                 return json
             }

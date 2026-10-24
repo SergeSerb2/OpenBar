@@ -485,14 +485,14 @@ public struct GeminiStatusProbe: Sendable {
             try GeminiStatusProbeError.throwIfConsumerTierDeprecated(data: data)
             Self.log.warning("loadCodeAssist: HTTP error", metadata: [
                 "statusCode": "\(httpResponse.statusCode)",
-                "body": String(data: data, encoding: .utf8) ?? "<binary>",
+                "bodyBytes": "\(data.count)",
             ])
             return .empty
         }
 
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             Self.log.warning("loadCodeAssist: failed to parse JSON", metadata: [
-                "body": String(data: data, encoding: .utf8) ?? "<binary>",
+                "bodyBytes": "\(data.count)",
             ])
             return .empty
         }

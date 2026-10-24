@@ -1412,7 +1412,7 @@ public struct CursorStatusProbe: Sendable {
         } catch {
             guard let decodingLabel else { throw error }
             throw CursorStatusProbeError.parseFailed(
-                "\(decodingLabel) decode failed: \(error.localizedDescription). Raw: \(rawJSON.prefix(200))")
+                "\(decodingLabel) decode failed: \(error.localizedDescription)")
         }
     }
 

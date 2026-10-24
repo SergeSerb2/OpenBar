@@ -52,7 +52,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseResponse(data: data, updatedAt: now)
@@ -90,7 +90,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseVibeUsage(data: data)
@@ -116,8 +116,7 @@ public enum MistralUsageFetcher {
         case 401, 403:
             throw MistralUsageError.invalidCredentials
         default:
-            let body = String(data: response.data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
         guard response.response.url?.scheme?.lowercased() == "https",
               response.response.url?.host?.lowercased() == self.baseURL.host,
@@ -159,7 +158,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseCredits(data: data)

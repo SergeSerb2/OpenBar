@@ -64,6 +64,7 @@ enum CursorLocalCSVReader {
             let totalTokens = totalIdx < cols.count && totalIdx < c.count
                 && cols[totalIdx].lowercased().contains("total") ? self.parseInt(c[totalIdx]) : nil
             guard let date = parseDate(c[0], calendar: calendar) else { continue }
+            guard inW >= 0, inWo >= 0, read >= 0, out >= 0 else { continue }
             let write = max(0, inW - inWo)
             let input = inWo
             if input == 0, out == 0, read == 0, write == 0 { continue }
@@ -87,7 +88,7 @@ enum CursorLocalCSVReader {
     {
         var byDay: [String: CostUsageDailyReport.Entry] = [:]
         var totalCost: Double = 0
-        var totalTokens = 0
+        var totalTokens: Int? = 0
         for row in rows {
             let key = CostUsageLocalDay.key(from: row.date, calendar: calendar)
             let existing = byDay[key]
@@ -104,14 +105,19 @@ enum CursorLocalCSVReader {
                 modelBreakdowns: [])
             // Honor the CSV's authoritative Total Tokens column when present;
             // otherwise derive from component columns.
-            let tot = row.totalTokens ?? (row.input + row.output + row.cacheRead + row.cacheWrite)
+            let tot = row.totalTokens ?? ProviderUsageCounter.sum([
+                row.input,
+                row.output,
+                row.cacheRead,
+                row.cacheWrite,
+            ])
             var bds = e.modelBreakdowns ?? []
             if let i = bds.firstIndex(where: { $0.modelName == row.model }) {
                 let b = bds[i]
                 bds[i] = CostUsageDailyReport.ModelBreakdown(
                     modelName: b.modelName,
                     costUSD: (b.costUSD ?? 0) + row.cost,
-                    totalTokens: (b.totalTokens ?? 0) + tot,
+                    totalTokens: ProviderUsageCounter.sum([b.totalTokens, tot]),
                     requestCount: (b.requestCount ?? 0) + 1)
             } else {
                 bds.append(CostUsageDailyReport.ModelBreakdown(
@@ -122,18 +128,18 @@ enum CursorLocalCSVReader {
             }
             let ne = CostUsageDailyReport.Entry(
                 date: key,
-                inputTokens: (e.inputTokens ?? 0) + row.input,
-                outputTokens: (e.outputTokens ?? 0) + row.output,
-                cacheReadTokens: (e.cacheReadTokens ?? 0) + row.cacheRead,
-                cacheCreationTokens: (e.cacheCreationTokens ?? 0) + row.cacheWrite,
-                totalTokens: (e.totalTokens ?? 0) + tot,
+                inputTokens: ProviderUsageCounter.sum([e.inputTokens, row.input]),
+                outputTokens: ProviderUsageCounter.sum([e.outputTokens, row.output]),
+                cacheReadTokens: ProviderUsageCounter.sum([e.cacheReadTokens, row.cacheRead]),
+                cacheCreationTokens: ProviderUsageCounter.sum([e.cacheCreationTokens, row.cacheWrite]),
+                totalTokens: ProviderUsageCounter.sum([e.totalTokens, tot]),
                 requestCount: (e.requestCount ?? 0) + 1,
                 costUSD: (e.costUSD ?? 0) + row.cost,
                 modelsUsed: e.modelsUsed,
                 modelBreakdowns: bds)
             byDay[key] = ne
             totalCost += row.cost
-            totalTokens += tot
+            totalTokens = ProviderUsageCounter.sum([totalTokens, tot])
         }
         let sorted = byDay.values.sorted { $0.date < $1.date }
         let summary: CostUsageDailyReport.Summary? = sorted.isEmpty ? nil : .init(

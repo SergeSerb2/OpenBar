@@ -105,7 +105,7 @@ public struct GroqConsoleFetcher: Sendable {
             environment: environment,
             transport: transport)
 
-        return Self.makeSnapshot(rows: rows, historyDays: days, updatedAt: now, calendar: calendar)
+        return try Self.makeSnapshot(rows: rows, historyDays: days, updatedAt: now, calendar: calendar)
     }
 
     public static func _makeSnapshotForTesting(
@@ -115,7 +115,7 @@ public struct GroqConsoleFetcher: Sendable {
         calendar: Calendar = .current) throws -> GroqConsoleUsageSnapshot
     {
         let rows = try JSONDecoder().decode(GroqActivityResponse.self, from: activityJSON).data
-        return Self.makeSnapshot(rows: rows, historyDays: historyDays, updatedAt: updatedAt, calendar: calendar)
+        return try Self.makeSnapshot(rows: rows, historyDays: historyDays, updatedAt: updatedAt, calendar: calendar)
     }
 
     /// Extracts the Groq organization id from the session JWT's
@@ -180,7 +180,8 @@ public struct GroqConsoleFetcher: Sendable {
 
         let response = try await transport.response(for: request)
         guard (200..<300).contains(response.statusCode) else {
-            let summary = Self.responseSummary(response.data)
+            let summary = Self.responseSummary(Data((String(bytes: response.data, encoding: .utf8) ?? "")
+                    .replacingOccurrences(of: sessionJWT, with: "<redacted>").utf8))
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw GroqConsoleError.accessDenied(summary)
             }
@@ -198,8 +199,19 @@ public struct GroqConsoleFetcher: Sendable {
         rows: [GroqActivityResponse.Row],
         historyDays: Int,
         updatedAt: Date,
-        calendar: Calendar) -> GroqConsoleUsageSnapshot
+        calendar: Calendar) throws -> GroqConsoleUsageSnapshot
     {
+        // Validate the full nonnegative population before any per-day/model subset sums.
+        var tokens = 0
+        var requests = 0
+        for row in rows {
+            let context = row.nContextTokensTotal ?? 0
+            let nonCached = row.nNonCachedContextTokensTotal ?? context
+            guard nonCached >= 0, nonCached <= context else { throw ProviderUsageCounter.Failure.invalidCount }
+            tokens = try ProviderUsageCounter.add(tokens, context)
+            tokens = try ProviderUsageCounter.add(tokens, row.nGeneratedTokensTotal ?? 0)
+            requests = try ProviderUsageCounter.add(requests, row.numRequests ?? 0)
+        }
         let dayFormatter = DateFormatter()
         dayFormatter.calendar = calendar
         dayFormatter.locale = Locale(identifier: "en_US_POSIX")

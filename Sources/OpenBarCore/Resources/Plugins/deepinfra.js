@@ -21,6 +21,18 @@ defineProvider({
         throw ctx.fail.authenticationExpired("DeepInfra API error: API key rejected (HTTP 401).");
       if (response.status === 403)
         throw ctx.fail.permissionDenied("DeepInfra API error: API key cannot access billing data (HTTP 403).");
+      if (response.status === 429) {
+        const raw = response.headers["retry-after"] ?? response.headers["Retry-After"];
+        const seconds =
+          raw && /^\d+$/.test(raw.trim())
+            ? Number(raw)
+            : raw
+              ? (Date.parse(raw) - ctx.date.now().getTime()) / 1000
+              : NaN;
+        throw ctx.fail.rateLimited("DeepInfra requests are rate limited.", {
+          retryAfterSeconds: Number.isFinite(seconds) ? Math.min(10, Math.max(0, seconds)) : 1,
+        });
+      }
       if (response.status !== 200) throw ctx.fail.apiFailure(`DeepInfra API error: HTTP ${response.status}`);
       return response.bodyText;
     }

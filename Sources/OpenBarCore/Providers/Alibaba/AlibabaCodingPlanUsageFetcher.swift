@@ -128,8 +128,7 @@ public struct AlibabaCodingPlanUsageFetcher: Sendable {
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw AlibabaCodingPlanUsageError.invalidCredentials
             }
-            let body = String(data: data, encoding: .utf8) ?? ""
-            Self.log.error("Alibaba Coding Plan returned \(response.statusCode): \(body)")
+            Self.log.error("Alibaba Coding Plan returned \(response.statusCode)")
             throw AlibabaCodingPlanUsageError.apiError("HTTP \(response.statusCode)")
         }
 
@@ -177,8 +176,7 @@ public struct AlibabaCodingPlanUsageFetcher: Sendable {
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw AlibabaCodingPlanUsageError.loginRequired
             }
-            let body = String(data: data, encoding: .utf8) ?? ""
-            Self.log.error("Alibaba Coding Plan returned \(response.statusCode): \(body)")
+            Self.log.error("Alibaba Coding Plan returned \(response.statusCode)")
             throw AlibabaCodingPlanUsageError.apiError("HTTP \(response.statusCode)")
         }
 

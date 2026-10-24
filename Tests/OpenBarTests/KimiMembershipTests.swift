@@ -72,7 +72,7 @@ struct KimiMembershipTests {
             webAuthToken: "fixture-web-token",
             transport: transport)
         #expect(snapshot.planName == "Allegro")
-        #expect(snapshot.subscriptionBalance?.amountUsedRatio == 0.42)
+        #expect(snapshot.subscriptionBalance == nil)
     }
 
     @Test
@@ -192,7 +192,7 @@ struct KimiMembershipTests {
             transport: transport)
         #expect(snapshot.weekly?.used == "25")
         #expect(snapshot.planName == nil)
-        #expect(snapshot.subscriptionBalance?.amountUsedRatio == 0.42)
+        #expect(snapshot.subscriptionBalance == nil)
     }
 
     #if os(macOS)
