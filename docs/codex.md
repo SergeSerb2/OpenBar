@@ -242,6 +242,9 @@ and stable account numbers distinguish rows while usable workspace labels remain
 - Enable **Preferences → Providers → Codex → OpenAI web extras** for code review remaining, usage breakdown, and credits history. It loads `chatgpt.com` in a hidden WebView and can materially increase battery/network usage.
 - **OpenAI web battery saver** defaults off. It reduces background/settings-driven refreshes while preserving explicit manual refreshes.
 - Renewal/expiration dates load after dashboard usage: the subscription API is tried first, then ChatGPT's billing request in the same account-scoped session supplies only the date and renewal flag, within eight seconds. Unavailable/malformed responses retain prior dates; valid empty responses clear them. Cancelled, replaced, disabled, or account-mismatched refreshes cannot attach dates. CLI web capture stays within its remaining fetch deadline.
+- **Buy Credits…** opens the ChatGPT credits page in a window that uses the account's WebKit store. It clicks the
+  page's single, enabled "Add more" control outside any dialog or form, once, to open the purchase dialog. It never
+  chooses an amount, clicks Next, or confirms a purchase; if no single "Add more" control appears, it clicks nothing.
 - Preferences → Providers → Codex → OpenAI cookies (Automatic or Manual).
 - URL: `https://chatgpt.com/codex/cloud/settings/analytics#usage`.
 - Uses an off-screen `WKWebView` with a per-account `WKWebsiteDataStore`.
