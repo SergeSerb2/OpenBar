@@ -209,8 +209,8 @@ public struct WarpUsageFetcher: Sendable {
         let response = try await ProviderHTTPClient.shared.response(for: request)
         let data = response.data
         guard response.statusCode == 200 else {
-            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: data)
-            Self.log.error("Warp API returned \(response.statusCode): \(summary)")
+            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: data, apiKey: apiKey)
+            Self.log.error("Warp API returned \(response.statusCode)")
             throw WarpUsageError.apiError(response.statusCode, summary)
         }
 
@@ -387,7 +387,9 @@ public struct WarpUsageFetcher: Sendable {
         return nil
     }
 
-    private static func apiErrorSummary(statusCode: Int, data: Data) -> String {
+    private static func apiErrorSummary(statusCode: Int, data: Data, apiKey: String = "") -> String {
+        let data = Data((String(bytes: data, encoding: .utf8) ?? "")
+            .replacingOccurrences(of: apiKey, with: "<redacted>").utf8)
         guard let root = try? JSONSerialization.jsonObject(with: data),
               let json = root as? [String: Any]
         else {

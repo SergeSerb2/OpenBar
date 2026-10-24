@@ -58,8 +58,7 @@ public struct KimiUsageFetcher: Sendable {
         let response = try await transport.response(for: request)
         let data = response.data
         guard response.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<binary data>"
-            Self.log.error("Kimi Code API returned \(response.statusCode): \(responseBody)")
+            Self.log.error("Kimi Code API returned \(response.statusCode)")
             throw self.codeAPIError(statusCode: response.statusCode)
         }
 
@@ -152,8 +151,7 @@ public struct KimiUsageFetcher: Sendable {
         let response = try await transport.response(for: request)
         let data = response.data
         guard response.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<binary data>"
-            Self.log.error("Kimi API returned \(response.statusCode): \(responseBody)")
+            Self.log.error("Kimi API returned \(response.statusCode)")
 
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw KimiAPIError.invalidToken

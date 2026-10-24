@@ -196,7 +196,7 @@ struct OpenCodeGoUsageFetcherErrorTests {
             switch error {
             case let .apiError(message):
                 #expect(message.contains("HTTP 500"))
-                #expect(message.contains("Workspace missing"))
+                #expect(!message.contains("Workspace missing"))
             default:
                 Issue.record("Expected apiError, got: \(error)")
             }

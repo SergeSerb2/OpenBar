@@ -137,7 +137,8 @@ public enum AzureOpenAIUsageFetcher {
         guard (200..<300).contains(response.statusCode) else {
             throw AzureOpenAIUsageError.apiError(
                 statusCode: response.statusCode,
-                message: self.responseSummary(response.data))
+                message: self.responseSummary(Data((String(bytes: response.data, encoding: .utf8) ?? "")
+                        .replacingOccurrences(of: apiKey, with: "<redacted>").utf8)))
         }
 
         let model: String?

@@ -204,8 +204,7 @@ public struct MiniMaxUsageFetcher: Sendable {
         }
 
         guard response.statusCode == 200 else {
-            let body = String(data: response.data, encoding: .utf8) ?? ""
-            Self.log.error("MiniMax returned \(response.statusCode): \(body)")
+            Self.log.error("MiniMax returned \(response.statusCode)")
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw MiniMaxUsageError.invalidCredentials
             }
@@ -414,8 +413,7 @@ public struct MiniMaxUsageFetcher: Sendable {
                 limit: Self.billingHistoryLimit)
             let response = try await self.billingHistoryResponse(url: url, context: context)
             guard response.statusCode == 200 else {
-                let body = String(data: response.data, encoding: .utf8) ?? ""
-                Self.log.debug("MiniMax billing history returned \(response.statusCode): \(body)")
+                Self.log.debug("MiniMax billing history returned \(response.statusCode)")
                 if response.statusCode == 401 || response.statusCode == 403 {
                     throw MiniMaxUsageError.invalidCredentials
                 }

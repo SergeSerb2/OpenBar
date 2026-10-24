@@ -404,10 +404,12 @@ public struct AntigravityRemoteUsageFetcher: Sendable {
         case 401:
             throw AntigravityRemoteFetchError.notLoggedIn
         case 403:
-            let message = String(data: httpResponse.data, encoding: .utf8)?.trimmedNonEmpty ?? "HTTP 403"
+            let message = String(data: httpResponse.data, encoding: .utf8)?
+                .replacingOccurrences(of: accessToken, with: "<redacted>").trimmedNonEmpty ?? "HTTP 403"
             throw AntigravityRemoteFetchError.permissionDenied(message)
         default:
-            let message = String(data: httpResponse.data, encoding: .utf8)?.trimmedNonEmpty
+            let message = String(data: httpResponse.data, encoding: .utf8)?
+                .replacingOccurrences(of: accessToken, with: "<redacted>").trimmedNonEmpty
                 ?? "HTTP \(httpResponse.statusCode)"
             throw AntigravityRemoteFetchError.apiError("HTTP \(httpResponse.statusCode): \(message)")
         }

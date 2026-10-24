@@ -278,8 +278,20 @@ public enum GrokWebBillingFetcher {
             throw error
         }
         guard response.statusCode == 200 else {
-            let body = String(data: response.data.prefix(400), encoding: .utf8) ?? ""
-            throw GrokWebBillingError.requestFailed(response.statusCode, body)
+            var body = String(bytes: response.data, encoding: .utf8) ?? ""
+            let cookieValues = cookieHeader?.split(separator: ";").compactMap {
+                $0.split(separator: "=", maxSplits: 1).last.map(String.init)
+            } ?? []
+            let secrets = [
+                authorizationHeader,
+                cookieHeader,
+                authorizationHeader?.split(separator: " ").last.map(String.init),
+            ].compactMap(\.self)
+                + cookieValues
+            for secret in secrets where !secret.isEmpty {
+                body = body.replacingOccurrences(of: secret, with: "<redacted>")
+            }
+            throw GrokWebBillingError.requestFailed(response.statusCode, String(body.prefix(400)))
         }
         try Self.validateGRPCStatusFields(
             Self.grpcHeaderFields(from: response.response.allHeaderFields))

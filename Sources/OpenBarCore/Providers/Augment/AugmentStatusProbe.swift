@@ -470,13 +470,11 @@ public struct AugmentStatusProbe: Sendable {
         }
 
         if httpResponse.statusCode == 403 {
-            let responseBody = String(data: data, encoding: .utf8) ?? ""
-            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode): \(responseBody)")
+            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode)")
         }
 
         guard httpResponse.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? ""
-            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode): \(responseBody)")
+            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode)")
         }
 
         let rawJSON = String(data: data, encoding: .utf8) ?? ""

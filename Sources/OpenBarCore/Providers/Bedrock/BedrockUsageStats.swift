@@ -279,8 +279,7 @@ enum BedrockUsageFetcher {
                 Self.log.info("AWS Cost Explorer data unavailable, assuming zero usage.")
                 return Data(#"{"ResultsByTime":[]}"#.utf8)
             }
-            let summary = Self.sanitizedResponseBody(response.data)
-            Self.log.error("AWS Cost Explorer returned \(response.statusCode): \(summary)")
+            Self.log.error("AWS Cost Explorer returned \(response.statusCode)")
             throw BedrockUsageError.apiError("HTTP \(response.statusCode)")
         }
 
