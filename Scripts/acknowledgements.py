@@ -24,7 +24,6 @@ PACKAGES = {
     'swift-asn1': ('swift-asn1', ['The SwiftASN1 Project'], 'Apache-2.0', ['NOTICE.txt', 'LICENSE.txt']),
     'swift-crypto': ('swift-crypto', ['The SwiftCrypto Project'], 'Apache-2.0', ['NOTICE.txt', 'LICENSE.txt']),
     'swift-log': ('swift-log', ['The SwiftLog Project'], 'Apache-2.0', ['NOTICE.txt', 'LICENSE.txt']),
-    'vortex': ('Vortex', ['Paul Hudson'], 'MIT', ['LICENSE']),
 }
 SUCRASE_SHA256 = '4d997e15b72cbc9ccf6e743c30c6eb48bf4533f6709852367b40766be5eba70b'
 

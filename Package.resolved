@@ -1,5 +1,5 @@
 {
-  "originHash" : "6e7bb0a2bcccd58694a821705bd74d865e74b886bf2aaf9a8e87f23703d0216e",
+  "originHash" : "f879bfe9ee8a348b793a6e22fe4de6f058fbe307cd86d54a7099ed40ef5aecad",
   "pins" : [
     {
       "identity" : "commander",
@@ -62,14 +62,6 @@
       "state" : {
         "revision" : "9c6fb14227f55d8f711ce3847dc2f419fb0ecacb",
         "version" : "1.15.1"
-      }
-    },
-    {
-      "identity" : "vortex",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/zats/Vortex",
-      "state" : {
-        "revision" : "ef5392088d4aeb255c4eee83157dbdafcd31bf07"
       }
     }
   ],

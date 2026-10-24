@@ -358,23 +358,6 @@
     "revision": "0.1.13"
   },
   {
-    "name": "Vortex",
-    "authors": [
-      "Paul Hudson"
-    ],
-    "url": "https://github.com/zats/Vortex",
-    "license": "MIT",
-    "sources": [
-      {
-        "path": "LICENSE",
-        "sha256": "5ecac440fbe9e244840edb76b386403bfc0384f229383959c2a3423319bf0e5d",
-        "text": "MIT License\n\nCopyright (c) 2024 Paul Hudson.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
-      }
-    ],
-    "identity": "vortex",
-    "revision": "ef5392088d4aeb255c4eee83157dbdafcd31bf07"
-  },
-  {
     "name": "XKCP",
     "authors": [
       "The Keccak Team",

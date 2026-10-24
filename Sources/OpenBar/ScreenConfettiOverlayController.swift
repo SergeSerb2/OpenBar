@@ -1,7 +1,6 @@
 import AppKit
 import OpenBarCore
-import SwiftUI
-import Vortex
+import QuartzCore
 
 @MainActor
 final class ScreenConfettiOverlayController {
@@ -24,16 +23,20 @@ final class ScreenConfettiOverlayController {
         }
 
         let palette = colors.map { color in
-            Color(red: color.red, green: color.green, blue: color.blue)
+            CGColor(srgbRed: color.red, green: color.green, blue: color.blue, alpha: 1)
         }
+        let startTime = CACurrentMediaTime()
         self.windows = screens.map { screen in
             let frame = screen.frame
-            let localOrigin = Self.localOrigin(in: frame, from: origin)
-            let contentView = ScreenConfettiOverlayView(origin: localOrigin, colors: palette)
-                .allowsHitTesting(false)
-            let hostingView = NSHostingView(rootView: contentView)
-            hostingView.wantsLayer = true
-            hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+            let fireworks = ScreenConfettiFireworks(origin: Self.localOrigin(in: frame, from: origin), colors: palette)
+            // Layer-hosting view: AppKit draws nothing into it; the emitter layers hold all content.
+            let contentView = NSView(frame: CGRect(origin: .zero, size: frame.size))
+            contentView.layer = CALayer()
+            contentView.wantsLayer = true
+            for emitter in fireworks.makeEmitterLayers(in: frame.size, contentsScale: screen.backingScaleFactor) {
+                emitter.beginTime = startTime
+                contentView.layer?.addSublayer(emitter)
+            }
 
             let window = ClickThroughOverlayPanel(
                 contentRect: frame,
@@ -41,7 +44,7 @@ final class ScreenConfettiOverlayController {
                 backing: .buffered,
                 defer: false,
                 screen: screen)
-            window.contentView = hostingView
+            window.contentView = contentView
             window.level = .statusBar
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle, .stationary]
             window.backgroundColor = .clear
@@ -117,165 +120,178 @@ private final class ClickThroughOverlayPanel: NSPanel {
     }
 }
 
-struct ScreenConfettiOverlayView: View {
-    private static let clockwiseRotationAngles: [Double] = [270, 234, 198, 162, 126, 90]
-    private static let counterclockwiseRotationAngles: [Double] = [90, 126, 162, 198, 234, 270]
+/// Fireworks drawn with Core Animation particles. Canvas-based particle views render through RenderBox's
+/// Metal backend on macOS 26+, which commits ~97 MB of graphics memory in the app while they play.
+///
+/// Each side of the origin fans six launch angles out 60 ms apart. Every phase fires three tracers that
+/// burst into 42 confetti pieces just before they expire. Speeds and accelerations are in screen heights
+/// per second, and y points up.
+struct ScreenConfettiFireworks {
+    private static let clockwiseLaunchAngles: [Double] = [270, 234, 198, 162, 126, 90]
+    private static let phaseInterval: CFTimeInterval = 0.06
+    private static let tracerRate: Float = 18
+    private static let tracerScale: CGFloat = 0.34
+    private static let tracerScaleAtBurst: CGFloat = 0.4
+    private static let piecesPerBurst = 42
+    private static let pieceRate: Float = 60
+    /// Core Animation particles have no drag; trimming confetti speeds and gravity stands in for light air drag.
+    private static let dragCompensation: CGFloat = 0.97
 
     let origin: CGPoint
-    let colors: [Color]
+    let colors: [CGColor]
 
-    @Environment(\.self) private var environment
-    @State private var visiblePhaseCount = 0
-
-    var body: some View {
-        GeometryReader { proxy in
-            let clockwiseAngles = Array(Self.clockwiseRotationAngles.prefix(self.visiblePhaseCount).enumerated())
-            let counterclockwiseAngles = Array(
-                Self.counterclockwiseRotationAngles.prefix(self.visiblePhaseCount).enumerated())
-            ZStack {
-                ForEach(clockwiseAngles, id: \.offset) { index, angle in
-                    VortexView(self.makeFireworkConfettiSystem(
-                        in: proxy.size,
-                        launchAngle: angle,
-                        phaseIndex: index,
-                        lateralOffset: -12))
-                    {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(.white)
-                            .frame(width: 10, height: 20)
-                            .tag("confetti-bar")
-
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 9, height: 9)
-                            .tag("confetti-dot")
-
-                        Capsule(style: .continuous)
-                            .fill(.white)
-                            .frame(width: 8, height: 16)
-                            .rotationEffect(.degrees(30))
-                            .tag("confetti-pill")
-
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 6, height: 6)
-                            .blur(radius: 1)
-                            .tag("confetti-tracer")
-                    }
-                }
-
-                ForEach(counterclockwiseAngles, id: \.offset) { index, angle in
-                    VortexView(self.makeFireworkConfettiSystem(
-                        in: proxy.size,
-                        launchAngle: angle,
-                        phaseIndex: index,
-                        lateralOffset: 12))
-                    {
-                        RoundedRectangle(cornerRadius: 2, style: .continuous)
-                            .fill(.white)
-                            .frame(width: 10, height: 20)
-                            .tag("confetti-bar")
-
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 9, height: 9)
-                            .tag("confetti-dot")
-
-                        Capsule(style: .continuous)
-                            .fill(.white)
-                            .frame(width: 8, height: 16)
-                            .rotationEffect(.degrees(30))
-                            .tag("confetti-pill")
-
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 6, height: 6)
-                            .blur(radius: 1)
-                            .tag("confetti-tracer")
-                    }
-                }
-            }
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .task {
-                self.visiblePhaseCount = 1
-                for phaseCount in 2...Self.clockwiseRotationAngles.count {
-                    try? await Task.sleep(for: .milliseconds(60))
-                    self.visiblePhaseCount = phaseCount
-                }
+    /// One emitter layer per launch. When a layer has several cells with sub-cells, Core Animation draws
+    /// the particles of every cell after the first with another cell's image.
+    func makeEmitterLayers(in size: CGSize, contentsScale: CGFloat) -> [CAEmitterLayer] {
+        let sprites = ScreenConfettiSprites(contentsScale: contentsScale)
+        let sides: [(lateralOffset: CGFloat, angles: [Double])] = [
+            (-12, Self.clockwiseLaunchAngles),
+            (12, Self.clockwiseLaunchAngles.reversed()),
+        ]
+        return sides.flatMap { side in
+            side.angles.enumerated().map { phaseIndex, angle in
+                let emitter = CAEmitterLayer()
+                emitter.frame = CGRect(origin: .zero, size: size)
+                emitter.emitterShape = .point
+                emitter.emitterPosition = self.launchPoint(in: size, lateralOffset: side.lateralOffset)
+                emitter.seed = UInt32.random(in: 0...UInt32.max)
+                emitter.emitterCells = [
+                    self.makeTracerCell(in: size, launchAngle: angle, phaseIndex: phaseIndex, sprites: sprites),
+                ]
+                return emitter
             }
         }
     }
 
-    func makeFireworkConfettiSystem(
+    /// `launchAngle` is in degrees clockwise from straight up.
+    private func makeTracerCell(
         in size: CGSize,
         launchAngle: Double,
         phaseIndex: Int,
-        lateralOffset: CGFloat)
-        -> VortexSystem
+        sprites: ScreenConfettiSprites)
+        -> CAEmitterCell
     {
-        let canvasOrigin = self.canvasOrigin(in: size, lateralOffset: lateralOffset)
-        let normalizedX = size.width > 0 ? canvasOrigin.x / size.width : 1
-        let normalizedY = size.height > 0 ? canvasOrigin.y / size.height : 0
-        let resolvedColors = self.colors.map { color -> VortexSystem.Color in
-            let components = color.resolve(in: self.environment)
-            return VortexSystem.Color(
-                red: Double(components.red),
-                green: Double(components.green),
-                blue: Double(components.blue),
-                opacity: Double(components.opacity))
+        let height = size.height
+        let lifetime = 0.58 + Float(phaseIndex) * 0.03
+        let tracer = CAEmitterCell()
+        tracer.contents = sprites.tracer
+        tracer.contentsScale = sprites.contentsScale
+        // A cell with a positive begin time emits its first particle at that time, then one every
+        // 1 / birthRate seconds until its duration ends.
+        tracer.beginTime = Double(phaseIndex) * Self.phaseInterval + 1 / Double(Self.tracerRate)
+        tracer.birthRate = Self.tracerRate
+        tracer.duration = 2.5 / Double(Self.tracerRate)
+        tracer.lifetime = lifetime
+        tracer.velocity = (1.36 + CGFloat(phaseIndex) * 0.04) * height
+        tracer.velocityRange = 0.12 * height
+        tracer.emissionLongitude = (90 - launchAngle) * .pi / 180
+        tracer.emissionRange = 6 * .pi / 180
+        tracer.yAcceleration = -0.12 * height
+        tracer.scale = Self.tracerScale
+        tracer.scaleSpeed = -Self.tracerScale * (1 - Self.tracerScaleAtBurst) / CGFloat(lifetime)
+        tracer.spin = -6
+        tracer.spinRange = 8
+
+        // Child cells time their emission from the tracer's birth. Half an interval emits exactly one piece
+        // per cell, just before the tracer expires. Pieces inherit the tracer's current scale.
+        let burstAge = Double(lifetime) - 0.5 / Double(Self.pieceRate)
+        let inheritedScale = Self.tracerScale
+            * (1 - (1 - Self.tracerScaleAtBurst) * CGFloat(burstAge / Double(lifetime)))
+        let sectorWidth = 2 * CGFloat.pi / CGFloat(Self.piecesPerBurst)
+        tracer.emitterCells = (0..<Self.piecesPerBurst).map { index in
+            let piece = CAEmitterCell()
+            piece.contents = sprites.pieces.randomElement()
+            piece.contentsScale = sprites.contentsScale
+            piece.color = self.colors.randomElement() ?? CGColor(gray: 1, alpha: 1)
+            piece.beginTime = burstAge
+            piece.birthRate = Self.pieceRate
+            piece.duration = 0.5 / Double(Self.pieceRate)
+            piece.lifetime = 8
+            piece.velocity = 0.72 * height * Self.dragCompensation
+            piece.velocityRange = 0.44 * height * Self.dragCompensation
+            // One direction per cell keeps the burst a flat ring; a wide emission cone would scatter
+            // pieces in 3D and fill the ring in.
+            piece.emissionLongitude = (CGFloat(index) + .random(in: 0..<1)) * sectorWidth
+            piece.emissionRange = sectorWidth / 2
+            piece.yAcceleration = -0.32 * height * Self.dragCompensation
+            piece.scale = 0.74 / inheritedScale
+            piece.scaleRange = 0.26 / inheritedScale
+            piece.spin = -3
+            piece.spinRange = 14
+            return piece
         }
-
-        let explosion = VortexSystem(
-            tags: ["confetti-bar", "confetti-dot", "confetti-pill"],
-            spawnOccasion: .onDeath,
-            shape: .point,
-            birthRate: 24000,
-            emissionLimit: 42,
-            emissionDuration: 0.08,
-            idleDuration: 10,
-            lifespan: 8,
-            speed: 0.72,
-            speedVariation: 0.44,
-            angleRange: .degrees(360),
-            acceleration: [0, 0.32],
-            dampingFactor: 0.34,
-            angularSpeed: [0, 0, 3],
-            angularSpeedVariation: [2, 2, 14],
-            colors: .random(resolvedColors),
-            size: 0.74,
-            sizeVariation: 0.26,
-            sizeMultiplierAtDeath: 0.94,
-            stretchFactor: 0.82)
-
-        return VortexSystem(
-            tags: ["confetti-tracer"],
-            secondarySystems: [explosion],
-            position: [normalizedX, normalizedY],
-            shape: .point,
-            birthRate: 18,
-            emissionLimit: 4,
-            emissionDuration: 0.22,
-            idleDuration: 10,
-            lifespan: 0.58 + (Double(phaseIndex) * 0.03),
-            speed: 1.36 + (Double(phaseIndex) * 0.04),
-            speedVariation: 0.12,
-            angle: .degrees(launchAngle),
-            angleRange: .degrees(12),
-            acceleration: [0, 0.12],
-            dampingFactor: 0.06,
-            angularSpeed: [0, 0, 6],
-            angularSpeedVariation: [1, 1, 8],
-            colors: .single(.white),
-            size: 0.34,
-            sizeVariation: 0.08,
-            sizeMultiplierAtDeath: 0.4,
-            stretchFactor: 1.3)
+        return tracer
     }
 
-    private func canvasOrigin(in size: CGSize, lateralOffset: CGFloat = 0) -> CGPoint {
+    private func launchPoint(in size: CGSize, lateralOffset: CGFloat) -> CGPoint {
         CGPoint(
             x: min(max(self.origin.x + lateralOffset, 0), size.width),
-            y: min(max(size.height - self.origin.y + 18, 0), size.height))
+            y: min(max(self.origin.y - 18, 0), size.height))
+    }
+}
+
+/// White particle images in points; emitter cells tint them with the palette.
+private struct ScreenConfettiSprites {
+    let contentsScale: CGFloat
+    let tracer: CGImage?
+    let pieces: [CGImage]
+
+    init(contentsScale: CGFloat) {
+        self.contentsScale = contentsScale
+        // A soft glow; tracers draw it at about a third of its size.
+        self.tracer = Self.image(CGSize(width: 15, height: 15), scale: contentsScale) { context, bounds in
+            let core = CGColor(gray: 1, alpha: 0.9)
+            let gradient = CGGradient(
+                colorsSpace: CGColorSpace(name: CGColorSpace.sRGB),
+                colors: [core, core, CGColor(gray: 1, alpha: 0)] as CFArray,
+                locations: [0, 0.2, 1])
+            if let gradient {
+                let center = CGPoint(x: bounds.midX, y: bounds.midY)
+                context.drawRadialGradient(
+                    gradient,
+                    startCenter: center,
+                    startRadius: 0,
+                    endCenter: center,
+                    endRadius: bounds.width / 2,
+                    options: [])
+            }
+        }
+        let bar = Self.image(CGSize(width: 10, height: 20), scale: contentsScale) { context, bounds in
+            context.addPath(CGPath(roundedRect: bounds, cornerWidth: 2, cornerHeight: 2, transform: nil))
+            context.fillPath()
+        }
+        let dot = Self.image(CGSize(width: 9, height: 9), scale: contentsScale) { context, bounds in
+            context.fillEllipse(in: bounds)
+        }
+        // An 8 x 16 pt capsule tilted 30 degrees.
+        let pill = Self.image(CGSize(width: 16, height: 18), scale: contentsScale) { context, bounds in
+            context.translateBy(x: bounds.midX, y: bounds.midY)
+            context.rotate(by: -.pi / 6)
+            let capsule = CGRect(x: -4, y: -8, width: 8, height: 16)
+            context.addPath(CGPath(roundedRect: capsule, cornerWidth: 4, cornerHeight: 4, transform: nil))
+            context.fillPath()
+        }
+        self.pieces = [bar, dot, pill].compactMap(\.self)
+    }
+
+    private static func image(
+        _ size: CGSize,
+        scale: CGFloat,
+        draw: (CGContext, CGRect) -> Void)
+        -> CGImage?
+    {
+        guard let context = CGContext(
+            data: nil,
+            width: Int((size.width * scale).rounded(.up)),
+            height: Int((size.height * scale).rounded(.up)),
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { return nil }
+        context.scaleBy(x: scale, y: scale)
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        draw(context, CGRect(origin: .zero, size: size))
+        return context.makeImage()
     }
 }
