@@ -5,14 +5,16 @@ import SwiftUI
 /// Tokens per minute over the live-usage window, stacked by model, or by token kind for one model.
 ///
 /// Plain shapes and text instead of Swift Charts: Charts renders through RenderBox's Metal backend on
-/// macOS 26+, which commits about 100 MB of GPU memory the first time a window draws a chart. The layout,
-/// colors, and tick choices follow what the Swift Charts version of this chart produced.
+/// macOS 26+, which commits about 100 MB of GPU memory the first time a window draws a chart. The layout
+/// and tick choices follow what the Swift Charts version produced; styling follows docs/design/README.md
+/// §8 (chart palette in order, 2-pt gaps, a 1-pt baseline, at most three grid lines, a dashed limit rule).
 struct OpenAILiveUsageChart: View {
     let snapshot: OpenAILiveUsageSnapshot
     let filter: OpenAILiveUsageModelFilter
     var tpmLimit: Int?
     @State private var selectedMinute: Date?
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private struct Segment {
         let minute: Date
@@ -22,7 +24,6 @@ struct OpenAILiveUsageChart: View {
     }
 
     private enum Layout {
-        static let axisFont = Font.system(size: 11)
         /// Space under the plot for the time labels and the legend.
         static let seriesLegendInset: CGFloat = 36
         static let kindLegendInset: CGFloat = 38
@@ -35,14 +36,13 @@ struct OpenAILiveUsageChart: View {
         static let limitCaptionHeight: CGFloat = 13
         /// Swift Charts kept annotations this far from the mark they label.
         static let annotationSpacing: CGFloat = 4
-        static let barCornerRadius: CGFloat = 2
+        static let barCornerRadius = OpenBarTheme.Chart.barCornerRadius
     }
 
-    /// Swift Charts' default series colors, in order.
-    private static let seriesColors: [Color] = [.blue, .green, .orange, .purple, .red, .teal]
-    private static let gridColor = Color(nsColor: .tertiaryLabelColor)
-    /// Swift Charts drew rules in the secondary level of its accent-colored foreground style.
-    private static let ruleColor = Color.accentColor.opacity(0.5)
+    /// Model series (top five plus "Other") and token kinds take the chart palette in order.
+    private static func seriesColor(at index: Int) -> Color {
+        OpenBarTheme.Chart.seriesColor(index)
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -55,9 +55,9 @@ struct OpenAILiveUsageChart: View {
         .overlay(alignment: .topLeading) {
             if let limit = self.tpmLimit, !self.showsLimitRule {
                 Text(L("Org limit %@ TPM (off scale)", ProviderRateLimitNumber.format(limit)))
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     .padding(4)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 4))
+                    .chartTooltipBackground(cornerRadius: OpenBarRadius.chip)
                     .padding(.leading, 4)
             }
         }
@@ -111,8 +111,9 @@ struct OpenAILiveUsageChart: View {
                     y: geometry.plot.minY,
                     width: geometry.plot.maxX - geometry.x(pendingStart),
                     height: geometry.plot.height)
-                Path(rect).fill(Color.secondary.opacity(0.08))
-                Text(L("reporting…")).font(.caption2).foregroundStyle(.secondary).fixedSize().padding(4)
+                Path(rect).fill(OpenBarTheme.Colors.cardFill)
+                Text(L("reporting…")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).fixedSize()
+                    .padding(4)
                     .frame(width: 0, height: 0, alignment: .topTrailing)
                     .position(x: rect.maxX - Layout.annotationSpacing, y: rect.minY + Layout.annotationSpacing)
             }
@@ -125,19 +126,15 @@ struct OpenAILiveUsageChart: View {
                     path.move(to: CGPoint(x: geometry.plot.minX, y: y))
                     path.addLine(to: CGPoint(x: geometry.plot.maxX, y: y))
                 }
-                .stroke(Self.ruleColor, style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-                Text(L("Org limit %@ TPM", ProviderRateLimitNumber.format(limit))).font(.caption2).fixedSize()
+                .stroke(OpenBarTheme.Chart.ruleColor, style: OpenBarTheme.Chart.ruleStyle)
+                Text(L("Org limit %@ TPM", ProviderRateLimitNumber.format(limit)))
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary).fixedSize()
                     .frame(width: 0, height: 0, alignment: .bottomTrailing)
                     .position(x: geometry.plot.maxX, y: y - Layout.annotationSpacing)
             }
             self.axisLabels(geometry, ticks: ticks)
             if let point = self.selectedPoint {
                 let x = geometry.x(point.start.addingTimeInterval(30))
-                Path { path in
-                    path.move(to: CGPoint(x: x, y: geometry.plot.minY))
-                    path.addLine(to: CGPoint(x: x, y: geometry.plot.maxY))
-                }
-                .stroke(Self.ruleColor, lineWidth: 1)
                 FittedTooltipLayout(
                     centerX: x,
                     top: geometry.plot.minY,
@@ -165,8 +162,8 @@ struct OpenAILiveUsageChart: View {
         // Swift Charts sized the label column in a first pass that ignored the limit caption, and kept that
         // width when the caption then raised the scale.
         let firstPass = self.yScale(plotHeight: nil)
-        let labels = Self.yTickValues(top: scale.top, step: scale.step)
-            + Self.yTickValues(top: firstPass.top, step: firstPass.step)
+        let labels = Self.labeledTicks(Self.yTickValues(top: scale.top, step: scale.step))
+            + Self.labeledTicks(Self.yTickValues(top: firstPass.top, step: firstPass.step))
         let labelWidth = labels.map { Self.textWidth(OpenAILiveUsageView.count(Int($0))) }.max() ?? 0
         let trailing = scale.top > 0 ? ceil(labelWidth + Layout.tickLength + Layout.labelGap) : 0
         return Geometry(
@@ -182,28 +179,40 @@ struct OpenAILiveUsageChart: View {
         let path: Path
     }
 
-    /// One path per color. Stacked model bars round only the top of each stack; the token-kind bars
-    /// are separate floating ranges, and Swift Charts rounded each of those on every corner.
+    /// One path per color and opacity. Stacked model bars round only the top of each stack; the token-kind
+    /// bars are separate floating ranges, rounded on every corner. Neighboring minutes and stacked segments
+    /// keep a 2-pt gap where the width allows; while a minute is hovered, the others dim.
     private func barLayers(_ geometry: Geometry) -> [BarLayer] {
         var paths: [Int: Path] = [:]
         var colors: [Int: Color] = [:]
         let segments = self.segments
+        let selectedMinute = self.selectedPoint?.start
         let topIndexes = Dictionary(grouping: segments.indices.filter { segments[$0].tokens > 0 }) {
             segments[$0].minute
         }.compactMapValues(\.last)
         for (index, segment) in segments.enumerated() where segment.tokens > 0 {
-            let minX = geometry.x(segment.minute)
-            let maxX = geometry.x(segment.minute.addingTimeInterval(60))
+            let slotMinX = geometry.x(segment.minute)
+            let slotMaxX = geometry.x(segment.minute.addingTimeInterval(60))
+            let width = OpenBarTheme.Chart.barWidth(slotMaxX - slotMinX, pitch: slotMaxX - slotMinX)
+            let minX = (slotMinX + slotMaxX - width) / 2
+            let maxX = minX + width
             let base = segment.baseline + self.stackBase(index, segments: segments)
             let top = geometry.y(Double(base + segment.tokens))
             let bottom = geometry.y(Double(base))
-            let rect = self.isModelFilter
+            var rect = self.isModelFilter
                 ? CGRect(x: minX, y: top, width: maxX - minX, height: bottom - top)
                 : self.stackedSegmentRect(minX: minX, maxX: maxX, top: top, bottom: bottom)
+            if base > 0 {
+                rect.size.height -= OpenBarTheme.Chart.stackGap(segmentHeight: rect.height)
+            }
             let roundsTop = self.isModelFilter || topIndexes[segment.minute] == index
             let radius = roundsTop ? min(Layout.barCornerRadius, rect.width / 2, rect.height / 2) : 0
             let bottomRadius = self.isModelFilter ? radius : 0
-            let key = self.colorKey(for: segment)
+            let isDimmed = selectedMinute.map { $0 != segment.minute } ?? false
+            let kind = self.colorKey(for: segment)
+            let key = (
+                id: kind.id * 2 + (isDimmed ? 1 : 0),
+                color: isDimmed ? kind.color.opacity(OpenBarTheme.Chart.dimmedOpacity) : kind.color)
             colors[key.id] = key.color
             paths[key.id, default: Path()].addRoundedRect(
                 in: rect,
@@ -239,37 +248,53 @@ struct OpenAILiveUsageChart: View {
         return base
     }
 
+    /// Token kinds in stack order (uncached input, output, cached input) take palette slots 1–3.
     private func colorKey(for segment: Segment) -> (id: Int, color: Color) {
-        if case let .model(name) = self.filter {
-            let base = self.seriesColor(self.seriesName(name), in: self.modelSeriesNames)
-            if segment.label == L("Output") { return (1, .orange) }
-            if segment.label == L("Cached input") { return (2, base.opacity(0.45)) }
-            return (0, base)
+        if case .model = self.filter {
+            let index = self.kindIndex(segment.label)
+            return (index, Self.seriesColor(at: index))
         }
         let names = self.legendSeriesNames
         let index = names.firstIndex(of: segment.label) ?? 0
-        return (index, Self.seriesColors[index % Self.seriesColors.count])
+        return (index, Self.seriesColor(at: index))
     }
 
+    private func kindIndex(_ label: String) -> Int {
+        if label == L("Output") { return 1 }
+        if label == L("Cached input") { return 2 }
+        return 0
+    }
+
+    /// Recessive horizontal grid at the labeled ticks and a 1-pt baseline. No vertical grid: short ticks
+    /// below the baseline anchor the time labels.
     private func grid(_ geometry: Geometry, ticks: [Double]) -> some View {
         ZStack(alignment: .topLeading) {
             Path { path in
-                for tick in ticks {
+                for tick in Self.labeledTicks(ticks) where tick > 0 {
                     let y = geometry.y(tick)
                     path.move(to: CGPoint(x: geometry.plot.minX, y: y))
                     path.addLine(to: CGPoint(x: geometry.plot.maxX + Layout.tickLength, y: y))
                 }
             }
-            .stroke(Self.gridColor, lineWidth: 0.5)
+            .stroke(OpenBarTheme.Chart.gridColor(self.contrast), lineWidth: OpenBarTheme.Chart.gridLineWidth)
             Path { path in
+                let y = geometry.plot.maxY + OpenBarTheme.Chart.baselineWidth / 2
+                path.move(to: CGPoint(x: geometry.plot.minX, y: y))
+                path.addLine(to: CGPoint(x: geometry.plot.maxX + Layout.tickLength, y: y))
                 for tick in self.xTicks {
                     let x = geometry.x(tick)
-                    path.move(to: CGPoint(x: x, y: geometry.plot.minY))
-                    path.addLine(to: CGPoint(x: x, y: geometry.plot.maxY))
+                    path.move(to: CGPoint(x: x, y: geometry.plot.maxY))
+                    path.addLine(to: CGPoint(x: x, y: geometry.plot.maxY + Layout.tickLength))
                 }
             }
-            .stroke(Self.gridColor, style: StrokeStyle(lineWidth: 0.5, dash: [3, 3]))
+            .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.baselineWidth)
         }
+    }
+
+    /// Zero plus at most three grid values, so the labels and the grid stay in step.
+    private static func labeledTicks(_ ticks: [Double]) -> [Double] {
+        guard !ticks.isEmpty else { return [] }
+        return [0] + OpenBarTheme.Chart.gridValues(ticks)
     }
 
     private func axisLabels(_ geometry: Geometry, ticks: [Double]) -> some View {
@@ -284,10 +309,10 @@ struct OpenAILiveUsageChart: View {
             return (tick, text, x)
         }
         return ZStack(alignment: .topLeading) {
-            ForEach(ticks, id: \.self) { tick in
+            ForEach(Self.labeledTicks(ticks), id: \.self) { tick in
                 Text(OpenAILiveUsageView.count(Int(tick)))
-                    .font(Layout.axisFont)
-                    .foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Chart.axisFont)
+                    .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                     .fixedSize()
                     .frame(width: 0, height: 0, alignment: .leading)
                     .position(
@@ -296,8 +321,8 @@ struct OpenAILiveUsageChart: View {
             }
             ForEach(xLabels, id: \.date) { label in
                 Text(label.text)
-                    .font(Layout.axisFont)
-                    .foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Chart.axisFont)
+                    .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                     .fixedSize()
                     .frame(width: 0, height: 0, alignment: .topLeading)
                     .position(x: label.x, y: geometry.plot.maxY + Layout.xLabelTop)
@@ -307,11 +332,11 @@ struct OpenAILiveUsageChart: View {
     }
 
     private func yLabelWidth(_ ticks: [Double]) -> CGFloat {
-        ticks.map { Self.textWidth(OpenAILiveUsageView.count(Int($0))) }.max() ?? 0
+        Self.labeledTicks(ticks).map { Self.textWidth(OpenAILiveUsageView.count(Int($0))) }.max() ?? 0
     }
 
     private static func textWidth(_ text: String) -> CGFloat {
-        (text as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 11)]).width
+        (text as NSString).size(withAttributes: [.font: OpenBarTheme.Chart.axisNSFont]).width
     }
 
     // MARK: - Scales
@@ -442,26 +467,13 @@ struct OpenAILiveUsageChart: View {
         }
     }
 
-    private var modelSeriesNames: [String] {
-        let names = self.snapshot.modelNames
-        return Array(names.prefix(5)) + (names.count > 5 ? [L("Other")] : [])
-    }
-
-    /// Series in the order they first appear, which is how Swift Charts assigned its default colors.
+    /// Series in the order they first appear; each takes the next chart palette slot.
     private var legendSeriesNames: [String] {
         var names: [String] = []
         for segment in self.segments where !names.contains(segment.label) {
             names.append(segment.label)
         }
         return names
-    }
-
-    private func seriesName(_ name: String) -> String {
-        self.snapshot.modelNames.prefix(5).contains(name) ? name : L("Other")
-    }
-
-    private func seriesColor(_ name: String, in names: [String]) -> Color {
-        Self.seriesColors[(names.firstIndex(of: name) ?? 0) % Self.seriesColors.count]
     }
 
     private var pendingStart: Date? {
@@ -485,38 +497,33 @@ struct OpenAILiveUsageChart: View {
 
     @ViewBuilder
     private var legend: some View {
-        if case let .model(name) = self.filter {
-            let color = self.seriesColor(self.seriesName(name), in: self.modelSeriesNames)
+        if case .model = self.filter {
             HStack(spacing: 12) {
-                self.legendItem(L("Uncached input"), color: color)
-                self.legendItem(L("Cached input"), color: color, opacity: 0.45)
-                self.legendItem(L("Output"), color: .orange)
+                self.legendItem(L("Uncached input"), color: Self.seriesColor(at: 0))
+                self.legendItem(L("Cached input"), color: Self.seriesColor(at: 2))
+                self.legendItem(L("Output"), color: Self.seriesColor(at: 1))
             }
-            .font(.caption2)
+            .font(OpenBarTheme.Fonts.caption)
         } else {
-            // Swift Charts' default legend: 11 pt labels after 8 pt circles.
             HStack(spacing: Layout.legendItemSpacing) {
                 ForEach(Array(self.legendSeriesNames.enumerated()), id: \.offset) { index, name in
-                    self.legendItem(
-                        name,
-                        color: Self.seriesColors[index % Self.seriesColors.count],
-                        spacing: Layout.legendSymbolGap)
+                    self.legendItem(name, color: Self.seriesColor(at: index), spacing: Layout.legendSymbolGap)
                 }
             }
-            .font(Layout.axisFont)
+            .font(OpenBarTheme.Fonts.caption)
         }
     }
 
-    private func legendItem(_ title: String, color: Color, opacity: Double = 1, spacing: CGFloat = 4) -> some View {
+    private func legendItem(_ title: String, color: Color, spacing: CGFloat = 4) -> some View {
         HStack(spacing: spacing) {
-            Circle().fill(color).opacity(opacity).frame(width: 8, height: 8)
+            Circle().fill(color).frame(width: 8, height: 8)
             Text(title).foregroundStyle(.secondary)
         }
     }
 
     private func tooltip(_ point: OpenAILiveUsageSnapshot.Point) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(point.start.formatted(date: .omitted, time: .shortened)).bold()
+            Text(point.start.formatted(date: .omitted, time: .shortened)).fontWeight(.semibold)
             if point.isPending {
                 Text(L("reporting…"))
             } else {
@@ -544,12 +551,9 @@ struct OpenAILiveUsageChart: View {
                 }
             }
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.meta)
         .padding(8)
-        // The material no longer blurs the bars beneath it now that they share its layer, so a mostly
-        // opaque window fill keeps the text as legible as it was over the Swift Charts plot.
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.94), in: RoundedRectangle(cornerRadius: 8))
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .chartTooltipBackground()
     }
 }
 

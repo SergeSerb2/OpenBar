@@ -405,9 +405,9 @@ struct SpendActivityHeatmapView: View {
                 }
             } else {
                 Text(L("No activity in the last 12 months"))
-                    .font(.callout)
-                    .foregroundStyle(.primary.opacity(0.75))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, 12)
             }
         }
@@ -423,15 +423,15 @@ struct SpendActivityHeatmapView: View {
     private func heading(hasActivity: Bool, totalTokens: Int, coverageText: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(L("Token activity"))
-                .font(.headline)
+                .font(OpenBarTheme.Fonts.cardTitle)
             if hasActivity {
                 Text(self.activitySummary(totalTokens: totalTokens, coverageText: coverageText))
-                    .font(.callout)
-                    .foregroundStyle(.primary.opacity(0.75))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(.secondary)
             } else if self.series.hasUnknownCoverage {
                 Text("\(L("Unavailable")) · \(coverageText)")
-                    .font(.callout)
-                    .foregroundStyle(.primary.opacity(0.75))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -462,8 +462,8 @@ struct SpendActivityHeatmapView: View {
                 Text(L("Unavailable"))
             }
         }
-        .font(.callout)
-        .foregroundStyle(.primary.opacity(0.75))
+        .font(OpenBarTheme.Fonts.caption)
+        .foregroundStyle(.secondary)
     }
 
     private func caption(_ text: String, showsUnavailable: Bool) -> some View {
@@ -476,8 +476,8 @@ struct SpendActivityHeatmapView: View {
                 Text(L("Unavailable"))
             }
         }
-        .font(.callout)
-        .foregroundStyle(.primary.opacity(0.75))
+        .font(OpenBarTheme.Fonts.caption)
+        .foregroundStyle(.secondary)
     }
 
     private func activitySummary(totalTokens: Int, coverageText: String) -> String {
@@ -587,8 +587,8 @@ private struct SpendActivityDailyGrid: View {
             SpendActivityMonthLabelsLayout(offsets: markers.map(\.offset)) {
                 ForEach(markers) { marker in
                     Text(marker.label)
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.primary.opacity(0.75))
+                        .font(OpenBarTheme.Chart.axisFont)
+                        .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                 }
             }
         }
@@ -601,7 +601,7 @@ private struct SpendActivityDailyGrid: View {
             let col = index / self.rows
             let row = index % self.rows
             RoundedRectangle(cornerRadius: min(cell * 0.22, 2.5), style: .continuous)
-                .stroke(Color.primary.opacity(0.7), lineWidth: 1.5)
+                .stroke(Color(nsColor: .labelColor), lineWidth: 1.5)
                 .frame(width: cell, height: cell)
                 .position(
                     x: CGFloat(col) * pitch + pitch / 2,
@@ -911,11 +911,11 @@ private struct SpendActivityTooltip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(self.title)
-                .font(.caption.weight(.semibold))
+                .font(OpenBarTheme.Fonts.meta.weight(.semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             Text(self.subtitle)
-                .font(.caption2)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
         }
@@ -924,10 +924,6 @@ private struct SpendActivityTooltip: View {
             width: self.width,
             height: self.height,
             alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.3))
-        }
+        .chartTooltipBackground()
     }
 }

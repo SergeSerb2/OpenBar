@@ -21,7 +21,7 @@ struct SpendDashboardTrendPanel: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
                     Text(self.activeSection == .hourly ? self.activeSection.title : L("Estimated spend"))
-                        .font(.headline)
+                        .font(OpenBarTheme.Fonts.cardTitle)
                     Spacer()
                     if !self.hourlyDays.isEmpty {
                         Picker(L("Usage & Spend"), selection: self.$selection) {
@@ -39,7 +39,7 @@ struct SpendDashboardTrendPanel: View {
                     self.dayNavigation(day)
                 } else {
                     HStack {
-                        Text(self.scopeText).font(.caption).foregroundStyle(.secondary)
+                        Text(self.scopeText).font(OpenBarTheme.Fonts.meta).foregroundStyle(.secondary)
                         Spacer()
                         if self.navigation.focusedInterval != nil {
                             Button(L("Overview")) { self.navigation.focusedInterval = nil }
@@ -47,7 +47,7 @@ struct SpendDashboardTrendPanel: View {
                         }
                     }
                     Text(L("Click a bar to explore. Use the menu below for exact amounts."))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(OpenBarTheme.Fonts.meta).foregroundStyle(.secondary)
                 }
 
                 SpendTrendChart(
@@ -162,13 +162,13 @@ struct SpendDashboardTrendPanel: View {
                     SpendProviderIcon(
                         provider: provider.provider, sourceKind: provider.sourceKind, style: .brand)
                     Text(SpendChartPalette.label(provider, providers: self.group.providers))
-                        .font(.callout)
+                        .font(OpenBarTheme.Fonts.meta)
                         .fixedSize()
                 }
                 .padding(.horizontal, 7).padding(.vertical, 4)
                 .background(
-                    selectedSourceID == provider.id ? Color.primary.opacity(0.07) : .clear,
-                    in: RoundedRectangle(cornerRadius: 6))
+                    selectedSourceID == provider.id ? OpenBarTheme.Colors.cardFill : .clear,
+                    in: RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous))
                 .opacity(selectedSourceID == nil || selectedSourceID == provider.id ? 1 : 0.6)
             }
             .buttonStyle(.plain)
@@ -211,15 +211,16 @@ struct SpendTrendChart: View {
         VStack(alignment: .leading, spacing: 10) {
             if self.section == .hourly {
                 Text(model.hourlyTimeZoneText)
-                    .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Fonts.meta).foregroundStyle(.secondary)
                     .help(self.group.timeZone.identifier)
                     .accessibilityLabel("\(L("Statistics time zone")): \(model.hourlyTimeZoneText)")
                     .accessibilityIdentifier("spend-trend-time-zone")
             }
             if model.segments.isEmpty {
-                ContentUnavailableView(
-                    model.emptyStateTitle(group: self.group, sourceID: self.sourceID),
-                    systemImage: "chart.bar.xaxis")
+                Text(model.emptyStateTitle(group: self.group, sourceID: self.sourceID))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity, minHeight: 210)
             } else {
                 self.summary(model)
@@ -241,13 +242,13 @@ struct SpendTrendChart: View {
                 self.peakSummary(model)
             }
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.meta)
     }
 
     private func totalSummary(_ model: SpendTrendChartModel) -> some View {
         HStack(spacing: 8) {
             Text(L(model.recordedSpendLabel)).foregroundStyle(.secondary)
-            Text(self.costText(model.total)).font(.headline).monospacedDigit()
+            Text(self.costText(model.total)).font(OpenBarTheme.Fonts.laneValue)
         }
     }
 
@@ -267,7 +268,7 @@ struct SpendTrendChart: View {
         return SpendTrendPlot(
             model: model,
             roundedTopIDs: topIDs,
-            ruleDate: ruleDate.map { self.center(of: $0, unit: model.unit) },
+            highlightDate: ruleDate.map { self.center(of: $0, unit: model.unit) },
             xTicks: self.section == .hourly
                 ? model.hourlyTicks
                 : self.strideTicks(model),
@@ -360,14 +361,16 @@ struct SpendTrendChart: View {
                 }
                 Spacer()
                 Text(bucket.map { self.costText($0.total) } ?? L("No data available"))
-                    .fontWeight(.semibold).monospacedDigit()
+                    .font(OpenBarTheme.Fonts.laneValue)
             }
             MenuBarLayoutChipFlowLayout(spacing: 12) { self.inspectionRows(bucket) }
         }
-        .font(.callout)
+        .font(OpenBarTheme.Fonts.meta)
         .padding(10)
         .frame(maxWidth: .infinity, minHeight: 58, alignment: .topLeading)
-        .background(.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 8))
+        .background(
+            OpenBarTheme.Colors.cardFill,
+            in: RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous))
         .accessibilityIdentifier("spend-trend-inspection")
     }
 
@@ -383,7 +386,7 @@ struct SpendTrendChart: View {
                     sourceKind: self.group.providers.first { $0.id == segment.sourceID }?.sourceKind ?? .native,
                     style: .brand)
                 Text(self.sourceText(segment))
-                Text(self.costText(segment.cost, sourceID: segment.sourceID)).monospacedDigit()
+                Text(self.costText(segment.cost, sourceID: segment.sourceID))
             }
         }
     }
@@ -453,11 +456,13 @@ struct SpendTrendChart: View {
 
 /// Stacked spend bars with a fixed leading y-axis, drawn with plain shapes and text. Swift Charts renders
 /// through RenderBox's Metal backend on macOS 26+, which commits about 100 MB of GPU memory the first time
-/// a window draws a chart. The metrics match the Charts layout this view replaced.
+/// a window draws a chart. Styling follows docs/design/README.md §8: one path per source and opacity, a
+/// 2-pt gap between bars and stacked segments, a 1-pt baseline, at most three grid lines, caption axes.
 private struct SpendTrendPlot: View {
     let model: SpendTrendChartModel
     let roundedTopIDs: Set<String>
-    let ruleDate: Date?
+    /// The inspected bucket. Its bars keep full opacity while the others dim.
+    let highlightDate: Date?
     let xTicks: [Date]
     let xTickText: (Date) -> String
     let yTickText: (Double) -> String
@@ -465,14 +470,13 @@ private struct SpendTrendPlot: View {
     /// Receives the hovered date, or nil when the pointer leaves the plot.
     let onHover: (Date?) -> Void
     let onTap: (Date) -> Void
+    @Environment(\.colorSchemeContrast) private var contrast
 
     /// Room between the first and last bars and the plot edges.
     private static let edgePadding: CGFloat = 18
     private static let barWidthRatio: CGFloat = 0.72
-    private static let barCornerRadius: CGFloat = 3
     private static let yAxisSpacing: CGFloat = 4
-    private static let labelColor = Color.primary.opacity(0.85)
-    private static let tickColor = Color(nsColor: .tertiaryLabelColor)
+    private static let tickLength: CGFloat = 3
 
     private var isHourly: Bool {
         self.model.section == .hourly
@@ -486,19 +490,19 @@ private struct SpendTrendPlot: View {
     var body: some View {
         GeometryReader { proxy in
             let plotHeight = max(0, proxy.size.height - self.xAxisHeight)
-            let yTicks = Self.yTicks(upperBound: self.model.yDomain.upperBound)
+            let gridValues = OpenBarTheme.Chart.gridValues(Self.yTicks(upperBound: self.model.yDomain.upperBound))
             HStack(alignment: .top, spacing: Self.yAxisSpacing) {
-                self.yAxisLabels(yTicks, plotHeight: plotHeight)
+                self.yAxisLabels([0] + gridValues, plotHeight: plotHeight)
                 GeometryReader { plot in
                     ZStack(alignment: .topLeading) {
-                        Path { path in
-                            for value in yTicks {
-                                let y = self.y(value, plotHeight: plotHeight)
-                                path.move(to: CGPoint(x: 0, y: y))
-                                path.addLine(to: CGPoint(x: plot.size.width, y: y))
-                            }
+                        OpenBarTheme.Chart.gridPath(values: gridValues, width: plot.size.width) {
+                            self.y($0, plotHeight: plotHeight)
                         }
-                        .stroke(.secondary.opacity(0.15), lineWidth: 0.5)
+                        .stroke(
+                            OpenBarTheme.Chart.gridColor(self.contrast),
+                            lineWidth: OpenBarTheme.Chart.gridLineWidth)
+                        OpenBarTheme.Chart.baselinePath(width: plot.size.width, bottom: plotHeight)
+                            .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.baselineWidth)
                         if self.model.needsScrolling {
                             ScrollView(.horizontal) {
                                 self.content(
@@ -511,8 +515,6 @@ private struct SpendTrendPlot: View {
                             self.content(width: plot.size.width, plotHeight: plotHeight)
                         }
                     }
-                    // Swift Charts resolved `.secondary` grid and rule styles against the accent tint.
-                    .foregroundStyle(.tint)
                 }
             }
         }
@@ -528,15 +530,8 @@ private struct SpendTrendPlot: View {
     private func content(width: CGFloat, plotHeight: CGFloat) -> some View {
         let x = { (date: Date) in self.x(date, width: width) }
         return ZStack(alignment: .topLeading) {
-            ForEach(self.barGroups(x: x, plotHeight: plotHeight), id: \.sourceID) { group in
+            ForEach(self.barGroups(x: x, plotHeight: plotHeight), id: \.id) { group in
                 group.path.fill(group.color)
-            }
-            if let ruleDate {
-                Path { path in
-                    path.move(to: CGPoint(x: x(ruleDate), y: 0))
-                    path.addLine(to: CGPoint(x: x(ruleDate), y: plotHeight))
-                }
-                .stroke(.secondary.opacity(0.45), style: StrokeStyle(lineWidth: 2, lineCap: .square))
             }
             self.xAxis(width: width, plotHeight: plotHeight)
         }
@@ -557,12 +552,13 @@ private struct SpendTrendPlot: View {
     }
 
     private struct BarGroup {
-        let sourceID: String
+        let id: String
         let color: Color
         var path: Path
     }
 
-    /// One path per source; only the top segment of each stack has rounded corners.
+    /// One path per source and opacity. Only the top segment of each stack has rounded corners, and a
+    /// stacked segment leaves a 2-pt gap above the one below it.
     private func barGroups(x: (Date) -> CGFloat, plotHeight: CGFloat) -> [BarGroup] {
         var groups: [BarGroup] = []
         for segment in self.model.segments {
@@ -571,20 +567,29 @@ private struct SpendTrendPlot: View {
             }
             let start = x(interval.start)
             let end = x(interval.end)
-            let width = (end - start) * Self.barWidthRatio
+            let width = OpenBarTheme.Chart.barWidth((end - start) * Self.barWidthRatio, pitch: end - start)
             let top = self.y(segment.end, plotHeight: plotHeight)
-            let rect = CGRect(
+            var rect = CGRect(
                 x: (start + end - width) / 2,
                 y: top,
                 width: width,
                 height: self.y(segment.start, plotHeight: plotHeight) - top)
+            if segment.start > 0 {
+                rect.size.height -= OpenBarTheme.Chart.stackGap(segmentHeight: rect.height)
+            }
             let path = self.roundedTopIDs.contains(segment.id)
-                ? ChartBarPath.path([rect], roundsBottom: false, cornerRadius: Self.barCornerRadius)
+                ? ChartBarPath.path([rect], roundsBottom: false)
                 : Path(rect)
-            if let index = groups.firstIndex(where: { $0.sourceID == segment.sourceID }) {
+            let isDimmed = self.highlightDate.map { !interval.contains($0) } ?? false
+            let id = "\(segment.sourceID)|\(isDimmed)"
+            if let index = groups.firstIndex(where: { $0.id == id }) {
                 groups[index].path.addPath(path)
             } else {
-                groups.append(BarGroup(sourceID: segment.sourceID, color: self.color(segment), path: path))
+                let color = self.color(segment)
+                groups.append(BarGroup(
+                    id: id,
+                    color: isDimmed ? color.opacity(OpenBarTheme.Chart.dimmedOpacity) : color,
+                    path: path))
             }
         }
         return groups
@@ -592,21 +597,15 @@ private struct SpendTrendPlot: View {
 
     @ViewBuilder
     private func xAxis(width: CGFloat, plotHeight: CGFloat) -> some View {
+        // Short ticks below the baseline anchor the labels; there is no vertical grid.
         Path { path in
             for tick in self.xTicks {
                 let tickX = self.x(tick, width: width)
-                if self.isHourly {
-                    path.move(to: CGPoint(x: tickX, y: plotHeight))
-                    path.addLine(to: CGPoint(x: tickX, y: plotHeight + 2))
-                } else {
-                    path.move(to: CGPoint(x: tickX, y: plotHeight + 1))
-                    path.addLine(to: CGPoint(x: tickX, y: plotHeight + 16))
-                }
+                path.move(to: CGPoint(x: tickX, y: plotHeight))
+                path.addLine(to: CGPoint(x: tickX, y: plotHeight + Self.tickLength))
             }
         }
-        .stroke(
-            Self.tickColor,
-            style: StrokeStyle(lineWidth: 0.5, dash: self.isHourly ? [] : [3, 3]))
+        .stroke(OpenBarTheme.Chart.baselineColor, lineWidth: OpenBarTheme.Chart.gridLineWidth)
         ForEach(self.xTicks, id: \.self) { tick in
             // Edge labels start beside their tick; inner hourly labels center below theirs.
             let placement: (alignment: Alignment, dx: CGFloat, dy: CGFloat) =
@@ -618,8 +617,8 @@ private struct SpendTrendPlot: View {
                     (.top, 0, 8)
                 }
             Text(self.xTickText(tick))
-                .font(self.isHourly ? .callout.monospacedDigit() : .callout)
-                .foregroundStyle(Self.labelColor)
+                .font(self.isHourly ? OpenBarTheme.Chart.axisFont.monospacedDigit() : OpenBarTheme.Chart.axisFont)
+                .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                 .fixedSize()
                 .frame(width: 0, height: 0, alignment: placement.alignment)
                 .position(x: self.x(tick, width: width) + placement.dx, y: plotHeight + placement.dy)
@@ -638,8 +637,8 @@ private struct SpendTrendPlot: View {
         ZStack(alignment: .topTrailing) {
             ForEach(ticks, id: \.self) { value in
                 Text(self.yTickText(value))
-                    .font(.callout)
-                    .foregroundStyle(Self.labelColor)
+                    .font(OpenBarTheme.Chart.axisFont)
+                    .foregroundStyle(OpenBarTheme.Chart.axisLabelColor)
                     .fixedSize()
                     // A zero-height frame centers the label on its grid line.
                     .frame(height: 0)
