@@ -1061,9 +1061,9 @@ extension StatusItemController {
             accounts: display.accounts,
             selectedIndex: display.activeIndex,
             width: width,
+            hidePersonalInfo: self.settings.hidePersonalInfo,
             onSelect: { [weak self, weak menu] index -> Task<Void, Never>? in
-                guard let self, let menu else { return nil }
-                guard display.accounts.indices.contains(index) else { return nil }
+                guard let self, let menu, display.accounts.indices.contains(index) else { return nil }
                 let selectedAccount = display.accounts[index]
                 self.advanceMenuInteraction(for: menu)
                 self.settings.setActiveTokenAccountIndex(index, for: display.provider)
