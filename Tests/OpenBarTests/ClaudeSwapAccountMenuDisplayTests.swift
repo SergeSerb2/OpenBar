@@ -116,13 +116,14 @@ struct ClaudeSwapAccountMenuDisplayTests {
         view._test_select(target.id)
         view._test_select(target.id)
         #expect(selected == [unavailable.id, active.id, target.id])
-        #expect(view.fittingSize.height == 26)
+        // One 26-pt row plus the rail's 2-pt padding above and below.
+        #expect(view.fittingSize.height == 30)
         let wrapped = ClaudeSwapAccountSwitcherView(
             display: self.display([active, target, unavailable, self.account("8")]),
             hidePersonalInfo: true,
             width: 320,
             onSelect: { _ in })
-        #expect(wrapped.fittingSize.height == 56)
+        #expect(wrapped.fittingSize.height == 60)
     }
 
     @Test
