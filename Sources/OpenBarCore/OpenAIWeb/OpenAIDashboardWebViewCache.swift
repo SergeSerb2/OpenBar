@@ -155,6 +155,7 @@ final class OpenAIDashboardWebViewCache {
     (() => {
       try {
         delete window.__openbarDidScrollToCredits;
+        delete window.__openbarDidOpenAccountMenu;
         delete window.__openbarUsageBreakdownJSON;
         delete window.__openbarUsageBreakdownDebug;
         return true;

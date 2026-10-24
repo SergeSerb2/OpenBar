@@ -849,9 +849,8 @@ let openAIDashboardScrapeScript = """
           const emailRe = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/ig;
           const found = (bodyText.match(emailRe) || []).map(x => String(x).trim().toLowerCase());
           const unique = Array.from(new Set(found));
+          // Several emails (for example a team member list) do not identify the signed-in account.
           if (unique.length === 1) {
-            signedInEmail = unique[0];
-          } else if (unique.length > 1) {
             signedInEmail = unique[0];
           }
         } catch {}
@@ -862,11 +861,11 @@ let openAIDashboardScrapeScript = """
         try {
           const emailRe = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/ig;
           const hasMenu = Boolean(document.querySelector('[role="menu"]'));
-          if (!hasMenu) {
-            const button =
-              document.querySelector('button[aria-haspopup="menu"]') ||
-              document.querySelector('button[aria-expanded]');
+          // Open the account menu once per page; the scrape polls, and repeated clicks toggle page UI.
+          if (!hasMenu && !window.__openbarDidOpenAccountMenu) {
+            const button = document.querySelector('button[aria-haspopup="menu"]');
             if (button && !button.disabled) {
+              window.__openbarDidOpenAccountMenu = true;
               button.click();
             }
           }
@@ -874,8 +873,6 @@ let openAIDashboardScrapeScript = """
           const found = (afterText.match(emailRe) || []).map(x => String(x).trim().toLowerCase());
           const unique = Array.from(new Set(found));
           if (unique.length === 1) {
-            signedInEmail = unique[0];
-          } else if (unique.length > 1) {
             signedInEmail = unique[0];
           }
         } catch {}
