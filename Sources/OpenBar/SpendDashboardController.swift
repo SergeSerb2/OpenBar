@@ -1,7 +1,7 @@
-import OpenBarCore // swiftlint:disable file_length
 import CryptoKit
 import Foundation
 import Observation
+import OpenBarCore // swiftlint:disable file_length
 
 struct SpendDashboardConfiguration: Equatable, Sendable {
     let costUsageEnabled: Bool
@@ -1187,6 +1187,7 @@ final class SpendDashboardController {
     private(set) var configuration: SpendDashboardConfiguration?
     private(set) var selectedPeriod: CostReportingPeriod
     private(set) var selectedDay: Date?
+    let navigation = SpendDashboardNavigation()
 
     private static let periodDefaultsKey = "settingsSpendDashboardPeriod"
     private let userDefaults: UserDefaults
@@ -1197,6 +1198,7 @@ final class SpendDashboardController {
     private let publicationHandler: PublicationHandler?
     private var loadTask: Task<Void, Never>?
     private var loadedInputs: [SpendDashboardModel.ProviderInput] = []
+    private var detailsVisible: Bool
     private var loadedInputScopes: [String: SpendDashboardLoadedInputScope] = [:]
     private var loadedAt = Date()
     private var lastSuccessfulConfiguration: SpendDashboardConfiguration?
@@ -1213,6 +1215,7 @@ final class SpendDashboardController {
         cachedLoader: CachedLoader? = nil,
         loader: @escaping Loader = SpendDashboardSource.load,
         nowProvider: @escaping @Sendable () -> Date = { Date() },
+        detailsVisible: Bool = true,
         publicationHandler: PublicationHandler? = nil)
     {
         self.userDefaults = userDefaults
@@ -1220,6 +1223,7 @@ final class SpendDashboardController {
         self.cachedLoader = cachedLoader
         self.loader = loader
         self.nowProvider = nowProvider
+        self.detailsVisible = detailsVisible
         self.publicationHandler = publicationHandler
         let legacyDays = userDefaults.object(forKey: "settingsSpendDashboardDays") as? Int
         self.selectedPeriod = userDefaults.string(forKey: Self.periodDefaultsKey)
@@ -1398,7 +1402,9 @@ final class SpendDashboardController {
         let cachedIDs = Set(inputs.map(\.id))
         self.loadedInputs.removeAll { cachedIDs.contains($0.id) }
         self.loadedInputs.append(contentsOf: inputs)
-        self.loadedInputs = Self.stableUniqueInputs(self.loadedInputs)
+        self.loadedInputs = Self.stableUniqueInputs(self.loadedInputs).map {
+            self.detailsVisible ? $0 : $0.summaryOnly()
+        }
         for input in inputs {
             self.loadedInputScopes[input.id] = SpendDashboardLoadedInputScope(
                 configuration: request.configuration,
@@ -1563,7 +1569,9 @@ final class SpendDashboardController {
             }
         }
         self.configuration = request.configuration
-        self.loadedInputs = Self.stableUniqueInputs(nextInputs)
+        self.loadedInputs = Self.stableUniqueInputs(nextInputs).map {
+            self.detailsVisible ? $0 : $0.summaryOnly()
+        }
         self.loadedInputScopes = nextInputScopes
         self.loadedAt = request.now
         self.dashboardSnapshotLoadedAt = self.nowProvider()
@@ -1692,10 +1700,13 @@ final class SpendDashboardController {
     }
 
     func stop() {
+        self.generation &+= 1
         self.loadTask?.cancel()
         self.loadTask = nil
         self.configuration = nil
         self.loadedInputs = []
+        self.loadedInputScopes = [:]
+        self.model = SpendDashboardModel(requestedDays: self.model.requestedDays, groups: [])
         self.failedSourceIDs = []
         self.confirmedEmptySourceIDs = []
         self.openCodexObservation = .disabled
@@ -1707,9 +1718,19 @@ final class SpendDashboardController {
         self.publishCurrentState()
     }
 
+    func setDetailsVisible(_ visible: Bool) {
+        guard self.detailsVisible != visible else { return }
+        self.detailsVisible = visible
+        self.dashboardSnapshotLoadedAt = nil
+        if !visible {
+            self.loadedInputs = self.loadedInputs.map { $0.summaryOnly() }
+        }
+        self.rebuildModel()
+    }
+
     private func rebuildModel(publish: Bool = true) {
         let configuration = self.configuration
-        self.model = SpendDashboardModel.build(
+        self.model = self.detailsVisible ? SpendDashboardModel.build(
             inputs: self.loadedInputs,
             reportingPeriod: self.selectedPeriod,
             now: self.loadedAt,
@@ -1717,7 +1738,8 @@ final class SpendDashboardController {
             preferredCurrencyCode: configuration?.preferredCurrencyCode ?? "auto",
             hiddenSourceIDs: Set(configuration?.hiddenSourceIDs ?? []),
             hideNativeCodexWhenOpenCodexPresent: configuration?.hideNativeCodexCostWhenOpenCodexPresent ?? false,
-            selectedDay: self.selectedDay)
+            selectedDay: self.selectedDay) : SpendDashboardModel(
+            requestedDays: self.selectedPeriod.days(now: self.loadedAt), groups: [])
         if publish {
             self.publishCurrentState()
         }
@@ -1789,7 +1811,7 @@ final class SpendDashboardController {
             configuration: self.configuration,
             loadedAt: self.loadedAt,
             isRefreshing: self.isRefreshing,
-            inputs: self.loadedInputs,
+            inputs: self.loadedInputs.map { $0.summaryOnly() },
             sources: sources)
         self.publication = publication
         self.publicationHandler?(publication)
