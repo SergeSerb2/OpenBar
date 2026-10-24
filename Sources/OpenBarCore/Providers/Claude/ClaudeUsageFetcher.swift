@@ -989,7 +989,8 @@ extension ClaudeUsageFetcher {
             loginMethod: loginMethod,
             treatAsSpendLimit: treatAsSpendLimit)
 
-        guard primary != nil || providerCost?.spendLimitWindow != nil
+        let extraRateWindows = Self.oauthExtraRateWindows(from: usage)
+        guard primary != nil || providerCost?.spendLimitWindow != nil || !extraRateWindows.isEmpty
         else {
             throw ClaudeUsageError.parseFailed("missing session data")
         }
@@ -998,8 +999,6 @@ extension ClaudeUsageFetcher {
         let modelSpecific = makeWindow(
             usage.sevenDaySonnet ?? usage.sevenDayOpus,
             windowMinutes: 7 * 24 * 60)
-        let extraRateWindows = Self.oauthExtraRateWindows(from: usage)
-
         let updatedAt = Date()
         return ClaudeUsageSnapshot(
             primary: primary,
