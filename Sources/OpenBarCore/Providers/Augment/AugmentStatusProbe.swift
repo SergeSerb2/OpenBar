@@ -538,8 +538,7 @@ public struct AugmentStatusProbe: Sendable {
         // Parse billing period end date from ISO8601 string
         let billingCycleEnd: Date? = {
             guard let dateString = subscription?.billingPeriodEnd else { return nil }
-            let formatter = ISO8601DateFormatter()
-            return formatter.date(from: dateString)
+            return ISO8601DateParser.parse(dateString)
         }()
 
         return AugmentStatusSnapshot(
