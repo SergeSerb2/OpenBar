@@ -48,7 +48,12 @@ final class FileLogSink: @unchecked Sendable {
             guard self.isEnabled else { return }
             guard let data = text.data(using: .utf8) else { return }
             guard let handle = self.openHandleIfNeeded() else { return }
-            handle.write(data)
+            do {
+                try handle.write(contentsOf: data)
+            } catch {
+                self.isEnabled = false
+                self.closeHandle()
+            }
         }
     }
 
@@ -57,10 +62,16 @@ final class FileLogSink: @unchecked Sendable {
         do {
             try self.prepareFile(at: self.fileURL)
             let handle = try FileHandle(forWritingTo: self.fileURL)
-            handle.seekToEndOfFile()
+            do {
+                try handle.seekToEnd()
+            } catch {
+                try? handle.close()
+                throw error
+            }
             self.fileHandle = handle
             return handle
         } catch {
+            self.isEnabled = false
             return nil
         }
     }
