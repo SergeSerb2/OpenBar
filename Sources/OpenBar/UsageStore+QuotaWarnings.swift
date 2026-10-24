@@ -153,10 +153,8 @@ extension UsageStore {
             self.clearQuotaWarningState(provider: provider, window: window)
             return
         }
-        guard let rateWindow else {
-            self.quotaWarningState.removeValue(forKey: key)
-            return
-        }
+        // Partial responses do not prove that an existing quota episode ended.
+        guard let rateWindow else { return }
         // Claude promotes weekly usage to primary when its session payload is missing.
         guard provider != .claude || window != .session || Self.isSessionWindow(rateWindow) else { return }
         guard !rateWindow.isSyntheticPlaceholder else { return }
