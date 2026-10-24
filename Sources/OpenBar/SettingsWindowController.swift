@@ -78,7 +78,9 @@ final class SettingsWindowController: NSWindowController {
                 managedCodexAccountCoordinator: managedCodexAccountCoordinator,
                 codexAccountPromotionCoordinator: codexAccountPromotionCoordinator,
                 runProviderLoginFlow: runProviderLoginFlow)
-            let hostingController = NSHostingController(rootView: rootView)
+            // Type-erased so close can swap in an empty root: the view graph is released even if AppKit
+            // or SwiftUI keeps the controller shell alive in a pending dispatch block.
+            let hostingController = NSHostingController(rootView: AnyView(rootView))
             let window = NSWindow(
                 contentRect: NSRect(
                     x: 0,
@@ -160,6 +162,7 @@ extension SettingsWindowController: NSWindowDelegate {
         self.window = nil
         // Tear the hosting tree down after AppKit finishes closing, not inside its close callback.
         DispatchQueue.main.async { [weak self, weak window] in
+            (window?.contentViewController as? NSHostingController<AnyView>)?.rootView = AnyView(EmptyView())
             window?.contentViewController = nil
             window?.contentView = nil
             // A reopen in the same run-loop turn already made the new window's content visible again.
