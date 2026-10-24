@@ -1,7 +1,7 @@
 import Foundation
 
 /// A source supplied by the native usage scanner, never rediscovered from the UI's home directory.
-public struct SessionToolActivitySource: Sendable, Equatable, Hashable {
+public struct SessionToolActivitySource: Sendable, Equatable, Hashable, Codable {
     public let fileURL: URL
     public let sessionID: String
 

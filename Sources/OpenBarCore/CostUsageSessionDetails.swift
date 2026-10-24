@@ -7,7 +7,7 @@ import CSQLite3
 #endif
 
 /// Captured by the native adapter. UI code never discovers another account's cache or session files.
-public struct CostUsageSessionDetailSource: Sendable, Equatable, Hashable {
+public struct CostUsageSessionDetailSource: Sendable, Equatable, Hashable, Codable {
     public let databaseURL: URL
     public let sessionSource: SessionToolActivitySource
     public let parsedBytes: Int64?

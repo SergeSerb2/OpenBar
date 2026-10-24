@@ -2,7 +2,7 @@ import Foundation
 
 /// A successfully completed Codex turn, including reasoning tokens and tool/wait time.
 /// This cannot be interpreted as the model's streaming generation throughput.
-public struct CostUsageTurnPerformanceSample: Sendable, Equatable {
+public struct CostUsageTurnPerformanceSample: Sendable, Equatable, Codable {
     public let completedAt: Date
     public let outputTokens: Int
     public let durationMilliseconds: Int

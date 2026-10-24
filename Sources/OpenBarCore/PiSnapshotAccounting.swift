@@ -5,7 +5,7 @@ import Foundation
 /// Claude and Codex can read Pi/OMP session logs as an inclusive convenience. The
 /// spend dashboard uses this metadata to project the native portion when Pi is
 /// shown as its own source, so the same session is never counted twice.
-package enum PiSnapshotAccounting: Sendable, Equatable {
+package enum PiSnapshotAccounting: Sendable, Equatable, Codable {
     case nativeOnly
     case includesPi(scope: String, native: CostUsageTokenSnapshot)
     case piOnly(scope: String)
@@ -20,7 +20,7 @@ package enum PiSnapshotAccounting: Sendable, Equatable {
     }
 }
 
-package struct CostUsageTokenResult: Sendable, Equatable {
+package struct CostUsageTokenResult: Sendable, Equatable, Codable {
     package let snapshot: CostUsageTokenSnapshot
     package let accounting: PiSnapshotAccounting?
 

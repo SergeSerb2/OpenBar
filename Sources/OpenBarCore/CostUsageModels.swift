@@ -1,6 +1,6 @@
 import Foundation
 
-package struct CostUsageTokenActivityCache: Sendable, Equatable {
+package struct CostUsageTokenActivityCache: Sendable, Equatable, Codable {
     package let daily: [CostUsageDailyReport.Entry]
     package let coverageSinceKey: String
     package let coverageUntilKey: String
@@ -113,7 +113,7 @@ public struct CostUsageQuotaWeek: Sendable, Equatable {
 }
 
 /// An hour-aligned bucket used by spend charts and legacy quota history.
-public struct CostUsageHourlyEntry: Sendable, Equatable {
+public struct CostUsageHourlyEntry: Sendable, Equatable, Codable {
     public let hour: Date
     public let totalTokens: Int?
     public let costUSD: Double?
@@ -139,7 +139,7 @@ public struct CostUsageHourlyEntry: Sendable, Equatable {
 ///
 /// Unlike ``CostUsageHourlyEntry``, `timestamp` is not rounded to a calendar hour. A nil metric
 /// means that metric is unknown for the event and must not be presented as a complete total.
-public struct CostUsageTimedEntry: Sendable, Equatable {
+public struct CostUsageTimedEntry: Sendable, Equatable, Codable {
     public let timestamp: Date
     public let totalTokens: Int?
     public let costUSD: Double?
@@ -161,7 +161,7 @@ public struct CostUsageTimedEntry: Sendable, Equatable {
     }
 }
 
-public struct CostUsageTokenSnapshot: Sendable, Equatable {
+public struct CostUsageTokenSnapshot: Sendable, Equatable, Codable {
     public let sessionTokens: Int?
     public let sessionCostUSD: Double?
     public internal(set) var sessionRequests: Int?
@@ -198,6 +198,31 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable {
     public let quotaSlices: [CostUsageTimedEntry]
     public let updatedAt: Date
     let quotaProjectionMemo = CostUsageQuotaProjectionMemo()
+
+    private enum CodingKeys: String, CodingKey {
+        case sessionTokens
+        case sessionCostUSD
+        case sessionRequests
+        case last30DaysTokens
+        case last30DaysCostUSD
+        case last30DaysRequests
+        case currencyCode
+        case historyDays
+        case historyCoverageIsEstablished
+        case historyScanIsPartial
+        case historyLabel
+        case reportingPeriod
+        case meteredCostUSD
+        case costProvenance
+        case credentialScopeFingerprint
+        case daily
+        case detailsAreComplete
+        case projects
+        case sessions
+        case hourly
+        case quotaSlices
+        case updatedAt
+    }
 
     public init(
         sessionTokens: Int?,
@@ -356,7 +381,7 @@ public struct CostUsageTokenSnapshot: Sendable, Equatable {
     }
 }
 
-public struct CostUsageProjectBreakdown: Sendable, Equatable {
+public struct CostUsageProjectBreakdown: Sendable, Equatable, Codable {
     public static let unknownProjectName = "Unknown project"
 
     public internal(set) var name: String
@@ -393,7 +418,7 @@ public struct CostUsageProjectBreakdown: Sendable, Equatable {
     }
 }
 
-public struct CostUsageProjectSourceBreakdown: Sendable, Equatable {
+public struct CostUsageProjectSourceBreakdown: Sendable, Equatable, Codable {
     public let name: String
     public let path: String?
     public let totalTokens: Int?

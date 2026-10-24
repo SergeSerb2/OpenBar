@@ -3,7 +3,7 @@ import Foundation
 /// A conversation total supplied by a provider's session-usage adapter.
 /// This is intentionally distinct from account-level billing or quota data.
 /// Adapters normalize cached input into input, and reasoning into output.
-public struct CostUsageSessionBreakdown: Sendable, Equatable, Identifiable {
+public struct CostUsageSessionBreakdown: Sendable, Equatable, Identifiable, Codable {
     public let sessionID: String
     public let lastActivity: Date
     public let inputTokens: Int?

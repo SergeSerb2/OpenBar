@@ -42,14 +42,14 @@ public struct CostUsageFetcher: Sendable {
         }
     }
 
-    package struct CachedCodexTokenSnapshotResult: Sendable {
+    package struct CachedCodexTokenSnapshotResult: Sendable, Codable, Equatable {
         package let snapshot: CostUsageTokenSnapshot
         package var accounting: PiSnapshotAccounting?
         package let lastRefreshAt: Date?
         package let staleSnapshotUpdatedAt: Date?
     }
 
-    package struct CodexScanCatchUpStatus: Sendable, Equatable {
+    package struct CodexScanCatchUpStatus: Sendable, Equatable, Codable {
         package let pending: Bool
         package let progressKey: String
         package let processedBytes: Int64
@@ -329,6 +329,21 @@ public struct CostUsageFetcher: Sendable {
         historyDays: Int? = nil,
         now: Date = Date()) async -> CodexScanCatchUpStatus
     {
+        if CostUsageWorker.canRoute(options: self.scannerOptions(calendar: calendar)) {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .status,
+                scanner: .init(self.scannerOptions(calendar: calendar) ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.statusHistoryDays = historyDays
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CodexScanCatchUpStatus.self) { return value }
+            } catch {
+                return CodexScanCatchUpStatus(pending: false, progressKey: "unavailable")
+            }
+        }
+
         // Provider-specific by design: Codex exposes bounded background catch-up for its incremental JSONL scanner.
         let options = Self.resolvedScannerOptions(
             self.scannerOptions(calendar: calendar),
@@ -345,8 +360,28 @@ public struct CostUsageFetcher: Sendable {
         codexHomePath: String? = nil,
         historyDays: Int = 30,
         scanDurationPerRefresh: TimeInterval? = nil,
+        maximumPasses: Int = 8,
+        knownProgressKeys: Set<String> = [],
         calendar: Calendar? = nil) async throws -> CostUsageScanExecutor.TimedResult<CodexScanCatchUpStatus>
     {
+        if CostUsageWorker.canRoute(options: self.scannerOptions(calendar: calendar)) {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .advance,
+                scanner: .init(self.scannerOptions(calendar: calendar) ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = historyDays
+            workerRequest.scanDurationPerRefresh = scanDurationPerRefresh
+            workerRequest.maximumPasses = maximumPasses
+            workerRequest.knownProgressKeys = knownProgressKeys
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CostUsageScanExecutor.TimedResult<CodexScanCatchUpStatus>.self) { return value }
+            } catch {
+                throw error
+            }
+        }
+
         var options = Self.resolvedScannerOptions(
             self.scannerOptions(calendar: calendar),
             provider: .codex, // Provider-specific by design: this catch-up operation is owned by Codex's ledger.
@@ -486,6 +521,35 @@ public struct CostUsageFetcher: Sendable {
         retryUnknownPricing: Bool = true,
         reportContext: CostUsageReportContext? = nil) async throws -> CostUsageTokenResult
     {
+        if CostUsageWorker.canRoute(options: overrideScannerOptions), overridePiScannerOptions == nil,
+           provider != .cursor, provider != .bedrock
+        {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .tokens, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
+            workerRequest.provider = provider
+            workerRequest.environment = environment
+            workerRequest.antigravityAdditionalProfileHomes = antigravityAdditionalProfileHomes
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = historyDays
+            workerRequest.forceRefresh = forceRefresh
+            workerRequest.allowVertexClaudeFallback = allowVertexClaudeFallback
+            workerRequest.allowPricingRefresh = allowPricingRefresh
+            workerRequest.refreshPricingInBackground = refreshPricingInBackground
+            workerRequest.includePiSessions = includePiSessions
+            workerRequest.bypassScannerDebounce = bypassScannerDebounce
+            workerRequest.piWorkingDirectories = piWorkingDirectories
+            workerRequest.piSessionProcessContexts = piSessionProcessContexts
+            workerRequest.retryUnknownPricing = retryUnknownPricing
+            workerRequest.reportContext = reportContext
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CostUsageTokenResult.self) { return value }
+            } catch {
+                throw error
+            }
+        }
+
         guard self.supportsTokenSnapshot(provider) else {
             throw CostUsageError.unsupportedProvider(provider)
         }
@@ -1146,6 +1210,10 @@ public struct CostUsageFetcher: Sendable {
         else { return }
 
         if options.inBackground {
+            if let jobs = CostUsageWorker.pricingJobs {
+                jobs.withLock { $0.append(.init(now: now, cacheRoot: cacheRoot)) }
+                return
+            }
             Task.detached(priority: .utility) {
                 await ModelsDevPricingPipeline.refreshIfNeeded(now: now, cacheRoot: cacheRoot, client: client)
             }
@@ -1272,6 +1340,15 @@ public struct CostUsageFetcher: Sendable {
         }
 
         if inBackground {
+            if let jobs = CostUsageWorker.pricingJobs {
+                jobs.withLock {
+                    $0.append(.init(
+                        now: request.now,
+                        cacheRoot: request.cacheRoot,
+                        targets: request.targets.map { .init(providerID: $0.providerID, modelID: $0.modelID) }))
+                }
+                return false
+            }
             Task.detached(priority: .utility) {
                 _ = await refreshTargets()
             }
@@ -1308,7 +1385,21 @@ public struct CostUsageFetcher: Sendable {
         scannerOptions overrideScannerOptions: CostUsageScanner.Options? = nil) async
         -> CostUsageTokenActivityCache?
     {
-        try? await CostUsageScanExecutor.run { _ -> CostUsageTokenActivityCache? in
+        if CostUsageWorker.canRoute(options: overrideScannerOptions) {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .cachedActivity, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = maximumDays
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CostUsageTokenActivityCache?.self) { return value }
+            } catch {
+                return nil
+            }
+        }
+
+        return try? await CostUsageScanExecutor.run { _ -> CostUsageTokenActivityCache? in
             // Provider-specific by design: cached activity is read from the Codex ledger's fixed scanner scope.
             let options = Self.resolvedScannerOptions(
                 overrideScannerOptions,
@@ -1366,6 +1457,7 @@ public struct CostUsageFetcher: Sendable {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     static func loadCachedCodexTokenSnapshotResult(
         now: Date = Date(),
         codexHomePath: String? = nil,
@@ -1379,6 +1471,25 @@ public struct CostUsageFetcher: Sendable {
         piScannerOptions: PiSessionCostScanner.Options? = nil) async
         -> CachedCodexTokenSnapshotResult?
     {
+        if CostUsageWorker.canRoute(options: overrideScannerOptions), piScannerOptions == nil {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .cachedSnapshot, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = historyDays
+            workerRequest.allowScopedCodexHome = allowScopedCodexHome
+            workerRequest.includePiSessions = includePiSessions
+            workerRequest.includeProjectAndSessionBreakdowns = includeProjectAndSessionBreakdowns
+            workerRequest.requireCompleteHistory = requireCompleteHistory
+            workerRequest.environment = environment
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CachedCodexTokenSnapshotResult?.self) { return value }
+            } catch {
+                return nil
+            }
+        }
+
         let scopedCodexHomePath = codexHomePath?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard scopedCodexHomePath?.isEmpty != false || allowScopedCodexHome else { return nil }
         let piHistoryRequested = includePiSessions && scopedCodexHomePath?.isEmpty != false
@@ -1567,6 +1678,21 @@ public struct CostUsageFetcher: Sendable {
         hidePersonalInfo: Bool,
         scannerOptions overrideScannerOptions: CostUsageScanner.Options? = nil) async -> CodexLocalProjectUsageSnapshot?
     {
+        if CostUsageWorker.canRoute(options: overrideScannerOptions) {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .cachedProjects, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = historyDays
+            workerRequest.hidePersonalInfo = hidePersonalInfo
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CodexLocalProjectUsageSnapshot?.self) { return value }
+            } catch {
+                return nil
+            }
+        }
+
         let cachedSnapshot: CodexLocalProjectUsageSnapshot?? = try? await CostUsageScanExecutor.run { _ in
             let options = Self.codexLocalScannerOptions(
                 codexHomePath: codexHomePath,
@@ -1589,6 +1715,22 @@ public struct CostUsageFetcher: Sendable {
         scannerOptions overrideScannerOptions: CostUsageScanner
             .Options? = nil) async throws -> CodexLocalProjectUsageSnapshot
     {
+        if CostUsageWorker.canRoute(options: overrideScannerOptions), progress == nil {
+            var workerRequest = CostUsageWorkerRequest(
+                operation: .projects, scanner: .init(overrideScannerOptions ?? CostUsageScanner.Options()))
+            workerRequest.now = now
+            workerRequest.codexHomePath = codexHomePath
+            workerRequest.historyDays = historyDays
+            workerRequest.hidePersonalInfo = hidePersonalInfo
+            workerRequest.forceRefresh = forceRefresh
+            do {
+                if case let .value(value) = try await CostUsageWorker.run(
+                    workerRequest, as: CodexLocalProjectUsageSnapshot.self) { return value }
+            } catch {
+                throw error
+            }
+        }
+
         let options = Self.codexLocalScannerOptions(
             codexHomePath: codexHomePath,
             overrideScannerOptions: overrideScannerOptions)
@@ -1990,7 +2132,7 @@ extension CostUsageFetcher {
         cache: CostUsageCache,
         scopedFiles: [String: CostUsageFileUsage]) -> String
     {
-        var progressHasher = Hasher()
+        var progressHasher = CostUsageScanProgressHasher()
         progressHasher.combine(cache.codexScanCompletedFiles)
 
         for (path, usage) in scopedFiles.sorted(by: { $0.key < $1.key }) {
@@ -2088,6 +2230,6 @@ extension CostUsageFetcher {
             progressHasher.combine("no-inventory")
         }
 
-        return "v2:\(scopedFiles.count):\(progressHasher.finalize())"
+        return "v3:\(scopedFiles.count):\(progressHasher.finalize())"
     }
 }

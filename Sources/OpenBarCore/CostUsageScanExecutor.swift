@@ -36,6 +36,8 @@ public enum CostUsageScanExecutor {
     package struct TimedResult<Value: Sendable>: Sendable {
         package let value: Value
         package let activeDuration: TimeInterval
+        package var completedPasses: Int = 1
+        package var progressKeys: [String] = []
 
         package init(value: Value, activeDuration: TimeInterval) {
             self.value = value
@@ -214,3 +216,6 @@ public enum CostUsageScanExecutor {
         }
     }
 }
+
+extension CostUsageScanExecutor.TimedResult: Codable where Value: Codable {}
+extension CostUsageScanExecutor.TimedResult: Equatable where Value: Equatable {}

@@ -205,14 +205,17 @@ extension UsageStore {
                 let result = try await self.advanceSpendDashboardCodexCostCatchUp(
                     account: account,
                     historyDays: context.historyDays,
-                    previousActiveDuration: previousActiveDuration)
+                    previousActiveDuration: previousActiveDuration,
+                    completedPasses: completedPasses,
+                    knownProgressKeys: seenKeysByCache[account.cacheIdentity, default: []])
                 let nextStatus = result.value
                 previousActiveDuration = (previousActiveDuration ?? 0) + result.activeDuration
-                completedPasses += 1
+                completedPasses += result.completedPasses
                 didChangeCache = didChangeCache || nextStatus.progressKey != previousStatus?.progressKey
                 statuses[account.cacheIdentity] = nextStatus
+                let progressKeys = result.progressKeys.isEmpty ? [nextStatus.progressKey] : result.progressKeys
                 if nextStatus.pending,
-                   !seenKeysByCache[account.cacheIdentity, default: []].insert(nextStatus.progressKey).inserted
+                   !progressKeys.allSatisfy({ seenKeysByCache[account.cacheIdentity, default: []].insert($0).inserted })
                 {
                     if nextStatus.progressKey == previousStatus?.progressKey,
                        nextStatus.yieldedBeforeFileAttempt,
@@ -352,7 +355,9 @@ extension UsageStore {
     private func advanceSpendDashboardCodexCostCatchUp(
         account: CodexSpendScanRequest,
         historyDays: Int,
-        previousActiveDuration: TimeInterval?) async throws
+        previousActiveDuration: TimeInterval?,
+        completedPasses: Int,
+        knownProgressKeys: Set<String>) async throws
         -> CostUsageScanExecutor.TimedResult<CostUsageFetcher.CodexScanCatchUpStatus>
     {
         let durationBudget = self.spendDashboardCodexCostCatchUpMode
@@ -376,7 +381,9 @@ extension UsageStore {
             .advanceCodexScanCatchUp(
                 codexHomePath: account.homePath,
                 historyDays: historyDays,
-                scanDurationPerRefresh: durationBudget)
+                scanDurationPerRefresh: durationBudget,
+                maximumPasses: max(1, 8 - completedPasses),
+                knownProgressKeys: knownProgressKeys)
     }
 
     private func publishSpendDashboardCodexCostCatchUpActivity(

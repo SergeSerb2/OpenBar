@@ -43,6 +43,7 @@ enum OpenBarCLI {
             Self.printVersion()
         }
 
+        await Self.runInternalCostCommand(argv: argv)
         let program = Program(descriptors: Self.commandDescriptors())
 
         do {
