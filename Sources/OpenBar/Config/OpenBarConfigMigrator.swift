@@ -34,6 +34,21 @@ struct OpenBarConfigMigrator {
         keychainAccessDisabled: Bool,
         stores: LegacyStores) throws -> OpenBarConfig
     {
+        try KeychainStringStore.withNoninteractiveAccess {
+            try self.loadNoninteractively(
+                configStore: configStore,
+                userDefaults: userDefaults,
+                keychainAccessDisabled: keychainAccessDisabled,
+                stores: stores)
+        }
+    }
+
+    private static func loadNoninteractively(
+        configStore: OpenBarConfigStore,
+        userDefaults: UserDefaults,
+        keychainAccessDisabled: Bool,
+        stores: LegacyStores) throws -> OpenBarConfig
+    {
         let log = OpenBarLog.logger(LogCategories.configMigration)
         let existing = try configStore.load()
         var config = (existing ?? OpenBarConfig.makeDefault()).normalized()
