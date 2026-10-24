@@ -34,6 +34,7 @@ struct DesignRenderGallery {
                 ("menu", GalleryMenuSection.render),
                 ("settings", GallerySettingsSection.render),
                 ("widgets", GalleryWidgetsSection.render),
+                ("charts", GalleryChartsSection.render),
             ]
             for (name, render) in sections where only?.contains(name) ?? true {
                 try render(gallery)
