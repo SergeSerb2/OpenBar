@@ -1,69 +1,70 @@
-# OpenBar 🎚️ — May your tokens never run out.
+# OpenBar — every AI coding limit in your menu bar, without the memory bill
 
-> Every AI coding limit, in your menu bar.
-
-[![Latest release](https://img.shields.io/github/v/release/SergeSerb2/OpenBar?style=flat-square&color=0a0a0c)](https://github.com/SergeSerb2/OpenBar/releases/latest)
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-0a0a0c?style=flat-square)](https://github.com/SergeSerb2/OpenBar/releases/latest)
-[![Linux desktop](https://img.shields.io/badge/Linux-Qt_6-1793d1?style=flat-square)](Integrations/Linux/README.md)
-[![Homebrew](https://img.shields.io/badge/brew-steipete%2Ftap%2Fopenbar-orange?style=flat-square)](https://github.com/SergeSerb2/homebrew-tap)
-[![AUR](https://img.shields.io/aur/version/codexbar-cli?style=flat-square&color=1793d1)](https://aur.archlinux.org/packages/codexbar-cli)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-0a0a0c?style=flat-square)](#install)
 [![License: MIT](https://img.shields.io/badge/license-MIT-6e5aff?style=flat-square)](LICENSE)
-[![Site](https://img.shields.io/badge/site-sergeserb2.github.io/OpenBar-16d3b4?style=flat-square)](https://sergeserb2.github.io/OpenBar)
+[![Fork of CodexBar](https://img.shields.io/badge/fork%20of-CodexBar-16d3b4?style=flat-square)](https://github.com/steipete/CodexBar)
 
-<a href="https://sergeserb2.github.io/OpenBar"><img src="docs/social.png?v=c2cc5e34aaa0c1f8" alt="OpenBar — every AI coding limit in your menu bar. 109 providers." width="100%" /></a>
+OpenBar is a lightweight fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps
+CodexBar's features — usage limits, reset countdowns, credits, local cost scans, and 100+ providers — and focuses on
+keeping the app small in memory.
 
-Tiny macOS 14+ menu bar app that keeps **AI coding-provider limits visible** and shows when each window resets. See the [supported providers](#providers) below. One status item per provider, or Merge Icons mode with a provider switcher. No Dock icon, minimal UI, dynamic bar icons.
+## Why OpenBar
 
-Also available as a [Linux desktop app](Integrations/Linux/README.md) with usage and spending windows, separate settings, desktop notifications, and an optional tray icon. On Omarchy, a native bar widget shares the desktop app’s data and follows your theme.
+CodexBar can use a lot of memory on machines with large local agent histories. On one Mac with 1.8 GB of Codex
+session logs, a long-running CodexBar used 247 MB and had peaked at 1.9 GB, and its offscreen ChatGPT dashboard page
+spawned a 300–520 MB web process about every 25 minutes. OpenBar targets **under 100 MB** in steady state and
+**never above 200 MB**.
 
-<img src="docs/openbar.png" alt="OpenBar menu popover with provider tiles, usage bars, and reset countdowns" width="520" />
+Measured on one Mac (macOS 27.2) with the same scripted scenario — open the menu and cycle tabs, open Settings on
+Usage & Spend, close it, force a refresh, reopen the menu, idle — Codex and Claude enabled with local cost tracking
+(1.8 GB of Codex logs). Footprint is what Activity Monitor shows as Memory. Medians of 3 runs.
 
-## Why
+| | CodexBar code | OpenBar |
+|---|---:|---:|
+| Idle after startup scans | 165 MB | 70–100 MB |
+| Settled after the scenario | 190 MB (worst 451 MB) | 110 MB |
+| Peak during the scenario | 383 MB (worst 618 MB) | ~260 MB |
+| App memory during a Codex cost scan | 133 MB | 14 MB |
+| ChatGPT dashboard page loads (300–520 MB web process each) | every 25 min | at most every 6 h |
 
-- **Plan around resets.** Per-provider session, weekly, and monthly windows with countdowns to the next reset — stop guessing whether to start that long task.
-- **Credits, spend, and cost scans.** Credit balances, Admin API spend dashboards, provider billing summaries, and local cost scans where the source exposes enough detail.
-- **Live status.** Provider status polling surfaces incident badges in the menu and an indicator overlay on the bar icon.
-- **Privacy-first.** Reuses existing provider sessions — OAuth, device flow, API keys, browser cookies, local files — so no passwords are stored.
+The remaining peak comes from about 100 MB of GPU memory that macOS allocates while the menu is open; it is released
+when the menu closes, and reducing it is the next step.
+
+What changed, in short:
+
+- **Cost scans run in a short-lived helper.** Codex and Claude log scans, cache reads, and catch-up passes run in the
+  bundled `openbar` CLI as a child process (`openbar __cost-worker`). The app receives only the finished results, and
+  all scan memory goes back to macOS when the helper exits. If the helper is missing or fails, the app falls back to
+  scanning in process.
+- **The ChatGPT dashboard page loads at most every 6 hours.** Usage limits still refresh through the API on every
+  cycle. A manual refresh or missing history still loads the page.
+- **Decoded caches do not linger.** The Codex scan baseline is released after 90 seconds idle, the Claude fragment
+  cache keeps 32 MiB instead of 512 MiB, and the allocator returns freed pages after each scan.
+- **Closed windows let go of their content.** Settings, inspectors, and chart submenus release their view trees when
+  closed and keep only navigation state; hidden spend-dashboard detail is released after 1 minute.
+
+Cost totals are checked against golden outputs from the original code on a frozen copy of real logs, both in process
+and through the helper, so the numbers you see do not change.
 
 ## Install
 
-### macOS app
-
-Requires macOS 14+ (Sonoma). Download from [GitHub Releases](https://github.com/SergeSerb2/OpenBar/releases), or install with Homebrew:
+OpenBar has no signed binary releases yet. Build it from source (requires macOS 14+ and Xcode with Swift 6.2+):
 
 ```bash
-brew install --cask openbar
+git clone https://github.com/SergeSerb2/OpenBar.git
+cd OpenBar
+./Scripts/package_app.sh        # builds OpenBar.app with ad-hoc signing
+open OpenBar.app
 ```
 
-### Linux desktop and Omarchy
+OpenBar uses its own bundle ID (`com.serbinenko.openbar`), settings, caches, and config file
+(`~/.config/openbar/config.json`), so it can run next to CodexBar without sharing state.
 
-The Qt 6 desktop app supports Wayland and X11, with an optional Omarchy widget.
-Published desktop archives target x86_64 and ARM64 and require glibc 2.39+,
-Qt 6.4+, and a separately installed OpenBar CLI. Python 3 runs the per-user installer.
+### Memory scenario probe (for contributors)
 
-Follow the [Linux installation guide](Integrations/Linux/README.md#install-release-archives)
-for Arch/Omarchy, Fedora, and Debian/Ubuntu runtime packages, verified release
-downloads, and upgrades. It keeps the CLI's resource bundle beside its executable
-and installs a launcher and optional login startup. Open Settings to choose
-providers, then authenticate through the provider's CLI or configure its API key.
-GNOME may need a tray extension; the app's windows work without a tray.
-
-See the [macOS feature comparison](Integrations/Linux/MAC_COMPARISON.md) for
-supported features and remaining gaps.
-
-### CLI Tarballs (macOS/Linux)
-Homebrew formula (Linux today):
-```bash
-brew install SergeSerb2/tap/openbar
-```
-Arch Linux AUR package:
-```bash
-yay -S openbar-cli
-```
-Or download release tarballs from GitHub Releases:
-- macOS: `OpenBarCLI-v<tag>-macos-arm64.tar.gz`, `OpenBarCLI-v<tag>-macos-x86_64.tar.gz`
-- Linux (glibc): `OpenBarCLI-v<tag>-linux-aarch64.tar.gz`, `OpenBarCLI-v<tag>-linux-x86_64.tar.gz`
-- Linux (static musl): `OpenBarCLI-v<tag>-linux-musl-aarch64.tar.gz`, `OpenBarCLI-v<tag>-linux-musl-x86_64.tar.gz`
+Launch the app with `OPENBAR_MEMORY_PROBE_DIR=/some/dir` to run a scripted scenario: it opens the menu and cycles
+every tab, opens and closes Settings on Usage & Spend, forces a refresh, reopens the menu, and logs the physical
+footprint at each step to `events.csv`. The probe is inert unless that variable is set.
 
 ### macOS first run
 - Open Settings → Providers and enable what you use.
@@ -292,47 +293,18 @@ CLI install:
 ./bin/install-openbar-cli.sh
 ```
 
-## Related
-- ✂️ [Trimmy](https://github.com/steipete/Trimmy) — “Paste once, run once.” Flatten multi-line shell snippets so they paste and run.
-- 🧳 [MCPorter](https://mcporter.dev) — TypeScript toolkit + CLI for Model Context Protocol servers.
-- 🧿 [oracle](https://askoracle.dev) — Ask the oracle when you're stuck. Invoke GPT-5 Pro with a custom context and files.
+## Ecosystem
 
-## Looking for a Windows version?
-- [Win-OpenBar](https://github.com/Finesssee/Win-CodexBar)
-- [OpenBar for Windows](https://github.com/hinneslung/CodexBar-for-Windows) — Native Windows tray app powered by the original OpenBar CLI through WSL2; x64 and ARM64 installers.
-
-## Linux desktop integration?
-- [Linux desktop app](Integrations/Linux/README.md) — x86_64/ARM64 release archives with an installer; Qt 6 usage and spending windows, separate settings, optional system tray, and desktop notifications using the Linux CLI.
-- [Omarchy native widget](Integrations/Omarchy/README.md) — Compact Quickshell usage popup sharing the Linux desktop app’s backend.
-- [OpenBar GTK](https://github.com/SaahiilM/codexbar-gtk) — Community GTK4/libadwaita front-end with usage, spending, and agent sessions from the OpenBar Linux CLI.
-- [openbar-waybar](https://github.com/Marouan-chak/codexbar-waybar) — Waybar custom module + GTK4 popover for Hyprland / Sway / other Wayland compositors, built on top of the bundled Linux CLI.
-- [openbar-cosmic-applet](https://github.com/andrew-verde/codexbar-cosmic-applet) — Native COSMIC (System76) desktop panel applet with a tab per provider, pace projections, and cost/token stats, built on top of the bundled Linux CLI.
-- [Openbar GNOME](https://extensions.gnome.org/extension/9841/codexbar/) — GNOME Shell extension that brings OpenBar usage into the desktop panel.
-- [openbar-cinnamon-applet](https://github.com/jacobcalvert/codexbar-cinnamon-applet) — Linux Mint Cinnamon panel applet powered by OpenBar's JSON output.
-- [noctalia-codex-usage](https://github.com/rayoplateado/noctalia-codex-usage) — Noctalia/Quickshell plugin that shows Codex 5-hour and weekly usage limits, built on top of the bundled Linux CLI.
-- [KodexBar](https://github.com/tylxr59/KodexBar) — KDE Plasma widget that shows OpenBar usage in the Plasma panel, built on top of the bundled Linux CLI.
-- [openbar-plasmoid](https://github.com/psimaker/codexbar-plasmoid) — KDE Plasma 6 widget for OpenBar's meter icon, provider switcher, quota windows, pace, credits, local cost, and status, powered by the bundled Linux CLI.
-- [OpenBar Plasma](https://github.com/Lucenx9/codexbar-plasma) — KDE Plasma 6 widget with multi-provider views, account selection, cost history, notifications, configurable providers, and installable `.plasmoid` releases, powered by the bundled Linux CLI.
-- [OpenBar AgentView](https://github.com/materemias/codexbar-agentview) — KDE Plasma 6 widget with usage meters, agent-session search, terminal focus, and kitty session restoration, powered by the bundled Linux CLI.
-- [OpenBar Meter](https://github.com/noctalia-dev/community-plugins/tree/main/codexbar-meter) — Noctalia v5 bar widget and panel showing every enabled provider's quota windows, credits, and pace, installable from Noctalia's plugin store, built on the bundled Linux CLI.
-- [openbar-dms](https://github.com/quantmind-br/codexbar-dms) — DankMaterialShell bar widget with provider logo pills, a popout of quota windows, reset times, and local spending, and shortcuts to the Linux desktop app's Usage & Spend and Settings windows, sharing that app's backend.
-
-## Desk display
-- [AI Monitor](https://github.com/tobymarks/esp32-ai-monitor) — ESP32 desk display (Cheap Yellow Display) plus a macOS companion app that shows Claude, ChatGPT, Gemini, Copilot, Cursor and Antigravity limits as rings or bars, fed over USB by the bundled CLI. No Wi-Fi on the device, 3D-printable case.
-- [TokenTV](https://github.com/click6067-ship-it/token-tv) — Python host that shows Claude and Codex 5-hour and weekly limits on compatible 240×240 Wi-Fi desk clocks (GeekMagic SmallTV style), using the bundled CLI or `openbar serve`. It uploads rendered screens to the clock's stock photo album without changing its firmware.
-
-## Status bar & terminal integration
-- [showy-quota](https://github.com/enieuwy/showy-quota) — always-on AI plan quota strips for SketchyBar, tmux, and Zellij (standalone WASM plugin), built on `openbar serve` / the bundled CLI.
-- [AI Usage Limits](https://github.com/lenadweb/stream-deck-ai-limits) — Elgato Stream Deck integration for macOS: shows a selected OpenBar provider, account, and configurable quota or payload metrics on keys and Stream Deck+ dials, using local `openbar serve`.
-- [ccx](https://github.com/aaronwong1999/ccx) — macOS menu bar companion for Claude Code/Codex task handoff, using `openbar usage --provider both --format json` for quota warnings.
-
-## Phone & web
-
-- [Starbridge](https://github.com/T0mSIlver/starbridge) — Community-maintained Android and web app that displays quota windows from the OpenBar CLI on macOS and Linux, with optional quota alerts.
-- [Notify! OpenBar](https://github.com/simplytoast1/notify-codexbar) — Community-maintained macOS companion that reads OpenBar CLI or local `openbar serve` output and sends selected usage through [Notify!](https://getnotifyapp.com/) for iPhone/iPad widgets, Live Activities, and quota notifications.
+CodexBar has a large set of community integrations (Linux desktop apps, panel widgets, desk displays, phone apps).
+They target CodexBar's `codexbar` CLI and JSON output; OpenBar's CLI is named `openbar` and keeps the same JSON
+shape. See [CodexBar's README](https://github.com/steipete/CodexBar#related) for the current list.
 
 ## Credits
-Inspired by [ccusage](https://github.com/ryoppippi/ccusage) (MIT), specifically the cost usage tracking.
+
+OpenBar is a fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger
+([@steipete](https://github.com/steipete)), and keeps its features, providers, and docs.
+Cost tracking was inspired by [ccusage](https://github.com/ryoppippi/ccusage) (MIT).
 
 ## License
-MIT • Peter Steinberger ([steipete](https://twitter.com/steipete))
+
+MIT. Copyright Peter Steinberger (CodexBar) and Serge Serbinenko (OpenBar). See [LICENSE](LICENSE).
