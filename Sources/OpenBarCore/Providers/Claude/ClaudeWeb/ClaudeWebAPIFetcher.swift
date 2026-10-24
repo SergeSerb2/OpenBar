@@ -198,6 +198,7 @@ public enum ClaudeWebAPIFetcher {
         public let weeklyPercentUsed: Double?
         public let weeklyResetsAt: Date?
         public let opusPercentUsed: Double?
+        public let opusResetsAt: Date?
         public let extraRateWindows: [NamedRateWindow]
         public fileprivate(set) var extraUsageCost: ProviderCostSnapshot?
         public let resetCredits: ClaudeRateLimitResetCreditsSnapshot?
@@ -212,6 +213,7 @@ public enum ClaudeWebAPIFetcher {
             weeklyPercentUsed: Double?,
             weeklyResetsAt: Date?,
             opusPercentUsed: Double?,
+            opusResetsAt: Date? = nil,
             extraRateWindows: [NamedRateWindow],
             extraUsageCost: ProviderCostSnapshot?,
             accountOrganization: String?,
@@ -226,6 +228,7 @@ public enum ClaudeWebAPIFetcher {
             self.weeklyPercentUsed = weeklyPercentUsed
             self.weeklyResetsAt = weeklyResetsAt
             self.opusPercentUsed = opusPercentUsed
+            self.opusResetsAt = opusResetsAt
             self.extraRateWindows = extraRateWindows
             self.extraUsageCost = extraUsageCost
             self.accountOrganization = accountOrganization
@@ -726,10 +729,13 @@ extension ClaudeWebAPIFetcher {
 
         // Parse seven_day_sonnet (preferred) / seven_day_opus usage
         var opusPercent: Double?
+        var opusResets: Date?
         if let sevenDaySonnet = json["seven_day_sonnet"] as? [String: Any] {
             opusPercent = Self.percentValue(from: sevenDaySonnet["utilization"])
+            opusResets = ISO8601DateParser.parse(sevenDaySonnet["resets_at"] as? String)
         } else if let sevenDayOpus = json["seven_day_opus"] as? [String: Any] {
             opusPercent = Self.percentValue(from: sevenDayOpus["utilization"])
+            opusResets = ISO8601DateParser.parse(sevenDayOpus["resets_at"] as? String)
         }
         let extraRateParse = ClaudeWebExtraRateWindowParser.parse(from: json)
         if let sourceKey = extraRateParse.sourceKeys["claude-routines"] {
@@ -744,6 +750,7 @@ extension ClaudeWebAPIFetcher {
             weeklyPercentUsed: weeklyPercent,
             weeklyResetsAt: weeklyResets,
             opusPercentUsed: opusPercent,
+            opusResetsAt: opusResets,
             extraRateWindows: extraRateParse.windows,
             extraUsageCost: extraUsageCost,
             accountOrganization: nil,

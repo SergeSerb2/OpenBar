@@ -1119,8 +1119,8 @@ extension ClaudeUsageFetcher {
             RateWindow(
                 usedPercent: opusPct,
                 windowMinutes: 7 * 24 * 60,
-                resetsAt: webData.weeklyResetsAt,
-                resetDescription: webData.weeklyResetsAt.map { Self.formatResetDate($0) })
+                resetsAt: webData.opusResetsAt,
+                resetDescription: webData.opusResetsAt.map { Self.formatResetDate($0) })
         }
 
         return ClaudeUsageSnapshot(
