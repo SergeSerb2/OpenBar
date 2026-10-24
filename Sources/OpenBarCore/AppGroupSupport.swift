@@ -22,6 +22,7 @@ public enum AppGroupSupport {
             case targetUnavailable
             case noChangesNeeded
             case migrated
+            case retryableFailure
         }
 
         public let status: Status
@@ -157,6 +158,7 @@ public enum AppGroupSupport {
             ?? self.legacyContainerCandidateURL(bundleID: bundleID, homeDirectory: homeDirectory)
             .appendingPathComponent(self.widgetSnapshotFilename, isDirectory: false)
 
+        var snapshotCopyFailed = false
         let copiedSnapshot = {
             guard let currentSnapshotURL else { return false }
             guard !fileManager.fileExists(atPath: currentSnapshotURL.path),
@@ -171,6 +173,7 @@ public enum AppGroupSupport {
                 try fileManager.copyItem(at: legacySnapshotURL, to: currentSnapshotURL)
                 return true
             } catch {
+                snapshotCopyFailed = true
                 return false
             }
         }()
@@ -179,7 +182,9 @@ public enum AppGroupSupport {
             from: legacyDefaults,
             to: currentDefaults)
 
-        let result = if copiedSnapshot || copiedDefaults > 0 {
+        let result = if snapshotCopyFailed {
+            MigrationResult(status: .retryableFailure, copiedDefaults: copiedDefaults)
+        } else if copiedSnapshot || copiedDefaults > 0 {
             MigrationResult(
                 status: .migrated,
                 copiedSnapshot: copiedSnapshot,
@@ -188,7 +193,9 @@ public enum AppGroupSupport {
             MigrationResult(status: .noChangesNeeded)
         }
 
-        standardDefaults.set(self.migrationVersion, forKey: self.migrationVersionKey)
+        if !snapshotCopyFailed {
+            standardDefaults.set(self.migrationVersion, forKey: self.migrationVersionKey)
+        }
         return result
     }
 
