@@ -17,6 +17,7 @@ final class SettingsWindowController: NSWindowController {
 
     typealias WindowFactory = @MainActor () -> NSWindow?
     typealias WindowAction = @MainActor (NSWindow) -> Void
+    typealias BareWindowFactory = @MainActor (NSRect, NSWindow.StyleMask) -> NSWindow
 
     private let selection: PreferencesSelection
     private let makeWindow: WindowFactory
@@ -70,46 +71,95 @@ final class SettingsWindowController: NSWindowController {
         codexAccountPromotionCoordinator: CodexAccountPromotionCoordinator,
         runProviderLoginFlow: @escaping @MainActor (UsageProvider) async -> Void)
     {
-        let makeRootView: @MainActor () -> AnyView = {
-            AnyView(PreferencesView(
-                settings: settings,
-                store: store,
-                cloudSyncState: cloudSyncState,
-                updater: updater,
-                selection: selection,
-                managedCodexAccountCoordinator: managedCodexAccountCoordinator,
-                codexAccountPromotionCoordinator: codexAccountPromotionCoordinator,
-                runProviderLoginFlow: runProviderLoginFlow))
-        }
-        self.init(selection: selection) {
-            // Type-erased so close can swap the preferences tree out of the one long-lived window.
-            let hostingController = NSHostingController(rootView: makeRootView())
-            let window = NSWindow(
-                contentRect: NSRect(
-                    x: 0,
-                    y: 0,
-                    width: SettingsPane.windowWidth,
-                    height: SettingsPane.windowHeight),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                backing: .buffered,
-                defer: false)
-            window.contentViewController = hostingController
-            window.title = selection.title
-            SettingsWindowToolbar.configure(window)
-            window.isReleasedWhenClosed = false
-            SettingsWindowSizing.enforceMinimumSize(window)
-            if !window.setFrameUsingName(SettingsWindowIdentity.frameAutosaveName) {
+        self.init(
+            selection: selection,
+            makeRootView: {
+                AnyView(PreferencesView(
+                    settings: settings,
+                    store: store,
+                    cloudSyncState: cloudSyncState,
+                    updater: updater,
+                    selection: selection,
+                    managedCodexAccountCoordinator: managedCodexAccountCoordinator,
+                    codexAccountPromotionCoordinator: codexAccountPromotionCoordinator,
+                    runProviderLoginFlow: runProviderLoginFlow))
+            },
+            didCloseWindow: { [weak store] in
+                store?.sharedSpendDashboardControllerStorage?.setDetailsVisible(false)
+                // Hand the closed window's freed allocator pages back to macOS.
+                store?.scheduleMemoryPressureRelief()
+            })
+    }
+
+    /// The Settings window lifecycle around a root view: one long-lived window, its root swapped out on close and
+    /// rebuilt on reopen. The app passes the preferences tree and the Dock-aware presentation defaults; lifecycle
+    /// measurements can pass offscreen presentation and no frame autosave.
+    convenience init(
+        selection: PreferencesSelection,
+        makeRootView: @escaping @MainActor () -> AnyView,
+        didCloseWindow: @escaping @MainActor () -> Void,
+        frameAutosaveName: String? = SettingsWindowIdentity.frameAutosaveName,
+        makeBareWindow: @escaping BareWindowFactory = SettingsWindowController.makeBareWindow,
+        prepareToPresent: @escaping @MainActor () -> Void = {
+            DockIconController.shared.prepareToOpenSettings()
+        },
+        registerWindow: @escaping WindowAction = { window in
+            DockIconController.shared.registerSettingsWindow(window)
+        },
+        presentWindow: @escaping WindowAction = { window in
+            SettingsWindowStageBehavior.present(window)
+        },
+        didPresentWindow: @escaping WindowAction = { window in
+            DockIconController.shared.settingsWindowDidPresent(window)
+        })
+    {
+        self.init(
+            selection: selection,
+            makeWindow: {
+                Self.makeWindow(
+                    rootView: makeRootView(),
+                    title: selection.title,
+                    frameAutosaveName: frameAutosaveName,
+                    makeBareWindow: makeBareWindow)
+            },
+            prepareToPresent: prepareToPresent,
+            registerWindow: registerWindow,
+            presentWindow: presentWindow,
+            didPresentWindow: didPresentWindow)
+        self.makeRootView = makeRootView
+        self.didCloseWindow = didCloseWindow
+    }
+
+    static func makeWindow(
+        rootView: AnyView,
+        title: String,
+        frameAutosaveName: String?,
+        makeBareWindow: BareWindowFactory = SettingsWindowController.makeBareWindow) -> NSWindow
+    {
+        // Type-erased so close can swap the preferences tree out of the one long-lived window.
+        let hostingController = NSHostingController(rootView: rootView)
+        // The shell owns the window title and its empty toolbar (`SettingsWindowToolbar`); SwiftUI scene
+        // bridging would otherwise replace them while the tree has no toolbar content.
+        hostingController.sceneBridgingOptions = []
+        let window = makeBareWindow(
+            NSRect(x: 0, y: 0, width: SettingsPane.windowWidth, height: SettingsPane.windowHeight),
+            [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView])
+        window.contentViewController = hostingController
+        window.title = title
+        SettingsWindowToolbar.configure(window)
+        window.isReleasedWhenClosed = false
+        SettingsWindowSizing.enforceMinimumSize(window)
+        if let frameAutosaveName {
+            if !window.setFrameUsingName(frameAutosaveName) {
                 window.center()
             }
-            window.setFrameAutosaveName(SettingsWindowIdentity.frameAutosaveName)
-            return window
+            window.setFrameAutosaveName(frameAutosaveName)
         }
-        self.makeRootView = makeRootView
-        self.didCloseWindow = { [weak store] in
-            store?.sharedSpendDashboardControllerStorage?.setDetailsVisible(false)
-            // Hand the closed window's freed allocator pages back to macOS.
-            store?.scheduleMemoryPressureRelief()
-        }
+        return window
+    }
+
+    static func makeBareWindow(contentRect: NSRect, styleMask: NSWindow.StyleMask) -> NSWindow {
+        NSWindow(contentRect: contentRect, styleMask: styleMask, backing: .buffered, defer: false)
     }
 
     @available(*, unavailable)
@@ -168,9 +218,9 @@ final class SettingsWindowController: NSWindowController {
 extension SettingsWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window === self.retainedWindow else { return }
-        // SwiftUI keeps a closed window's NavigationSplitView graph alive through internal cycles, so
-        // recreating the window would leak a graph per open. Keep one window and swap its root out
-        // instead, after AppKit finishes closing; reopening restores the root.
+        // SwiftUI can keep a closed window's view graph alive through internal cycles, so recreating the
+        // window would leak a graph per open. Keep one window and swap its root out instead, after AppKit
+        // finishes closing; reopening restores the root. See docs/research/settings-layout-heap-2026-10-24.md.
         DispatchQueue.main.async { [weak self, weak window] in
             guard let self, let window, !window.isVisible,
                   let hosting = window.contentViewController as? NSHostingController<AnyView>

@@ -56,18 +56,18 @@ struct SettingsSidebarStatusDotTests {
 
     @Test
     func `missing service status uses the unknown color`() {
-        #expect(SettingsSidebarProviderRow.statusColor(for: nil) == .gray)
+        #expect(SettingsSidebarProviderRow.statusColor(for: nil) == OpenBarTheme.Colors.stale)
         #expect(SettingsSidebarProviderRow.statusColor(for: nil)
             == SettingsSidebarProviderRow.statusColor(for: .unknown))
     }
 
     @Test(arguments: [
-        (ProviderStatusIndicator.none, Color.green),
-        (.minor, .yellow),
-        (.major, .orange),
-        (.critical, .red),
-        (.maintenance, .gray),
-        (.unknown, .gray),
+        (ProviderStatusIndicator.none, OpenBarTheme.Colors.ok),
+        (.minor, OpenBarTheme.Colors.warning),
+        (.major, OpenBarTheme.Colors.critical),
+        (.critical, OpenBarTheme.Colors.critical),
+        (.maintenance, OpenBarTheme.Colors.stale),
+        (.unknown, OpenBarTheme.Colors.stale),
     ])
     func `fetched service indicators retain their colors`(indicator: ProviderStatusIndicator, color: Color) {
         #expect(SettingsSidebarProviderRow.statusColor(for: indicator) == color)

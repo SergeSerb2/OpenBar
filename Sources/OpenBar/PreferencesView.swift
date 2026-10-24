@@ -59,11 +59,8 @@ struct PreferencesView: View {
     let codexAccountPromotionCoordinator: CodexAccountPromotionCoordinator
     let runProviderLoginFlow: @MainActor (UsageProvider) async -> Void
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @AppStorage(SettingsPane.sidebarWidthDefaultsKey) private var sidebarWidth: Double = SettingsPane.sidebarWidth
-    /// Measured titlebar height used to size the detail titlebar cover. Read from the window rather
-    /// than from a `GeometryReader`: SwiftUI hands the top safe-area inset to the detail scroll view as
-    /// a content inset, so a proxy read inside this column returns zero and collapses the cover.
-    @State private var detailTitlebarInset: CGFloat = 0
 
     /// The persisted width, guarded against out-of-range values (edited defaults,
     /// bounds that shrank in an update) so a bad stored value can't wreck the layout.
@@ -95,14 +92,41 @@ struct PreferencesView: View {
         self.runProviderLoginFlow = runProviderLoginFlow
     }
 
+    /// One lightweight shell on every macOS version (docs/design/README.md §9.4): an edge-to-edge sidebar, a
+    /// hairline, and the detail column. It replaces `NavigationSplitView` (about 11 MB heavier at first open in the
+    /// synthetic shell bench; release-app trials are the acceptance measurement). The whole shell runs up behind
+    /// the transparent titlebar; the sidebar starts its content below the traffic lights and the detail column
+    /// draws its own back/forward strip in that band.
     var body: some View {
-        Group {
-            if #available(macOS 26.0, *) {
-                self.splitViewLayout
-            } else {
-                self.legacyLayout
-            }
+        HStack(spacing: 0) {
+            SettingsSidebarView(
+                settings: self.settings,
+                store: self.store,
+                selection: self.$selection.pane,
+                onSelectAbout: { self.selection.requestAboutRoot() },
+                search: self.$selection.sidebarSearchText)
+                .frame(width: self.clampedSidebarWidth)
+                .frame(maxHeight: .infinity)
+                .background {
+                    // The only material in the window. With Reduce Transparency the sidebar is an opaque fill
+                    // instead, so no effect view exists at all.
+                    if self.reduceTransparency {
+                        SettingsOpaqueSidebarBackground()
+                    } else {
+                        SettingsSidebarMaterial()
+                    }
+                }
+
+            Divider()
+
+            // The sidebar width is user-resizable via the input-only drag strip on the detail's leading edge.
+            self.detailColumn
+                .overlay(alignment: .leading) {
+                    self.sidebarResizeHandle
+                }
         }
+        .ignoresSafeArea(edges: .top)
+        .tint(OpenBarTheme.Colors.accent)
         .frame(
             minWidth: SettingsPane.windowMinWidth,
             idealWidth: SettingsPane.windowWidth,
@@ -128,101 +152,35 @@ struct PreferencesView: View {
         }
     }
 
-    /// macOS 26+: a standard split view, so the sidebar, toolbar, search field and scroll edge
-    /// effects all come from the system and adopt Liquid Glass natively.
-    @available(macOS 26.0, *)
-    private var splitViewLayout: some View {
-        NavigationSplitView {
-            SettingsSidebarView(
-                settings: self.settings,
-                store: self.store,
-                selection: self.$selection.pane,
-                onSelectAbout: { self.selection.requestAboutRoot() },
-                search: self.$selection.sidebarSearchText)
-                .modifier(SettingsSidebarSizing(width: self.$sidebarWidth))
-        } detail: {
+    /// The detail column: the back/forward strip in the titlebar band, then the selected pane. Forms are capped
+    /// at 600 pt of content and centered; Usage & Spend keeps its wider dashboard width. No backing view: the
+    /// window's own background shows through, and pane content scrolls inside its own frame below the strip.
+    private var detailColumn: some View {
+        VStack(spacing: 0) {
+            // Above the pane: in the real window a pane's scroll view extends up into the titlebar band (its safe
+            // area), and as a later sibling it would otherwise cover the strip and take its clicks. The opaque
+            // window-background fill hides content that scrolls beneath; it is a plain fill, not a material.
+            SettingsDetailHeader(selection: self.selection, showsTitle: self.showsHeaderTitle)
+                .background(Color(nsColor: .windowBackgroundColor))
+                .zIndex(1)
+
+            // Zero minimum widths: a pane whose content asks for more width (long translations, fixed-size
+            // controls) stays inside the column instead of pushing the whole shell wider than the window, which
+            // NavigationSplitView's AppKit columns used to prevent.
             self.detailView
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .navigationTitle(self.selection.title)
-                // Panes that draw their own heading keep the window title for accessibility and the
-                // Window menu, but drop it from the toolbar.
-                .toolbar(removing: self.showsToolbarTitle ? nil : .title)
-                .toolbar {
-                    ToolbarItem(placement: .navigation) {
-                        SettingsHistoryButtons(selection: self.selection)
-                    }
-                }
+                .frame(minWidth: 0, maxWidth: self.detailMaxWidth, maxHeight: .infinity, alignment: .top)
+                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .frame(minWidth: 0, maxWidth: .infinity)
     }
 
-    private var showsToolbarTitle: Bool {
-        switch self.selection.pane {
-        case .usageSpend: false
-        case let .provider(instanceID): instanceID.firstPartyProvider == nil
-        default: true
-        }
+    /// Usage & Spend draws its own `title` heading, so the strip leaves the title to the window title there.
+    private var showsHeaderTitle: Bool {
+        self.selection.pane != .usageSpend
     }
 
-    /// macOS 14/15: hand-built sidebar and titlebar backing.
-    private var legacyLayout: some View {
-        HStack(spacing: 0) {
-            // Golden Gate-style sidebar: edge-to-edge material with a hairline separator,
-            // no floating card chrome. The material ignores the safe area so it runs up
-            // behind the transparent titlebar. The width is user-resizable via the
-            // input-only drag strip overlaid on the detail pane's leading edge.
-            SettingsSidebarView(
-                settings: self.settings,
-                store: self.store,
-                selection: self.$selection.pane,
-                onSelectAbout: { self.selection.requestAboutRoot() },
-                search: self.$selection.sidebarSearchText)
-                .frame(width: self.clampedSidebarWidth)
-                .background {
-                    SettingsSidebarMaterial()
-                        .ignoresSafeArea()
-                }
-
-            Divider()
-                .ignoresSafeArea()
-
-            self.detailView
-                .frame(
-                    maxWidth: SettingsPane.detailMaxWidth,
-                    maxHeight: .infinity,
-                    alignment: .topLeading)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                // The panes hide their scroll background, and the window uses a transparent full-size
-                // titlebar, so without an opaque detail backing the grouped Form content renders through
-                // the titlebar region and overlaps the window title. Mirror the sidebar's material so the
-                // detail-side titlebar region has a stable backing in every pane and appearance. The
-                // zero-sized reader reports the window's titlebar height so the cover below matches it.
-                .background {
-                    SettingsDetailMaterial()
-                        .ignoresSafeArea()
-                        .overlay {
-                            SettingsTitlebarInsetReader(inset: self.$detailTitlebarInset)
-                                .frame(width: 0, height: 0)
-                        }
-                }
-                // Cover the transparent titlebar strip over the detail so scrolling Form content stays
-                // below it — matching the sidebar's clean top edge instead of riding up over the window
-                // title. The window draws its title above this cover.
-                .overlay(alignment: .top) {
-                    SettingsDetailTitlebarCoverMaterial()
-                        .frame(height: self.detailTitlebarInset)
-                        .frame(maxWidth: .infinity)
-                        .ignoresSafeArea(edges: .top)
-                        .allowsHitTesting(false)
-                }
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    SettingsHistoryButtons(selection: self.selection)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(8)
-                }
-                .overlay(alignment: .leading) {
-                    self.sidebarResizeHandle
-                }
-        }
+    private var detailMaxWidth: CGFloat {
+        self.selection.pane == .usageSpend ? SettingsPane.detailMaxWidth : OpenBarSettingsMetrics.formMaxWidth
     }
 
     @ViewBuilder
@@ -470,22 +428,54 @@ final class SettingsWindowAppearanceView: NSView {
 
 @MainActor
 enum SettingsWindowToolbar {
+    static let identifier = NSToolbar.Identifier("com.serbinenko.openbar.settings.toolbar")
+
+    /// The HStack shell draws its own back/forward strip and title in the titlebar band (docs/design §9.4). The
+    /// window keeps an empty unified toolbar only so the titlebar has its standard height and the traffic
+    /// lights share the strip's vertical center. Clicks in the band still reach the SwiftUI content, and empty
+    /// areas still drag the window. The title stays set for the Window menu, Mission Control, and VoiceOver.
     static func configure(_ window: NSWindow) {
-        // On macOS 26+ the split view owns the toolbar and title through the hosting controller's
-        // scene bridging, so the titlebar keeps its native Liquid Glass and scroll edge behavior.
-        guard #unavailable(macOS 26.0) else { return }
         if !window.titlebarAppearsTransparent {
             window.titlebarAppearsTransparent = true
         }
-        if window.titleVisibility != .visible {
-            window.titleVisibility = .visible
+        if window.titleVisibility != .hidden {
+            window.titleVisibility = .hidden
         }
-        if window.toolbar != nil {
-            window.toolbar = nil
+        if window.toolbar?.identifier != self.identifier {
+            let toolbar = NSToolbar(identifier: self.identifier)
+            toolbar.allowsUserCustomization = false
+            toolbar.displayMode = .iconOnly
+            window.toolbar = toolbar
+        }
+        if window.toolbarStyle != .unified {
+            window.toolbarStyle = .unified
         }
         if window.titlebarSeparatorStyle != .none {
             window.titlebarSeparatorStyle = .none
         }
+    }
+}
+
+/// The detail column's titlebar strip: back/forward, then the pane title.
+@MainActor
+struct SettingsDetailHeader: View {
+    @Bindable var selection: PreferencesSelection
+    let showsTitle: Bool
+
+    var body: some View {
+        HStack(spacing: OpenBarSpacing.section) {
+            SettingsHistoryButtons(selection: self.selection)
+            if self.showsTitle {
+                Text(self.selection.title)
+                    .font(OpenBarTheme.Fonts.cardTitle)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, OpenBarSpacing.group)
+        .frame(minHeight: OpenBarSettingsMetrics.titlebarBandHeight)
     }
 }
 
@@ -494,28 +484,47 @@ struct SettingsHistoryButtons: View {
     @Bindable var selection: PreferencesSelection
 
     var body: some View {
-        ControlGroup {
-            Button {
-                self.selection.goBack()
-            } label: {
-                Label(L("Back"), systemImage: "chevron.backward")
-            }
-            .disabled(!self.selection.canGoBack)
-            .keyboardShortcut("[", modifiers: .command)
-            .help(L("Back"))
-
-            Button {
-                self.selection.goForward()
-            } label: {
-                Label(L("Forward"), systemImage: "chevron.forward")
-            }
-            .disabled(!self.selection.canGoForward)
-            .keyboardShortcut("]", modifiers: .command)
-            .help(L("Forward"))
+        HStack(spacing: 0) {
+            SettingsHistoryButton(
+                title: L("Back"),
+                systemImage: "chevron.backward",
+                isEnabled: self.selection.canGoBack,
+                shortcut: "[",
+                action: { self.selection.goBack() })
+            SettingsHistoryButton(
+                title: L("Forward"),
+                systemImage: "chevron.forward",
+                isEnabled: self.selection.canGoForward,
+                shortcut: "]",
+                action: { self.selection.goForward() })
         }
-        .controlGroupStyle(.navigation)
-        .labelStyle(.iconOnly)
+        .background(SettingsFillBackground(shape: Capsule(style: .continuous)))
         .fixedSize()
+    }
+}
+
+private struct SettingsHistoryButton: View {
+    let title: String
+    let systemImage: String
+    let isEnabled: Bool
+    let shortcut: KeyEquivalent
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: self.action) {
+            Image(systemName: self.systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(self.isEnabled ? HierarchicalShapeStyle.primary : HierarchicalShapeStyle.tertiary)
+                .frame(
+                    width: OpenBarSettingsMetrics.historyButtonWidth,
+                    height: OpenBarSettingsMetrics.historyButtonHeight)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!self.isEnabled)
+        .keyboardShortcut(self.shortcut, modifiers: .command)
+        .help(self.title)
+        .accessibilityLabel(self.title)
     }
 }
 
@@ -523,108 +532,11 @@ struct SettingsHistoryButtons: View {
 private struct SettingsSidebarMaterial: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        self.configure(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        self.configure(nsView)
-    }
-
-    private func configure(_ view: NSVisualEffectView) {
         view.material = .sidebar
         view.blendingMode = .behindWindow
         view.state = .followsWindowActiveState
-    }
-}
-
-/// Opaque window-background backing for the detail column. Because the detail panes hide their
-/// grouped-Form scroll background and the window uses a transparent full-size titlebar, the detail
-/// needs its own backing so scrolling content cannot render through the titlebar region.
-@MainActor
-private struct SettingsDetailMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        self.configure(view)
         return view
     }
 
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        self.configure(nsView)
-    }
-
-    private func configure(_ view: NSVisualEffectView) {
-        view.material = .windowBackground
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-    }
-}
-
-/// Reports the window's titlebar height - the strip the transparent full-size titlebar draws over - so the
-/// detail cover can match it exactly.
-@MainActor
-private struct SettingsTitlebarInsetReader: NSViewRepresentable {
-    @Binding var inset: CGFloat
-
-    @MainActor
-    final class InsetReadingView: NSView {
-        var onChange: ((CGFloat) -> Void)?
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            self.report()
-        }
-
-        override func layout() {
-            super.layout()
-            self.report()
-        }
-
-        private func report() {
-            guard let window else { return }
-            self.onChange?(max(0, window.frame.height - window.contentLayoutRect.height))
-        }
-    }
-
-    func makeNSView(context: Context) -> InsetReadingView {
-        let view = InsetReadingView()
-        self.configure(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: InsetReadingView, context: Context) {
-        self.configure(nsView)
-    }
-
-    private func configure(_ view: InsetReadingView) {
-        view.onChange = { value in
-            // Reported from AppKit's layout pass; defer so SwiftUI state does not change mid-update.
-            DispatchQueue.main.async {
-                guard self.inset != value else { return }
-                self.inset = value
-            }
-        }
-    }
-}
-
-/// The titlebar strip over the detail column. Blends *within* the window so scrolled Form content frosts
-/// as it passes underneath, the way a standard macOS toolbar treats content scrolling under it, instead of
-/// being cut off against a flat fill.
-@MainActor
-private struct SettingsDetailTitlebarCoverMaterial: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        self.configure(view)
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        self.configure(nsView)
-    }
-
-    private func configure(_ view: NSVisualEffectView) {
-        view.material = .headerView
-        view.blendingMode = .withinWindow
-        view.state = .followsWindowActiveState
-    }
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
