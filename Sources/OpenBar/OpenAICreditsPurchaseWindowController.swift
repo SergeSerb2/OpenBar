@@ -6,6 +6,10 @@ import WebKit
 final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigationDelegate, WKScriptMessageHandler {
     private static let defaultSize = NSSize(width: 980, height: 760)
     private static let logHandlerName = "openbarLog"
+    /// The auto-start script and its log handler live in their own world, so page and iframe scripts cannot post logs.
+    private static let scriptWorld = WKContentWorld.world(name: "OpenBarBuyCredits")
+    private static let maxLogMessageLength = 1000
+    private static let maxDebugLogBytes = 64 * 1024
     private static let debugLogURL = URL(fileURLWithPath: NSTemporaryDirectory())
         .appendingPathComponent("openbar-buy-credits.log")
     /// Opens the "Add more" credits dialog and stops there. It never clicks inside a dialog or form, and never
@@ -126,7 +130,7 @@ final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigat
 
     private func buildWindow() {
         let config = WKWebViewConfiguration()
-        config.userContentController.add(self.logHandler, name: Self.logHandlerName)
+        config.userContentController.add(self.logHandler, contentWorld: Self.scriptWorld, name: Self.logHandlerName)
         config.websiteDataStore = OpenAIDashboardWebsiteDataStore.store(
             forAccountEmail: self.accountEmail,
             scope: self.cacheScope)
@@ -173,22 +177,24 @@ final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigat
         let currentURL = webView.url?.absoluteString ?? "unknown"
         Self.appendDebugLog("didFinish url=\(currentURL)")
         self.logger.debug("Buy credits navigation finished", metadata: ["url": currentURL])
-        webView.evaluateJavaScript(Self.autoStartScript) { [logger] result, error in
-            if let error {
+        webView.evaluateJavaScript(Self.autoStartScript, in: nil, in: Self.scriptWorld) { [logger] result in
+            switch result {
+            case let .failure(error):
                 Self.appendDebugLog("autoStart error=\(error.localizedDescription)")
                 logger.error("Auto-start purchase failed", metadata: ["error": error.localizedDescription])
-                return
-            }
-            if let result {
-                Self.appendDebugLog("autoStart result=\(String(describing: result))")
-                logger.debug("Auto-start purchase result", metadata: ["result": String(describing: result)])
+            case let .success(value):
+                Self.appendDebugLog("autoStart result=\(String(describing: value))")
+                logger.debug("Auto-start purchase result", metadata: ["result": String(describing: value)])
             }
         }
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard message.name == Self.logHandlerName else { return }
-        let payload = String(describing: message.body)
+        guard message.name == Self.logHandlerName,
+              message.world == Self.scriptWorld,
+              message.frameInfo.isMainFrame
+        else { return }
+        let payload = String(String(describing: message.body).prefix(Self.maxLogMessageLength))
         Self.appendDebugLog("js \(payload)")
         self.logger.debug("Auto-buy log", metadata: ["payload": payload])
     }
@@ -215,6 +221,8 @@ final class OpenAICreditsPurchaseWindowController: NSWindowController, WKNavigat
         let line = "[\(timestamp)] \(LogRedactor.redact(message))\n"
         guard let data = line.data(using: .utf8) else { return }
         if FileManager.default.fileExists(atPath: Self.debugLogURL.path) {
+            let size = (try? FileManager.default.attributesOfItem(atPath: Self.debugLogURL.path)[.size] as? Int) ?? 0
+            guard size + data.count <= Self.maxDebugLogBytes else { return }
             if let handle = try? FileHandle(forWritingTo: Self.debugLogURL) {
                 handle.seekToEndOfFile()
                 handle.write(data)
