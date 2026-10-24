@@ -16,7 +16,8 @@ const outputPath = path.join(docsDir, "llms.txt");
 const pages = allHtml(docsDir)
   .map((file) => {
     const rel = path.relative(docsDir, file).replaceAll(path.sep, "/");
-    if (rel === "404.html" || rel === "social.html") return null;
+    // Design mockups under docs/design/ are internal review artifacts, not public documentation.
+    if (rel === "404.html" || rel === "social.html" || rel.startsWith("design/")) return null;
     const html = fs.readFileSync(file, "utf8");
     return {
       rel,
