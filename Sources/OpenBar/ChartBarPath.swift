@@ -5,10 +5,10 @@ import SwiftUI
 enum ChartBarPath {
     static let cornerRadius: CGFloat = 2
 
-    static func path(_ rects: [CGRect], roundsBottom: Bool) -> Path {
+    static func path(_ rects: [CGRect], roundsBottom: Bool, cornerRadius: CGFloat = Self.cornerRadius) -> Path {
         var path = Path()
         for rect in rects where rect.width > 0 && rect.height > 0 {
-            let radius = min(Self.cornerRadius, rect.width / 2, roundsBottom ? rect.height / 2 : rect.height)
+            let radius = min(cornerRadius, rect.width / 2, roundsBottom ? rect.height / 2 : rect.height)
             path.addRoundedRect(
                 in: rect,
                 cornerRadii: RectangleCornerRadii(
