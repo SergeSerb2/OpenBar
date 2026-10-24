@@ -1,7 +1,27 @@
 # Changelog
 
 OpenBar is a fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
-Entries below 0.80.1 are CodexBar's upstream history and keep their original names.
+Entries from 0.80.1 down are CodexBar's upstream history and keep their original names.
+
+## OpenBar — Unreleased
+
+### Changed
+
+- Rename CodexBar to OpenBar: app, modules, bundle ID (`com.serbinenko.openbar`), CLI (`openbar`), settings, caches,
+  and environment variables (`OPENBAR_*`). OpenBar runs next to CodexBar without sharing state.
+- Run local Codex and Claude cost scans, cache reads, and catch-up passes in a short-lived helper process (the bundled
+  CLI's internal `__cost-worker` command), so scan memory returns to macOS when the helper exits. The app falls back to
+  in-process scans if the helper is unavailable.
+- Load the ChatGPT dashboard page in its offscreen WebView at most every 6 hours; usage limits keep refreshing through
+  the API, and forced refreshes or missing history still load the page.
+- Release the decoded Codex scan baseline after 90 seconds idle, keep the Claude fragment cache within 32 MiB, and
+  return freed allocator pages after scans.
+- Release Settings, Workspaces, OpenAI Live Usage, Share Stats, and closed chart submenu content when closed; keep only
+  navigation state. Hidden spend-dashboard detail is released after 5 minutes. Menu warmup covers at most three tabs.
+
+### Added
+
+- `OPENBAR_MEMORY_PROBE_DIR`: an inert-by-default scripted memory scenario for before/after footprint comparisons.
 
 ## 0.80.1 — Unreleased
 
