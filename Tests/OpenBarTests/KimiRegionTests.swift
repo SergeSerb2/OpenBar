@@ -48,7 +48,7 @@ struct KimiRegionTests {
         } else {
             _ = try await KimiUsageFetcher.fetchUsage(authToken: token, region: region, transport: transport)
         }
-        #expect(await transport.requests().count == 3)
+        #expect(await transport.requests().count == (codeAPI ? 1 : 3))
     }
 
     @Test(arguments: [

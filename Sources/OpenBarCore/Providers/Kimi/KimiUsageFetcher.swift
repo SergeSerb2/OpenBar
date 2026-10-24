@@ -62,13 +62,9 @@ public struct KimiUsageFetcher: Sendable {
             throw self.codeAPIError(statusCode: response.statusCode)
         }
 
-        let snapshot = try self.parseCodeAPIUsage(from: data, now: now)
-        guard let webCredential else { return snapshot }
-        return try await self.enrichCodeAPIUsage(
-            snapshot,
-            webAuthToken: webCredential.token,
-            region: region,
-            transport: webCredential.transport(transport, region: region))
+        // Code responses do not identify an account that can be matched to the ambient web session.
+        // Keep these authenticated sources separate until both expose a stable account ID.
+        return try self.parseCodeAPIUsage(from: data, now: now)
     }
 
     static func fetchUsage(
