@@ -280,8 +280,8 @@ We ran the same scripted scenario against CodexBar's code and OpenBar, back to b
 Memory is the Activity Monitor footprint, median of 3 runs. In the scenario the menu is opened and its tabs cycled,
 Settings is opened and closed, a refresh is forced, and the app idles. Results vary with the size of your local logs.
 
-Cost scans run in the helper process, so their memory is not in the app's footprint and returns to macOS when each
-scan ends. The [idle footprint notes](docs/research/idle-footprint-2026-10-24.md) describe the method and the raw
+Cost scans run in a helper process, so their memory is not in the app's footprint and returns to macOS when each
+scan ends. The helper lives a few seconds per refresh; in these runs it peaked at 146–180 MB. The [idle footprint notes](docs/research/idle-footprint-2026-10-24.md) describe the method and the raw
 runs.
 
 To run the scenario yourself, launch a build with `OPENBAR_MEMORY_PROBE_DIR=/some/dir`. OpenBar then runs the
