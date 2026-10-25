@@ -1,6 +1,5 @@
 import json
 import os
-import re
 from pathlib import Path
 import subprocess
 import tarfile
@@ -35,11 +34,11 @@ class PackageTests(unittest.TestCase):
                            check=True, capture_output=True)
             checksum = Path(str(archive_path) + '.sha256')
             self.assertEqual(checksum.read_text().split()[1], archive_path.name)
-            patterns = (REPO / '.mac-release.env').read_text().splitlines()
-            patterns = [line.rstrip("'").replace('${MARKETING_VERSION}', '0.0.0-test') for line in patterns
-                        if line.startswith('^OpenBarDesktop-')]
-            self.assertTrue(any(re.fullmatch(pattern, archive_path.name) for pattern in patterns))
-            self.assertTrue(any(re.fullmatch(pattern, checksum.name) for pattern in patterns))
+            # The release inventory publishes every .github/release.json asset with a .sha256 sidecar.
+            assets = [name.format(version='0.0.0-test')
+                      for name in json.loads((REPO / '.github/release.json').read_text())['assets']]
+            self.assertIn(archive_path.name, assets)
+            self.assertEqual(checksum.name, archive_path.name + '.sha256')
             with tarfile.open(archive_path) as archive:
                 names = {name.split('/', 1)[1] for name in archive.getnames()}
                 fixed = {'bin/openbar-linux', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES', 'Integrations/Linux/install.py',

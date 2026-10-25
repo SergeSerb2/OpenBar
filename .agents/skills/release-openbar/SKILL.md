@@ -1,141 +1,62 @@
 ---
 name: release-openbar
-description: "OpenBar release: versioning, notarization, appcast, Homebrew, post-release bump."
+description: "OpenBar release: version bump, changelog, signed tag, CI dry run and publication, post-release checks."
 ---
 
 # OpenBar Release
 
-Use for releasing signed/notarized macOS apps, especially repos with Sparkle appcasts and Homebrew casks.
+Publication belongs to `.github/workflows/release.yml`. Never sign, notarize, upload, or edit `appcast.xml` locally.
+`docs/RELEASING.md` is the full reference; this is the checklist.
 
-## Start
+## Rules
 
-1. Work from the app repo unless asked otherwise.
-2. Check repo state, current version, latest tag/release, and release docs/scripts.
-3. Confirm `CHANGELOG.md` is complete, user-facing, deduped, and dated for the release.
-4. Prefer the repo release script; patch small script/test blockers instead of bypassing the release path.
-5. Never print key material. Keep 1Password references and local key paths as references only.
-6. Load `$release-private` if it exists before resolving Peter-owned credential locators.
+- Release only when the maintainer asks. Never print, echo, or invent secret values.
+- Never run anything that creates or modifies keychains locally (`.github/scripts/setup-signing.sh` is CI-only).
+- The signing identity and Team ID live in `.github/release.json` (`team_id`, `signing_identity`).
+  `AppGroupSupport.defaultTeamID` must match; `python3 .github/scripts/release.py identity` checks it.
 
-## Key Material
+## Prepare
 
-Use `$one-password` for secret handling. `op` only in tmux/persistent shell; no broad `env`, `set`, `export -p`, or secret scans.
+1. `version.env`: set `MARKETING_VERSION` and a `BUILD_NUMBER` above every `sparkle:version` in `appcast.xml`.
+2. `CHANGELOG.md`: the first `## ` heading must be `## X.Y.Z — YYYY-MM-DD` (em dash or `-`; date not in the future
+   in UTC) with a nonempty body. `## X.Y.Z — Unreleased` is accepted only by dry runs.
+3. Merge to `main` and wait for green **push** CI on that exact commit.
 
-Known App Store Connect shape:
-
-- fields: `private_key_p8`, `key_id`, `issuer_id`
-- keep all three fields from the same 1Password item; do not mix with stale values from `~/.profile`
-- resolve Peter-owned item refs from `$release-private`
-
-Known Sparkle key:
-
-- resolve the private key file from `$release-private`
-- pass as `SPARKLE_PRIVATE_KEY_FILE`
-
-Safe env file pattern:
-
-```text
-APP_STORE_CONNECT_API_KEY_P8=<1Password ref from release-private>
-APP_STORE_CONNECT_KEY_ID=<1Password ref from release-private>
-APP_STORE_CONNECT_ISSUER_ID=<1Password ref from release-private>
-SPARKLE_PRIVATE_KEY_FILE=<path from release-private>
-```
-
-Run with `op run --account my.1password.com --env-file <file> -- <script>`, then delete the temp env file.
-
-## OpenBar
-
-Paths:
-
-- repo: `~/Projects/openbar`
-- release script: `Scripts/release.sh`
-- signing/notarization: `Scripts/sign-and-notarize.sh`
-- appcast: `Scripts/make_appcast.sh`, `appcast.xml`
-- release assets: `OpenBar-macos-universal-<version>.zip`, `OpenBar-macos-universal-<version>.dSYM.zip`
-- packaged app: `OpenBar.app`
-- version file: `version.env`
-- changelog: `CHANGELOG.md`
-- Homebrew tap: `~/Projects/homebrew-tap`
-- cask: `~/Projects/homebrew-tap/Casks/openbar.rb`
-- formula: `~/Projects/homebrew-tap/Formula/openbar.rb`
-- CLI release workflow: `.github/workflows/release-cli.yml`
-
-Normal release:
+## Rehearse
 
 ```bash
-tmux new-session -d -s openbar-release 'op run --account my.1password.com --env-file /tmp/openbar-release-op.env -- Scripts/release.sh'
-tmux attach -t openbar-release
+gh workflow run release.yml --ref main -f dry_run=true
+gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
 ```
 
-If notarization fails with `401 Unauthenticated`, rerun using all three App Store Connect fields from the 1Password item above. Mismatched `key_id` / `issuer_id` from `~/.profile` can cause this.
+A dry run signs, notarizes, verifies, and smokes the app and keeps the payload as an Actions artifact. It publishes nothing.
 
-If widget metadata generation times out, `OPENBAR_WIDGET_METADATA_TIMEOUT_SECONDS=600` is a known-good floor.
+## Publish
 
-OpenBar CLI tarballs are not produced by `Scripts/release.sh` itself. The GitHub release event triggers `.github/workflows/release-cli.yml`, which builds and uploads:
+Create the SSH-signed annotated tag with the key listed in `.github/release-allowed-signers` (the private key file,
+or its `.pub` when the key is loaded in `ssh-agent`), then push it:
 
-- `OpenBarCLI-v<version>-macos-arm64.tar.gz`
-- `OpenBarCLI-v<version>-macos-x86_64.tar.gz`
-- `OpenBarCLI-v<version>-linux-aarch64.tar.gz`
-- `OpenBarCLI-v<version>-linux-x86_64.tar.gz`
-- matching `.sha256` files
+```bash
+git -c gpg.format=ssh -c user.signingkey=<path-to-release-tag-key> tag -s vX.Y.Z -m "OpenBar X.Y.Z"
+git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile=.github/release-allowed-signers verify-tag vX.Y.Z
+git push origin vX.Y.Z
+```
 
-If the workflow fails only in `update-homebrew-tap` with GitHub API rate limiting, the CLI assets may already be uploaded. Verify assets live, then update `Formula/openbar.rb` manually from the tarball checksums.
+The tag push starts the release. Watch it to completion; a failed run keeps its draft as a version reservation, so fix
+forward with a new version instead of deleting tags or drafts.
 
 ## Verify
 
-Release is not done until the published chain checks out:
-
 ```bash
-gh release view v<VERSION> --json tagName,name,isDraft,isPrerelease,url,assets,body
-Scripts/check-release-assets.sh v<VERSION>
-python3 - <<'PY'
-import xml.etree.ElementTree as ET
-ns={'sparkle':'http://www.andymatuschak.org/xml-namespaces/sparkle'}
-root=ET.parse('appcast.xml').getroot()
-item=root.find('channel').find('item')
-enc=item.find('enclosure')
-print(item.findtext('title'))
-print(item.findtext('sparkle:version', namespaces=ns))
-print(item.findtext('sparkle:shortVersionString', namespaces=ns))
-print(enc.attrib.get('url'))
-print(enc.attrib.get('length'))
-print(bool(enc.attrib.get('{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature')))
-PY
-codesign --verify --deep --strict --verbose=2 OpenBar.app
-spctl --assess --type execute --verbose OpenBar.app
+gh release view vX.Y.Z --json tagName,isDraft,isPrerelease,url
+Scripts/check-release-assets.sh vX.Y.Z
+Scripts/verify_appcast.sh X.Y.Z
 ```
 
-For Homebrew:
-
-```bash
-shasum -a 256 OpenBar-macos-universal-<VERSION>.zip
-cd /Users/steipete/Projects/homebrew-tap
-python3 .github/scripts/update_formula.py --formula openbar --tag v<VERSION> --repository SergeSerb2/OpenBar --artifact-template 'OpenBarCLI-{tag}-{target}.tar.gz' --target-aliases 'darwin_arm64=macos-arm64,darwin_amd64=macos-x86_64,linux_arm64=linux-aarch64,linux_amd64=linux-x86_64'
-brew fetch --cask --force --retry openbar
-brew fetch --formula --force --retry SergeSerb2/tap/openbar
-```
-
-Update the cask when app zip assets exist. Update the formula only when standalone CLI tarballs for that version exist.
-
-Tap audit can be noisy from unrelated formulae; keep evidence specific to the app cask.
+`check-release-assets.sh` checks the exact asset inventory and the downloaded app's Developer ID signature.
+`verify_appcast.sh` checks the live feed entry's length and EdDSA signature, then codesign, Gatekeeper, and the staple.
 
 ## Closeout
 
-1. Create/push tag and GitHub release through the release script.
-2. Verify appcast points to the new GitHub release asset with signature and length.
-3. Update/push the Homebrew cask if the app zip changed.
-4. Bump the app repo to next patch `Unreleased`:
-   - `version.env`: next `MARKETING_VERSION`, next `BUILD_NUMBER`
-   - `CHANGELOG.md`: top `## <next> — Unreleased`
-5. Commit, push, then pull `--ff-only`.
-6. Restart the local app from the packaged bundle and verify the running bundle version.
-7. Check no release/notary/op temp sessions or temp env files remain.
-
-OpenBar restart:
-
-```bash
-pkill -x OpenBar || pkill -f OpenBar.app || true
-cd "$(git rev-parse --show-toplevel)"
-open -n OpenBar.app
-/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' OpenBar.app/Contents/Info.plist
-/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' OpenBar.app/Contents/Info.plist
-```
+1. Open the next `## X.Y.(Z+1) — Unreleased` changelog section and bump `version.env` (new `BUILD_NUMBER`).
+2. Commit with a short imperative subject and push through the normal PR flow.

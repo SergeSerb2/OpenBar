@@ -117,7 +117,7 @@ check_repository_size() {
 check_shell_scripts() {
   local count=0
   local script
-  for script in "${ROOT_DIR}"/Scripts/*.sh "${ROOT_DIR}"/Scripts/mac-release; do
+  for script in "${ROOT_DIR}"/Scripts/*.sh; do
     [[ -f "$script" ]] || continue
     bash -n "$script"
     count=$((count + 1))

@@ -3,7 +3,7 @@
 ## Project Structure & Modules
 - `Sources/OpenBar`: Swift 6 menu bar app (usage/credits probes, icon renderer, settings). Keep changes small and reuse existing helpers.
 - `Tests/OpenBarTests`: XCTest coverage for usage parsing, status probes, icon patterns; mirror new logic with focused tests.
-- `Scripts`: build/package helpers (`package_app.sh`, `sign-and-notarize.sh`, `build_icon.sh`, `compile_and_run.sh`). Read-only release helpers call `Scripts/mac-release`, which resolves `MAC_RELEASE_TOOL` or the shared `agent-scripts` checkout; CI owns publication.
+- `Scripts`: build/package helpers (`package_app.sh`, `sign-and-notarize.sh`, `build_icon.sh`, `compile_and_run.sh`). Read-only release helpers (`check-release-assets.sh`, `verify_appcast.sh`) are self-contained; the signing identity lives in `.github/release.json`; CI owns publication.
 - `docs`: release notes and process (`docs/RELEASING.md`, screenshots). Root-level zips/appcast are generated artifacts—avoid editing except during releases.
 
 ## Build, Test, Run

@@ -300,6 +300,9 @@ contributors can see which issue each fix belongs to.
 
 ### GitHub Actions Setup
 
+> OpenBar removed this workflow before 1.0; run `./Scripts/check_upstreams.sh` locally instead.
+> The steps below are historical.
+
 The workflow `.github/workflows/upstream-monitor.yml` will:
 - Run Monday and Thursday at 9 AM UTC
 - Check for new commits in both upstreams

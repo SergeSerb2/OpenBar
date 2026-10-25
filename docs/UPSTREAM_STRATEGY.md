@@ -9,8 +9,9 @@ read_when:
 > Historical policy for the `topoffunnel/OpenBar` fork. Its claim that multi-account support must stay out of
 > upstream is obsolete; see [Configuration](configuration.md#tokenaccounts) for current support. Main-repository
 > scope is defined in [Vision](../VISION.md), with development and release instructions in
-> [Development](DEVELOPMENT.md) and [Releasing](RELEASING.md). The helper scripts and upstream-monitor workflow
-> below remain in the tree, so this document is retained as their historical context, not a current contribution policy.
+> [Development](DEVELOPMENT.md) and [Releasing](RELEASING.md). The helper scripts below remain in the tree
+> (the upstream-monitor workflow was removed before 1.0), so this document is retained as their historical context,
+> not a current contribution policy.
 
 **Fork:** topoffunnel/OpenBar  
 **Upstream 1:** steipete/CodexBar (original)  

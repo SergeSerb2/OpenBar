@@ -13,7 +13,6 @@ read_when:
 - `Scripts/compile_and_run.sh`: uses host arch; pass `--release-universal` or `--release-arches="arm64 x86_64"` for release packaging.
 - `Scripts/sign-and-notarize.sh`: explicitly selects Developer ID signing, notarizes, staples, and zips (accepts `ARCHES` for universal).
 - `.github/workflows/release.yml`: builds the signed release payload and owns Sparkle feed publication; see [the release process](RELEASING.md).
-- `Scripts/changelog-to-html.sh`: converts the per-version changelog section to HTML for Sparkle.
 - `Scripts/verify_packaged_app_launch.sh`: checks resource loading and AppKit liveness with a temporary home, disabled synthetic provider config, no inherited credentials, test-safe background work, and a sandbox guard against writes to the real home directory.
 
 ## Bundle contents
