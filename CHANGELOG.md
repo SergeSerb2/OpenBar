@@ -126,7 +126,7 @@ memory use, and the fixes from a full bug and security audit (96 findings, 92 fi
   removed account's cached cookie header can remain until the next refresh.
 - iCloud Sync is not available in OpenBar 1.0. Settings → iCloud Sync says so and shows no sync controls.
 
-## 0.80.1 — Unreleased
+## 0.80.1 — CodexBar main at fork time (never released upstream)
 
 ### Added
 
