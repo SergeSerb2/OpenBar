@@ -20,6 +20,7 @@ public enum OpenAIDashboardWebsiteDataStore {
     /// Using the same instance ensures stable object identity for WebView cache lookups.
     private static var cachedStores: [String: WKWebsiteDataStore] = [:]
     private static let removeStoreAttempts = 6
+    // Provider-specific by design: these data stores only back the OpenAI dashboard web view.
     private static let log = OpenBarLog.logger(LogCategories.provider(.openai, scope: "webview"))
 
     public static func store(

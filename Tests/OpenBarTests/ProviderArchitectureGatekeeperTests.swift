@@ -156,8 +156,8 @@ struct ProviderArchitectureGatekeeperTests {
             Self.hash(descriptor.branding.burnDownWidgetColor, into: &burnDownFingerprint)
         }
 
-        // Chatbox extends the audited palette without changing existing provider colors.
-        #expect(widgetFingerprint == 1_520_460_381_527_728_538)
+        // Codex moved from CodexBar's teal to OpenAI green (#10A37F); other provider colors are unchanged.
+        #expect(widgetFingerprint == 14_989_101_639_365_713_624)
         #expect(burnDownFingerprint == 7_988_322_199_986_601_411)
     }
 
