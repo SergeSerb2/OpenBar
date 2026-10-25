@@ -56,6 +56,9 @@ extension OpenBarConfig {
 private enum ConfigValueChanges {
     static func apply<Value: Codable>(from original: Value?, to edited: Value?, current: Value?) throws -> Value? {
         let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        // A save usually edits one provider; skip the JSON round trips for every value it left alone.
+        if try original.map({ try encoder.encode($0) }) == edited.map({ try encoder.encode($0) }) { return current }
         let decoder = JSONDecoder()
         func value(_ input: Value?) throws -> ProviderConfigExtensionValue? {
             try input.map { try decoder.decode(ProviderConfigExtensionValue.self, from: encoder.encode($0)) }

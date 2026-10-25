@@ -359,7 +359,7 @@ extension SettingsStore {
         defer { if publicationLocked { permit.endPublication(data: published ? data : nil) } }
         do {
             try store.withTransaction { current, publish in
-                try permit.beginPublication(validating: store)
+                try permit.beginPublication()
                 publicationLocked = true
                 let rebased = try permit.rebase(config, onto: current ?? .makeDefault())
                 let rebasedData = try store.encodedData(for: rebased)
@@ -382,19 +382,13 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
         fileprivate let coordinator: SettingsConfigPersistenceCoordinator
         fileprivate let generation: UInt64
 
-        func beginPublication(validating store: OpenBarConfigStore) throws {
+        /// The caller's transaction has already read the file under the file lock, and a failed read
+        /// never reaches this point, so publication only needs to check that no reload superseded it.
+        func beginPublication() throws {
             self.coordinator.lock.lock()
             guard !self.coordinator.readFailed, self.generation == self.coordinator.generation else {
                 self.coordinator.lock.unlock()
                 throw CancellationError()
-            }
-            do {
-                // The writer's transaction already published any migration under the file lock.
-                _ = try store.loadWithoutMigrating()
-            } catch {
-                self.coordinator.readFailed = true
-                self.coordinator.lock.unlock()
-                throw error
             }
         }
 

@@ -56,11 +56,20 @@ enum OpaqueConfigJSON {
 
         var current: UInt8? {
             mutating get {
-                while self.index < self.bytes.count, [9, 10, 13, 32].contains(self.bytes[self.index]) {
+                while self.index < self.bytes.count, Self.isWhitespace(self.bytes[self.index]) {
                     self.index += 1
                 }
                 return self.index < self.bytes.count ? self.bytes[self.index] : nil
             }
+        }
+
+        /// Called per byte; a literal array here would allocate on every call in debug builds.
+        private static func isWhitespace(_ byte: UInt8) -> Bool {
+            byte == 9 || byte == 10 || byte == 13 || byte == 32
+        }
+
+        private static func endsScalar(_ byte: UInt8) -> Bool {
+            self.isWhitespace(byte) || byte == 44 || byte == 93 || byte == 125
         }
 
         mutating func consume(_ byte: UInt8) throws {
@@ -97,7 +106,7 @@ enum OpaqueConfigJSON {
                     self.index += 1
                 } while depth > 0
             } else {
-                while self.index < self.bytes.count, ![9, 10, 13, 32, 44, 93, 125].contains(self.bytes[self.index]) {
+                while self.index < self.bytes.count, !Self.endsScalar(self.bytes[self.index]) {
                     self.index += 1
                 }
             }
