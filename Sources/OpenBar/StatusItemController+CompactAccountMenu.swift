@@ -154,6 +154,7 @@ extension StatusItemController {
                     width: context.menuWidth,
                     heightCacheScope: "\(idPrefix)-compact-\(accountID.opaqueID)",
                     heightCacheFingerprint: rowModel.heightFingerprint,
+                    chrome: .row,
                     onClick: { [weak self, weak captureMenu] in
                         self?.toggleCompactAccountExpansion(accountID, menu: captureMenu)
                     }))
@@ -166,6 +167,7 @@ extension StatusItemController {
                     width: context.menuWidth,
                     heightCacheScope: "\(idPrefix)-collapsed",
                     heightCacheFingerprint: "collapsed-\(count)",
+                    chrome: .row,
                     onClick: { [weak self, weak captureMenu] in
                         self?.expandCompactAccountHealthyTail(for: provider, menu: captureMenu)
                     }))

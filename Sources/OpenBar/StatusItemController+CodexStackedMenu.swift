@@ -88,8 +88,7 @@ extension StatusItemController {
         if let dashboard = model.inlineUsageDashboard {
             menu.addItem(self.makeMenuCardItem(
                 InlineUsageDashboardContent(model: dashboard)
-                    .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-                    .padding(.vertical, 6)
+                    .menuCardChrome()
                     .frame(width: context.menuWidth),
                 id: "sharedCodexInlineCost",
                 width: context.menuWidth,

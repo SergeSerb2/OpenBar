@@ -12,26 +12,20 @@ struct MenuCardQuotaWarningMarkerTests {
         #expect(UsageProgressBar.renderedFillPercent(99.6) == 100)
     }
 
+    /// Calm native meter (docs/design/README.md §9.2): markers are 1-pt gaps cut into the fill and track
+    /// geometry, not a punched slot with a neutral stripe.
     @Test
     func `quota warning marker geometry matches pace stripe edges`() {
         let rect = UsageProgressBar.warningMarkerRect(
             x: 50,
             size: CGSize(width: 100, height: 6),
             scale: 2)
-        let stripe = UsageProgressBar.warningMarkerStripeRect(
-            rect,
-            scale: 2)
 
-        #expect(rect.width == 5)
+        #expect(rect.width == 1)
         #expect(rect.height == 6)
         #expect(rect.minY == 0)
         #expect(rect.maxY == 6)
         #expect(abs(rect.midX - 50) <= 0.5)
-        #expect(stripe.width == 1)
-        #expect(stripe.height == rect.height)
-        #expect(abs(stripe.midX - rect.midX) <= 0.001)
-        #expect(stripe.minX > rect.minX)
-        #expect(stripe.maxX < rect.maxX)
     }
 
     @Test
@@ -43,18 +37,11 @@ struct MenuCardQuotaWarningMarkerTests {
                 x: 33,
                 size: CGSize(width: 100, height: 6),
                 scale: scale)
-            let stripe = UsageProgressBar.warningMarkerStripeRect(
-                rect,
-                scale: scale)
 
             #expect(rect.minY == 0)
             #expect(rect.height == 6)
-            #expect(rect.width == 5)
-            #expect(stripe.width == 1)
-            #expect(stripe.height == rect.height)
-            #expect(abs(stripe.midX - rect.midX) <= 1 / scale)
-            #expect(stripe.minX > rect.minX)
-            #expect(stripe.maxX < rect.maxX)
+            #expect(rect.width == 1)
+            #expect(abs(rect.midX - 33) <= 1 / scale)
         }
     }
 
@@ -65,9 +52,9 @@ struct MenuCardQuotaWarningMarkerTests {
             size: CGSize(width: 100, height: 6),
             scale: 2)
 
-        #expect(rect.width == 0.5)
-        #expect(rect.height == 3)
-        #expect(rect.minY == 3)
+        #expect(rect.width == 1)
+        #expect(rect.height == 6)
+        #expect(rect.minY == 0)
         #expect(abs(rect.midX - 50) <= 0.5)
     }
 
@@ -82,7 +69,7 @@ struct MenuCardQuotaWarningMarkerTests {
                 scale: scale,
                 appearance: .highContrast)
 
-            #expect(rect.width == 1.96)
+            #expect(rect.width == 2)
             #expect(rect.height == 6)
             #expect(rect.minY == 0)
             #expect(abs(rect.midX - 50) <= 1 / scale)

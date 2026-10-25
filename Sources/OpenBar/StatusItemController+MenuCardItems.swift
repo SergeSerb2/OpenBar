@@ -40,6 +40,7 @@ extension StatusItemController {
         submenuIndicatorTopPadding: CGFloat = 8,
         containsInteractiveControls: Bool = false,
         usesGPUSelection: Bool = false,
+        chrome: MenuRowChrome = .card,
         onClick: (() -> Void)? = nil) -> NSMenuItem
     {
         let allowsMenuHighlight = submenu != nil || onClick != nil
@@ -78,7 +79,8 @@ extension StatusItemController {
             allowsMenuHighlight: allowsMenuHighlight,
             containsInteractiveControls: containsInteractiveControls,
             usesGPUSelection: usesGPUSelection,
-            onClick: onClick)
+            onClick: onClick,
+            chrome: chrome)
         let hosting: ErasedMenuCardHostingView
         if let recycled = self.takeRecyclableMenuCardView(
             for: id,
@@ -132,17 +134,18 @@ extension StatusItemController {
         return item
     }
 
-    private func menuCardHeight(for view: NSView, width: CGFloat) -> CGFloat {
-        let basePadding: CGFloat = 6
-        let descenderSafety: CGFloat = 1
+    /// Height a hosted row adds around its measured SwiftUI content: 6 pt base padding plus 1 pt of
+    /// descender safety. The content sits centered, so card plates inset by half of it.
+    static let menuCardRowExtraHeight: CGFloat = 7
 
+    private func menuCardHeight(for view: NSView, width: CGFloat) -> CGFloat {
         if let measured = view as? MenuCardMeasuring {
-            return max(1, ceil(measured.measuredHeight(width: width) + basePadding + descenderSafety))
+            return max(1, ceil(measured.measuredHeight(width: width) + Self.menuCardRowExtraHeight))
         }
 
         view.frame = NSRect(origin: .zero, size: NSSize(width: width, height: 1))
         let fitted = view.fittingSize
-        return max(1, ceil(fitted.height + basePadding + descenderSafety))
+        return max(1, ceil(fitted.height + Self.menuCardRowExtraHeight))
     }
 }
 

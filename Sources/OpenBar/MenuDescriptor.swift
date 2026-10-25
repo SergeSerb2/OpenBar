@@ -40,10 +40,10 @@ struct MenuDescriptor {
         case installUpdate = "arrow.down.circle"
         case checkForUpdates = "arrow.triangle.2.circlepath.circle"
         case refresh = "arrow.clockwise"
-        case dashboard = "chart.xyaxis.line"
+        case dashboard = "chart.bar"
         case statusPage = "waveform.path.ecg"
         case changelog = "list.bullet.rectangle"
-        case addAccount = "plus"
+        case addAccount = "person.badge.plus"
         case systemAccount = "person.crop.circle"
         case workspaces = "folder"
         case liveUsage = "chart.bar.xaxis"
@@ -52,7 +52,7 @@ struct MenuDescriptor {
         case loginToProvider = "arrow.right.square"
         case settings = "gearshape"
         case about = "info.circle"
-        case quit = "xmark.rectangle"
+        case quit = "power"
         case copyError = "doc.on.doc"
     }
 

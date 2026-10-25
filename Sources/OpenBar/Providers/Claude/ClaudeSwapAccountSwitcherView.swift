@@ -8,6 +8,10 @@ final class ClaudeSwapAccountSwitcherView: NSView {
     private var pressedAccountID: ProviderAccountIdentity?
     private var selectionPending: Bool
     private let preferredSize: NSSize
+    /// The button stack doubles as the rail: `cardFill`, radius 9, 2-pt padding around the segments.
+    private let rail = NSStackView()
+    private static let railInset = OpenBarTheme.Switcher.railInset
+    private static let railPadding = OpenBarTheme.Switcher.railPadding
 
     init(
         display: ClaudeSwapAccountMenuDisplay,
@@ -19,13 +23,21 @@ final class ClaudeSwapAccountSwitcherView: NSView {
         self.onSelect = onSelect
         self.selectionPending = display.switchingAccountID != nil
         let rows = display.accounts.count > 3 ? 2 : 1
-        self.preferredSize = NSSize(width: width, height: CGFloat(rows * 26 + (rows - 1) * 4))
+        self.preferredSize = NSSize(
+            width: width,
+            height: CGFloat(rows * 26 + (rows - 1) * 4) + Self.railPadding * 2)
         super.init(frame: NSRect(origin: .zero, size: self.preferredSize))
 
-        let stack = NSStackView()
+        let stack = self.rail
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = 4
+        stack.edgeInsets = NSEdgeInsets(
+            top: Self.railPadding,
+            left: Self.railPadding,
+            bottom: Self.railPadding,
+            right: Self.railPadding)
+        stack.wantsLayer = true
         stack.translatesAutoresizingMaskIntoConstraints = false
         let columns = max(1, (self.accounts.count + rows - 1) / rows)
         for start in stride(from: 0, to: self.accounts.count, by: columns) {
@@ -47,26 +59,25 @@ final class ClaudeSwapAccountSwitcherView: NSView {
                 button.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
                 button.cell?.lineBreakMode = label.contains("@") ? .byTruncatingMiddle : .byTruncatingTail
                 button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-                button.wantsLayer = true
-                button.layer?.cornerRadius = 6
+                SwitcherChrome.prepareSegment(button)
                 button.state = account.isActive ? .on : .off
-                button.layer?.backgroundColor = account.isActive ? NSColor.controlAccentColor.cgColor : nil
-                button.contentTintColor = account.isActive ? .white : .secondaryLabelColor
                 button.isEnabled = !self.selectionPending
                 row.addArrangedSubview(button)
                 self.buttons.append(button)
             }
             stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -Self.railPadding * 2).isActive = true
             row.heightAnchor.constraint(equalToConstant: 26).isActive = true
         }
         self.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: 6),
-            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -6),
+            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: Self.railInset),
+            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -Self.railInset),
             stack.topAnchor.constraint(equalTo: self.topAnchor),
             stack.bottomAnchor.constraint(equalTo: self.bottomAnchor),
         ])
+        self.updateStyles()
+        SwitcherChrome.observeAccessibilityDisplayOptions(self, selector: #selector(self.displayOptionsDidChange))
     }
 
     @available(*, unavailable)
@@ -80,6 +91,29 @@ final class ClaudeSwapAccountSwitcherView: NSView {
 
     override var fittingSize: NSSize {
         self.preferredSize
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        self.updateStyles()
+    }
+
+    /// Increase Contrast changes the rail border and the resolved layer colors.
+    @objc private func displayOptionsDidChange(_: Notification) {
+        self.updateStyles()
+    }
+
+    /// Rail and segment colors for the current appearance. The active account is the selected segment.
+    private func updateStyles() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+
+        let appearance = self.effectiveAppearance
+        SwitcherChrome.styleRail(self.rail.layer, appearance: appearance)
+        for button in self.buttons {
+            SwitcherChrome.styleSegment(button, selected: button.state == .on, appearance: appearance)
+        }
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {

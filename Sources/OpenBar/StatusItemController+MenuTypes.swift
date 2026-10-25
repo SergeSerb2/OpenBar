@@ -39,43 +39,19 @@ struct OverviewMenuCardRowView: View {
     let storageText: String?
     let width: CGFloat
     var layout: MergedOverviewLayout = .detailed
-    @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        Group {
             if self.usesFullCard {
                 UsageMenuCardView(model: self.model, width: self.width)
             } else {
-                UsageMenuCardHeaderSectionView(
+                // One card per provider: header, lanes, and the storage footnote together.
+                UsageMenuCardHeaderAndUsageCard(
                     model: self.model,
-                    showDivider: Self.showsSectionDividers && self.model.hasUsageContent,
-                    width: self.width)
-                if self.model.hasUsageContent {
-                    UsageMenuCardUsageSectionView(
-                        model: self.model,
-                        layoutModel: self.model,
-                        showBottomDivider: false,
-                        bottomPadding: 6,
-                        width: self.width,
-                        showsSectionDividers: Self.showsSectionDividers,
-                        compactMetrics: self.layout == .compact)
-                }
-            }
-            if let storageText {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(L("Storage")):")
-                        .font(.footnote)
-                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                    Text(storageText)
-                        .font(.footnote)
-                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                        .lineLimit(1)
-                    Spacer()
-                }
-                .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-                .padding(.top, self.model.hasUsageContent ? 0 : 8)
-                .padding(.bottom, 6)
-                .frame(width: self.width, alignment: .leading)
+                    layoutModel: self.model,
+                    showsSectionDividers: Self.showsSectionDividers,
+                    compactMetrics: self.layout == .compact,
+                    footer: self.storageText.map { "\(L("Storage")): \($0)" })
             }
         }
         .frame(width: self.width, alignment: .leading)

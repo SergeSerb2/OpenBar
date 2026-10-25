@@ -495,8 +495,9 @@ The accepted multi-account design in
   organization names, and email addresses stay hidden.
   Stacked shows one card per account (active account first, then numeric slot). With four or more
   accounts the stacked menu switches to a compact layout (`AccountMenuLayoutPlanner`): the active account keeps its full
-  card, inactive accounts become one-line rows sorted by remaining headroom (most constrained first, red/amber below
-  50%/10% left, a star on the healthiest activatable account), and healthy rows fold behind a "N more accounts ready"
+  card, inactive accounts become one-line rows sorted by remaining headroom (most constrained first; the figure turns
+  amber with a triangle at 25% left or less and red with an octagon at 10% or less; a star marks the healthiest
+  activatable account), and healthy rows fold behind a "N more accounts ready"
   summary row. Clicking a compact row expands that account's full card; clicking an inactive card collapses it again.
   This choice is remembered locally across menu opens and app restarts. The summary row reveals the hidden rows for
   the current menu session. `openbar cards` keeps the full per-account output. The same compact layout applies to

@@ -2,28 +2,39 @@ import AppKit
 import OpenBarCore
 import SwiftUI
 
-private struct CostMenuCardRowView: View {
+/// Cost as its own card (spec §9.2): title, then "Today / Last 30 days" label-value lines, then any
+/// hint or error text.
+struct CostMenuCardRowView: View {
     let title: String
     let detailLines: [String]
+    let valueLines: Set<String>
     let width: CGFloat
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(self.title)
-                .font(.system(size: NSFont.menuFont(ofSize: 0).pointSize))
-                .lineLimit(1)
-            ForEach(self.detailLines.indices, id: \.self) { index in
-                Text(self.detailLines[index])
-                    .font(.system(size: NSFont.smallSystemFontSize))
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+        VStack(alignment: .leading, spacing: OpenBarSpacing.tight) {
+            HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                Text(self.title)
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .lineLimit(1)
-                    .truncationMode(.tail)
+                Spacer(minLength: OpenBarSpacing.regular)
+                MenuCardSubmenuChevron()
+            }
+            .padding(.bottom, OpenBarSpacing.hairline)
+            ForEach(self.detailLines.indices, id: \.self) { index in
+                let line = self.detailLines[index]
+                if self.valueLines.contains(line) {
+                    MenuCardValueLine(line: line)
+                } else {
+                    Text(line)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
             }
         }
-        .padding(.leading, 20)
-        .padding(.trailing, 28)
-        .padding(.vertical, 6)
+        .menuCardChrome()
         .frame(width: self.width, alignment: .leading)
     }
 }
@@ -60,6 +71,7 @@ extension StatusItemController {
             CostMenuCardRowView(
                 title: title,
                 detailLines: visibleDetailLines,
+                valueLines: Self.costMenuValueLines(tokenUsage: model.tokenUsage),
                 width: width),
             id: "menuCardCost",
             width: width,
@@ -96,6 +108,13 @@ extension StatusItemController {
                 visibleDetailLines: visibleDetailLines)
         }
         return item
+    }
+
+    /// Lines that read as "Label: value" (Today, the history window, metered spend, comparisons).
+    static func costMenuValueLines(tokenUsage: UsageMenuCardView.Model.TokenUsageSection?) -> Set<String> {
+        let lines = [tokenUsage?.sessionLine, tokenUsage?.monthLine, tokenUsage?.meteredLine].compactMap(\.self)
+            + (tokenUsage?.comparisonLines ?? [])
+        return Set(lines.filter { !$0.isEmpty })
     }
 
     static func costMenuTooltipLines(

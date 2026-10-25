@@ -10,7 +10,7 @@ extension StatusItemController {
         let metrics = PersistentRefreshRowMetrics.defaults
         let view = PersistentRefreshMenuView(
             title: title,
-            systemImageName: nil,
+            systemImageName: MenuDescriptor.MenuAction.refresh.systemImageName,
             shortcutText: shortcutText,
             onClick: { [weak self, weak menu] in
                 guard let self, let menu else { return }

@@ -910,10 +910,8 @@ extension StatusItemController {
                         item.keyEquivalentModifierMask = shortcut.modifiers
                     }
                     if let iconName = action.systemImageName,
-                       let image = NSImage(systemSymbolName: iconName, accessibilityDescription: nil)
+                       let image = Self.menuRowSymbolImage(iconName)
                     {
-                        image.isTemplate = true
-                        image.size = NSSize(width: 16, height: 16)
                         item.image = image
                     }
                     self.attachStatusComponentsSubmenuIfNeeded(
@@ -941,10 +939,8 @@ extension StatusItemController {
                 case let .submenu(title, systemImageName, submenuItems):
                     let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
                     if let systemImageName,
-                       let image = NSImage(systemSymbolName: systemImageName, accessibilityDescription: nil)
+                       let image = Self.menuRowSymbolImage(systemImageName)
                     {
-                        image.isTemplate = true
-                        image.size = NSSize(width: 16, height: 16)
                         item.image = image
                     }
                     let submenu = NSMenu(title: title)
@@ -1018,6 +1014,9 @@ extension StatusItemController {
             },
             weeklyRemainingProvider: { [weak self] provider in
                 self?.switcherWeeklyRemaining(for: provider)
+            },
+            quotaSummaryProvider: { [weak self] provider in
+                self?.switcherQuotaSummary(for: provider)
             },
             onSelect: { [weak self, weak menu] selection in
                 guard let self, let menu else { return }
@@ -1460,9 +1459,7 @@ extension StatusItemController {
             action: #selector(self.openCreditsPurchase),
             keyEquivalent: "")
         item.target = self
-        if let image = NSImage(systemSymbolName: "plus.circle", accessibilityDescription: nil) {
-            image.isTemplate = true
-            image.size = NSSize(width: 16, height: 16)
+        if let image = Self.menuRowSymbolImage("plus.circle") {
             item.image = image
         }
         return item

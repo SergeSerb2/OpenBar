@@ -56,10 +56,11 @@ struct UsageMenuCardLayoutTests {
             width: width))
             .sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
 
-        #expect(UsageMenuCardLayout.postHeaderDividerContentSpacing == 16)
-        #expect(UsageMenuCardLayout.headerOnlyVerticalPadding == 6)
-        #expect(UsageMenuCardLayout.sectionTopPadding == 6)
-        #expect(UsageMenuCardLayout.sectionBottomPadding == 6)
+        // Calm native card geometry (docs/design/README.md §4): 12-pt header-to-lanes gap, 10-pt card padding.
+        #expect(UsageMenuCardLayout.postHeaderDividerContentSpacing == 12)
+        #expect(UsageMenuCardLayout.headerOnlyVerticalPadding == 10)
+        #expect(UsageMenuCardLayout.sectionTopPadding == 10)
+        #expect(UsageMenuCardLayout.sectionBottomPadding == 10)
 
         #expect(abs(fullCardSize.height - overviewStyleSize.height) < Self.heightTolerance)
     }
@@ -205,8 +206,10 @@ struct UsageMenuCardLayoutTests {
 
         let shortHeight = NSHostingController(rootView: card(resetText: "Resets in 2h"))
             .sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude)).height
+        // The Calm native lane gives the reset text its own full-width line, so only text longer than
+        // the lane wraps; it wraps to one bounded extra line.
         let longHeight = NSHostingController(rootView: card(
-            resetText: "Resets Wednesday, August 14 at 11:59 PM"))
+            resetText: "Resets Wednesday, August 14, 2026 at 11:59 PM Pacific Daylight Time"))
             .sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude)).height
 
         #expect(longHeight - shortHeight > Self.heightTolerance)
@@ -239,7 +242,9 @@ struct UsageMenuCardLayoutTests {
             resetText: "Réinitialisation demain à 23:59"))
             .sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude)).height
 
-        #expect(fallbackHeight - shortHeight > Self.heightTolerance)
+        // The Calm native title row never wraps (the title truncates beside the value) and the reset has
+        // its own line, so mixed-language text adds at most one compact row.
+        #expect(fallbackHeight - shortHeight >= 0)
         #expect(fallbackHeight - shortHeight < 24)
     }
 

@@ -13,13 +13,14 @@ final class CodexAccountSwitcherView: NSView {
     private let preferredSize: NSSize
     private let rowSpacing: CGFloat = 4
     private let rowHeight: CGFloat = 26
-    private let selectedBackground = NSColor.controlAccentColor.cgColor
-    private let unselectedBackground = NSColor.clear.cgColor
-    private let selectedTextColor = NSColor.white
-    private let unselectedTextColor = NSColor.secondaryLabelColor
     private let buttonFont = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
     private let buttonHorizontalPadding: CGFloat = 14
-    private let buttonSideInset: CGFloat = 6
+    /// Segments sit inside the rail: rail inset 8 from the menu edge plus its 2-pt padding.
+    private let buttonSideInset: CGFloat = OpenBarTheme.Switcher.railInset + OpenBarTheme.Switcher.railPadding
+    /// The button stack doubles as the rail: `cardFill`, radius 9, 2-pt padding around the segments.
+    private let rail = NSStackView()
+    private static let railInset = OpenBarTheme.Switcher.railInset
+    private static let railPadding = OpenBarTheme.Switcher.railPadding
 
     init(
         accounts: [CodexVisibleAccount],
@@ -47,12 +48,13 @@ final class CodexAccountSwitcherView: NSView {
             columns = min(columns, max(1, fittingColumns))
         }
         let rows = max(1, Int(ceil(Double(accounts.count) / Double(columns))))
-        let height = self.rowHeight * CGFloat(rows) + self.rowSpacing * CGFloat(rows - 1)
+        let height = self.rowHeight * CGFloat(rows) + self.rowSpacing * CGFloat(rows - 1) + Self.railPadding * 2
         self.preferredSize = NSSize(width: width, height: height)
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: height))
         self.wantsLayer = true
         self.buildButtons(columns: columns)
         self.updateButtonStyles()
+        SwitcherChrome.observeAccessibilityDisplayOptions(self, selector: #selector(self.displayOptionsDidChange))
     }
 
     @available(*, unavailable)
@@ -68,15 +70,31 @@ final class CodexAccountSwitcherView: NSView {
         self.preferredSize
     }
 
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        self.updateButtonStyles()
+    }
+
+    /// Increase Contrast changes the rail border and the resolved layer colors.
+    @objc private func displayOptionsDidChange(_: Notification) {
+        self.updateButtonStyles()
+    }
+
     private func buildButtons(columns: Int) {
         let rows: [[CodexVisibleAccount]] = self.accounts.isEmpty ? [[]] : stride(
             from: 0, to: self.accounts.count, by: columns).map { start in
             Array(self.accounts[start..<min(start + columns, self.accounts.count)])
         }
-        let stack = NSStackView()
+        let stack = self.rail
         stack.orientation = .vertical
         stack.alignment = .width
         stack.spacing = self.rowSpacing
+        stack.edgeInsets = NSEdgeInsets(
+            top: Self.railPadding,
+            left: Self.railPadding,
+            bottom: Self.railPadding,
+            right: Self.railPadding)
+        stack.wantsLayer = true
         stack.translatesAutoresizingMaskIntoConstraints = false
 
         for rowAccounts in rows {
@@ -102,20 +120,19 @@ final class CodexAccountSwitcherView: NSView {
                 button.font = self.buttonFont
                 button.cell?.lineBreakMode = .byTruncatingTail
                 button.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-                button.wantsLayer = true
-                button.layer?.cornerRadius = 6
+                SwitcherChrome.prepareSegment(button)
                 row.addArrangedSubview(button)
                 self.buttons.append(button)
             }
 
             stack.addArrangedSubview(row)
-            row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+            row.widthAnchor.constraint(equalTo: stack.widthAnchor, constant: -Self.railPadding * 2).isActive = true
         }
 
         self.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: self.buttonSideInset),
-            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -self.buttonSideInset),
+            stack.leadingAnchor.constraint(equalTo: self.leadingAnchor, constant: Self.railInset),
+            stack.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -Self.railInset),
             stack.topAnchor.constraint(equalTo: self.topAnchor),
             stack.bottomAnchor.constraint(equalTo: self.bottomAnchor),
             stack.heightAnchor.constraint(equalToConstant: self.preferredSize.height),
@@ -273,11 +290,16 @@ final class CodexAccountSwitcherView: NSView {
     }
 
     private func updateButtonStyles() {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+
+        let appearance = self.effectiveAppearance
+        SwitcherChrome.styleRail(self.rail.layer, appearance: appearance)
         for button in self.buttons {
             let selected = button.identifier?.rawValue == self.selectedAccountID
             button.state = selected ? .on : .off
-            button.layer?.backgroundColor = selected ? self.selectedBackground : self.unselectedBackground
-            button.contentTintColor = selected ? self.selectedTextColor : self.unselectedTextColor
+            SwitcherChrome.styleSegment(button, selected: selected, appearance: appearance)
         }
     }
 
