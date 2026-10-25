@@ -70,7 +70,8 @@ remain.
 
 ## Install
 
-1. Download `OpenBar-<version>.zip` from the [latest release](https://github.com/SergeSerb2/OpenBar/releases/latest).
+1. Download `OpenBar-macos-universal-<version>.zip` from the
+   [latest release](https://github.com/SergeSerb2/OpenBar/releases/latest).
 2. Unzip it and move **OpenBar.app** to your Applications folder.
 3. Open OpenBar. Its icon appears in the menu bar.
 
