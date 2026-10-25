@@ -70,6 +70,41 @@ use the repository's suppression-safe test harness and never query the real Keyc
 
 See [Keychain prompts](keychain-prompts.md) for the current user-facing boundary and safe troubleshooting.
 
+### Containment boundaries
+
+Keychain access is an interaction boundary, not a property that an item's accessibility class can fix. Background
+work fails closed, user-initiated work may acknowledge one deliberate interactive read, and all first-party
+Security.framework item operations route through `KeychainSecurity`.
+
+- `KeychainAccessGate` is the global app policy. `KeychainSecurity` applies it before every item read, update,
+  addition, and deletion, in addition to the independent test-process suppression policy.
+- `KeychainNoUIQuery` and the process test guard add defense in depth for paths that must not display UI.
+- Chromium imports use a no-UI preflight and scope the dependency's background record read with
+  `BrowserCookieKeychainAccessGate.withUserInteractionDisallowed`. An explicit user retry keeps the one
+  acknowledged interactive recovery path.
+- Foreign-item readers, including Zed, check the global gate at their ownership boundary and fail closed.
+- Claude Code's Keychain item is foreign-owned. Direct reads require explicit, default-off consent and have their own
+  prompt policy. Provider-owned CLI fallback is outside the global gate because the child executable owns its
+  credential behavior.
+- `KeychainCacheStore` keeps its ACL-creation fallback and disabled-mode in-memory cookie behavior.
+
+Credential-bearing file writes share `CredentialFileWriter`: each write creates its own `0700` staging directory
+beside the destination and an exclusive `0600` file, syncs it, and atomically renames it over the destination. A
+failed write leaves the previous file intact. Config, token accounts, Codex auth and promotion, Antigravity and
+Gemini OAuth, and file-backed cookie and session stores use this path.
+
+`OpenBarConfigMigrator` is the single owner of legacy token, cookie, MiniMax, Kimi, OpenCode, and token-account
+store migration. It reads every legacy source before cleanup and clears legacy stores only after the config is
+persisted and every loader was readable. "Not found" is a successful read with no value; "unreadable" is a
+failure that blocks all cleanup for that launch and leaves `openbar.legacySecretsMigrationCompleted` unset, so the
+next launch retries. The older `KeychainMigration` pass that rewrote `kSecAttrAccessible` at launch was retired: it
+could prompt during launch and deleted secrets before confirming their replacement.
+
+Routine tests run with `OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS=1` through `Scripts/test.sh` and use task overrides,
+query construction checks, source audits, and store doubles. No test source except the audit itself may call a
+Security item API directly. The live Claude PTY test needs both `LIVE_CLAUDE_FETCH=1` and
+`OPENBAR_ALLOW_TEST_KEYCHAIN_ACCESS=1`, because the provider CLI owns its own Keychain access.
+
 ## Augment Cookie Refresh
 
 ### How It Works
