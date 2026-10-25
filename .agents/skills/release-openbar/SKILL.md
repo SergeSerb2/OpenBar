@@ -26,7 +26,8 @@ Publication belongs to `.github/workflows/release.yml`. Never sign, notarize, up
 
 ```bash
 gh workflow run release.yml --ref main -f dry_run=true
-gh run watch "$(gh run list --workflow release.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+gh run list --workflow release.yml --limit 1   # note the run ID
+gh run watch <run-id>
 ```
 
 A dry run signs, notarizes, verifies, and smokes the app and keeps the payload as an Actions artifact. It publishes nothing.
