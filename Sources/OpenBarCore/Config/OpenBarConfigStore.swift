@@ -47,6 +47,12 @@ public struct OpenBarConfigStore: @unchecked Sendable {
         return migrated
     }
 
+    /// Read without publishing a legacy-secret migration, so a caller that holds another lock
+    /// never waits on the file lock.
+    package func loadWithoutMigrating() throws -> OpenBarConfig? {
+        try self.readNormalized().config
+    }
+
     /// The caller must already hold the write lock; taking it again here would block on our own lock.
     private func loadPublishingLegacyMigration() throws -> OpenBarConfig? {
         let loaded = try self.readNormalized()

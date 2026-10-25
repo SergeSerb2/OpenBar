@@ -389,7 +389,8 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
                 throw CancellationError()
             }
             do {
-                _ = try store.load()
+                // The writer's transaction already published any migration under the file lock.
+                _ = try store.loadWithoutMigrating()
             } catch {
                 self.coordinator.readFailed = true
                 self.coordinator.lock.unlock()
@@ -434,9 +435,11 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
     }
 
     func load(_ store: OpenBarConfigStore, reload: Bool = false) throws -> OpenBarConfig? {
-        try self.lock.withLock {
+        // Writers hold the file lock before this lock, so publish any legacy migration before taking it.
+        _ = try store.load()
+        return try self.lock.withLock {
             self.generation &+= 1
-            let config = try store.load()
+            let config = try store.loadWithoutMigrating()
             self.observedConfigData = try config?.encodedData()
             if reload, config != nil { self.readFailed = false }
             return config
