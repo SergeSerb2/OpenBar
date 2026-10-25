@@ -356,7 +356,7 @@ openbar --status                 # include status page indicator/description
 openbar --provider codex --source oauth --format json --pretty
 openbar --provider codex --source web --format json --pretty
 openbar --provider codex --all-accounts --format json --pretty
-openbar --provider claude --account steipete@gmail.com
+openbar --provider claude --account you@example.com
 openbar --provider claude --all-accounts --format json --pretty
 openbar --json-only --format json --pretty
 openbar --provider gemini --source api --format json --pretty

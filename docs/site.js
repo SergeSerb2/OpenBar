@@ -489,6 +489,18 @@ function richToken(name) {
     link.textContent = "issue #12";
     return link;
   }
+  const footerLinks = {
+    maintainer: ["https://github.com/SergeSerb2", "Serge Serbinenko"],
+    codexbar: ["https://github.com/steipete/CodexBar", "CodexBar"],
+    upstreamAuthor: ["https://github.com/steipete", "Peter Steinberger"],
+  };
+  if (footerLinks[name]) {
+    const [href, label] = footerLinks[name];
+    const link = document.createElement("a");
+    link.href = href;
+    link.textContent = label;
+    return link;
+  }
   if (name === "mobileBreak") {
     return document.createElement("br");
   }
