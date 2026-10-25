@@ -374,11 +374,9 @@
 "Store multiple OpenCode Cookie headers." = "Spara flera Cookie-headers för OpenCode.";
 "Store multiple OpenCode Go Cookie headers." = "Spara flera Cookie-headers för OpenCode Go.";
 "Stored in the OpenBar config file." = "Sparas i OpenBars konfigurationsfil.";
-"Stored in ~/.openbar/config.json. " = "Sparas i ~/.openbar/config.json. ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "Sparas i ~/.openbar/config.json. Klistra in nyckeln från Synthetic-instrumentpanelen.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "Sparas i ~/.openbar/config.json. Klistra in din Coding Plan-API-nyckel från Model Studio.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "Sparas i ~/.openbar/config.json. Klistra in din MiniMax-API-nyckel.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "Sparas i ~/.openbar/config.json. Du kan också ange KILO_API_KEY eller ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "Sparas i OpenBars konfigurationsfil. Klistra in nyckeln från Synthetic-instrumentpanelen.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "Sparas i OpenBars konfigurationsfil. Klistra in din Coding Plan-API-nyckel från Model Studio.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "Sparas i OpenBars konfigurationsfil. Klistra in din MiniMax-API-nyckel.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "Sparar lokal Codex-användningshistorik (8 veckor) för att anpassa taktprognoser.";
 "Surprise me" = "Överraska mig";
 "Switcher shows icons" = "Växlaren visar ikoner";
@@ -853,7 +851,7 @@
 "cost_data_explanation" = "Kostnader kan rapporteras av leverantören eller uppskattas från tokenanvändning med offentliga API-priser. Uppskattningar är inte prenumerationsavgifter.";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "Ingen JetBrains IDE med AI Assistant hittades. Installera en JetBrains IDE och aktivera AI Assistant.";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "OpenRouter-API-token är inte konfigurerad. Ange miljövariabeln OPENROUTER_API_KEY eller konfigurera i Inställningar.";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "z.ai-API-token hittades inte. Ange apiKey i ~/.openbar/config.json eller Z_AI_API_KEY.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "z.ai-API-token hittades inte. Ange apiKey i ~/.config/openbar/config.json (äldre sökväg: ~/.openbar/config.json) eller Z_AI_API_KEY.";
 "Missing DeepSeek API key." = "DeepSeek-API-nyckel saknas.";
 "%@ is unavailable in the current environment." = "%@ är inte tillgänglig i den aktuella miljön.";
 "All Systems Operational" = "Alla system fungerar";
@@ -1034,7 +1032,6 @@
 
 /* Added after rebasing Swedish localization on current main. */
 "Open MiMo Balance" = "Öppna MiMo-saldo";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "Sparas i ~/.openbar/config.json. Mätvärden kräver åtkomst till Groq Enterprise Prometheus.";
 "API spend" = "API-kostnad";
 "Open Command Code Settings" = "Öppna Command Code-inställningar";
 "Plan utilization chart" = "Diagram över plananvändning";
@@ -1044,7 +1041,7 @@
 "Your StepFun platform password. Used to login and obtain a session token." = "Ditt lösenord för StepFun-plattformen. Används för att logga in och hämta en sessionstoken.";
 "Open this URL manually to continue login:\n\n%@" = "Öppna denna URL manuellt för att fortsätta inloggningen:\n\n%@";
 "OpenBar could not replace the live Codex auth on this Mac." = "OpenBar kunde inte ersätta aktiv Codex-autentisering på den här Mac-datorn.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "Sparas i ~/.openbar/config.json. Används för /v1/quota-stats.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "Sparas i OpenBars konfigurationsfil. Används för /v1/quota-stats.";
 "OpenBar could not safely preserve the current system account before switching." = "OpenBar kunde inte spara det aktuella systemkontot säkert före bytet.";
 "Oasis-Token" = "Oasis-Token";
 "Sonnet" = "Sonnet";
@@ -1058,19 +1055,18 @@
 "StepFun platform account (phone number or email)." = "StepFun-plattformskonto (telefonnummer eller e-post).";
 "Timed out waiting for Cursor login. %@" = "Tidsgränsen nåddes i väntan på Cursor-inloggning. %@";
 "OpenBar will ask macOS Keychain for your %@ cookie header so it can fetch usage. Click OK to continue." = "OpenBar kommer att be macOS Nyckelring om din %@-cookie-header så att användning kan hämtas. Klicka på OK för att fortsätta.";
-"Stored in ~/.openbar/config.json." = "Sparas i ~/.openbar/config.json.";
 "Reported by Mistral billing usage." = "Rapporteras av Mistrals debiteringsanvändning.";
 "Usage remaining" = "Användning kvar";
 "Usage used" = "Användning förbrukad";
 "Cookie: …\n\nor paste the __Secure-next-auth.session-token value" = "Cookie: …\n\neller klistra in värdet för __Secure-next-auth.session-token";
 "Password" = "Lösenord";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "Sparas i ~/.openbar/config.json. Öppna Settings > Platform > API Keys i Warp och skapa en nyckel.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "Sparas i OpenBars konfigurationsfil. Öppna Settings > Platform > API Keys i Warp och skapa en nyckel.";
 "%d percent remaining" = "%d procent kvar";
 "Open Manus" = "Öppna Manus";
 "Unknown" = "Okänt";
 "Open Ollama API Keys" = "Öppna Ollama-API-nycklar";
 "Open llmman" = "Öppna llmman";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "Lagras i ~/.openbar/config.json. Behövs bara när llmman serve kräver API-nycklar.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "Sparas i OpenBars konfigurationsfil. Behövs bara när llmman serve kräver API-nycklar.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "Adress till llmman serve. Standard är http://127.0.0.1:17434.";
 "Hourly Usage" = "Användning per timme";
 "Requests" = "Förfrågningar";
@@ -1106,7 +1102,6 @@
 "Manually paste an %@ from a browser session." = "Klistra in ett %@ manuellt från en webbläsarsession.";
 "MiniMax 30 day token usage trend" = "30-dagars tokenanvändningstrend för MiniMax";
 "Choose the Moonshot/Kimi API host for international or China mainland accounts." = "Välj Moonshot/Kimi API-värd för internationella konton eller konton i Fastlandskina.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "Sparas i ~/.openbar/config.json. Hämta nyckeln från openrouter.ai/settings/keys och ange en köpgräns för nyckeln för att aktivera spårning av API-nyckelkvot.";
 "Uses username + password to login and obtain an Oasis-Token automatically." = "Använder användarnamn och lösenord för att logga in och hämta en Oasis-Token automatiskt.";
 "OpenRouter API key spend trend" = "Kostnadstrend för OpenRouter-API-nyckel";
 "Workspace ID" = "Arbetsyte-ID";
@@ -1125,19 +1120,19 @@
 "Quota usage" = "Kvotanvändning";
 "Your spend" = "Din utgift";
 "No system account" = "Inget systemkonto";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "Sparas i ~/.openbar/config.json. Kräver en Anthropic Admin API-nyckel.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "Sparas i OpenBars konfigurationsfil. Kräver en Anthropic Admin API-nyckel.";
 "AWS region. Can also be set with AWS_REGION." = "AWS-region. Kan även anges med AWS_REGION.";
 "OpenBar will ask macOS Keychain for your Claude cookie header so it can fetch Claude web usage. Click OK to continue." = "OpenBar kommer att be macOS Nyckelring om din Claude-cookie-header så att Claude-webbanvändning kan hämtas. Klicka på OK för att fortsätta.";
 "OpenBar will ask macOS Keychain for your z.ai API token so it can fetch usage. Click OK to continue." = "OpenBar kommer att be macOS Nyckelring om din z.ai-API-token så att användning kan hämtas. Klicka på OK för att fortsätta.";
 "Show usage for organizations you belong to. Personal account is always shown." = "Visa användning för organisationer du tillhör. Personligt konto visas alltid.";
 "%@ of %@ credits left" = "%@ av %@ krediter kvar";
 "of %@" = "av %@";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Sparas i ~/.openbar/config.json. Du kan också ange CODEBUFF_API_KEY eller låta OpenBar läsa ~/.config/manicode/credentials.json (skapas av `codebuff login`).";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Sparas i OpenBars konfigurationsfil. Du kan också ange CODEBUFF_API_KEY eller låta OpenBar läsa ~/.config/manicode/credentials.json (skapas av `codebuff login`).";
 "Automatic imports Windsurf session data from Chromium browser localStorage." = "Importerar Windsurf-sessionsdata från Chromium-webbläsarens localStorage automatiskt.";
 "Full in ~%.0f regens" = "Full om cirka %.0f regenereringar";
 "Verbosity" = "Detaljnivå";
 "%d days of usage data across %d services" = "%d dagar med användningsdata för %d tjänster";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Sparas i ~/.openbar/config.json. Du kan också ange KILO_API_KEY eller ~/.local/share/kilo/auth.json (kilo.access).";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Sparas i OpenBars konfigurationsfil. Du kan också ange KILO_API_KEY eller ~/.local/share/kilo/auth.json (kilo.access).";
 "Windsurf session JSON bundle" = "Windsurf-sessionspaket i JSON";
 "Drag to reorder" = "Dra för att ändra ordning";
 "Sort providers alphabetically" = "Sortera leverantörer alfabetiskt";
@@ -1181,19 +1176,17 @@
 "Project ID" = "Projekt-ID";
 "Timed out waiting for Cursor login. %@ Last error: %@" = "Tidsgränsen nåddes i väntan på Cursor-inloggning. %@ Senaste fel: %@";
 "codex_login_output" = "utdata från codex login:";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "Sparas i ~/.openbar/config.json. Hämta API-nyckeln från Volcengine Ark-konsolen.";
 "Overage cost" = "Kostnad för överförbrukning";
 "OpenBar can't replace a system account that is signed in with an API key only setup." = "OpenBar kan inte ersätta ett systemkonto som är inloggat med en konfiguration som bara använder API-nyckel.";
 "Utilization Start" = "Användningsstart";
 "API key verifies Ollama Cloud access; cookies still expose quota limits." = "API-nyckeln verifierar åtkomst till Ollama Cloud. Cookies visar fortfarande kvotgränser.";
 "Credits remaining" = "Krediter kvar";
 "Activity" = "Aktivitet";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "Sparas i ~/.openbar/config.json. Hämta nyckeln från console.deepgram.com.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "Sparas i OpenBars konfigurationsfil. Hämta nyckeln från console.deepgram.com.";
 "Azure OpenAI deployment name. AZURE_OPENAI_DEPLOYMENT_NAME is also supported." = "Azure OpenAI-distributionens namn. AZURE_OPENAI_DEPLOYMENT_NAME stöds också.";
 "Extra usage balance: %@" = "Saldo för extra användning: %@";
 "requests" = "förfrågningar";
 "OpenBar could not save the current system account before switching." = "OpenBar kunde inte spara det aktuella systemkontot före bytet.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "Sparas i ~/.openbar/config.json. För det officiella Kimi-API:t använder du Moonshot / Kimi API.";
 "Cookie: …\n\nor paste a cURL capture from the Abacus AI dashboard" = "Cookie: …\n\neller klistra in en cURL-fångst från Abacus AI-översikten";
 "Last 30 days: %@ tokens" = "Senaste 30 dagarna: %@ token";
 "%@ authentication is disabled." = "%@-autentisering är inaktiverad.";
@@ -1213,7 +1206,6 @@
 "Re-authenticating…" = "Autentiserar igen…";
 "Paste a full cookie header or the %@ value." = "Klistra in en fullständig cookie-header eller %@-värdet.";
 "Reload" = "Läs in igen";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "Sparas i ~/.openbar/config.json. OPENAI_ADMIN_KEY föredras, men OPENAI_API_KEY fungerar fortfarande.";
 "Access key ID" = "Åtkomstnyckel-ID";
 "No output captured." = "Ingen utdata fångades.";
 "Refresh organizations" = "Uppdatera organisationer";
@@ -1225,7 +1217,7 @@
 "Regenerates %@" = "Regenererar %@";
 "Usage history (today)" = "Användningshistorik (i dag)";
 "Optional. Leave blank to discover and aggregate projects visible to the API key." = "Valfritt. Lämna tomt för att hitta och slå ihop projekt som är synliga för API-nyckeln.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "Sparas i ~/.openbar/config.json. Hämta nyckeln från elevenlabs.io/app/settings/api-keys.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "Sparas i OpenBars konfigurationsfil. Hämta nyckeln från elevenlabs.io/app/settings/api-keys.";
 "Automatic imports browser cookies from Bailian." = "Importerar webbläsarcookies från Bailian automatiskt.";
 "Enterprise host" = "Enterprise-värd";
 "Optional. Enter your GitHub Enterprise host, for example octocorp.ghe.com. Leave blank for github.com." = "Valfritt. Ange din GitHub Enterprise-värd, till exempel octocorp.ghe.com. Lämna tomt för github.com.";
@@ -1243,7 +1235,7 @@
 "Personal account" = "Personligt konto";
 "Automatically imports browser session cookies." = "Importerar webbläsarens sessionscookies automatiskt.";
 "Label" = "Etikett";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "Sparas i ~/.openbar/config.json. Hämta nyckeln från Ollama-inställningarna.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "Sparas i OpenBars konfigurationsfil. Hämta nyckeln från Ollama-inställningarna.";
 "Open Augment (Log Out & Back In)" = "Öppna Augment (logga ut och in igen)";
 "Overages" = "Överförbrukning";
 "Overage" = "Överförbrukning";
@@ -1264,7 +1256,7 @@
 "used after next regen" = "använt efter nästa regenerering";
 "Usage breakdown chart" = "Diagram över användningsfördelning";
 "Could not open browser for Antigravity" = "Kunde inte öppna webbläsare för Antigravity";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "Sparas i ~/.openbar/config.json. AZURE_OPENAI_API_KEY stöds också.";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "Sparas i OpenBars konfigurationsfil. AZURE_OPENAI_API_KEY stöds också.";
 "Could not open Cursor login in your browser." = "Kunde inte öppna Cursor-inloggning i webbläsaren.";
 "Latest" = "Senaste";
 "Azure OpenAI resource endpoint. AZURE_OPENAI_ENDPOINT is also supported." = "Azure OpenAI-resursens slutpunkt. AZURE_OPENAI_ENDPOINT stöds också.";
@@ -1988,9 +1980,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "Visar användning från `tcr`; byter inte konto, eftersom tcr väljer konto för varje förfrågan. Inloggningsuppgifterna hanteras av tcr; OpenBar läser dem aldrig.";
 "Stay Awake" = "Håll dig vaken";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "Lagrat i konfigurationsfilen OpenBar. Läser månadsbudget och dirigerad användning från /v1/usage.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Lagrat i ~/.openbar/config.json. OPENAI_ADMIN_KEY krävs för organisationsanvändning; äldre nycklar/användarnycklar får bara den bästa möjliga balansen.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Lagrat i ~/.openbar/config.json. Du kan också tillhandahålla FACTORY_API_KEY eller ~/.factory/.env.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "Lagrat i ~/.openbar/config.json. Du kan också ställa in AMP_API_KEY.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Sparas i OpenBars konfigurationsfil. OPENAI_ADMIN_KEY krävs för organisationens användning; äldre nycklar och användarnycklar visar bara saldot när det går.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Sparas i OpenBars konfigurationsfil. Du kan också tillhandahålla FACTORY_API_KEY eller ~/.factory/.env.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "Sparas i OpenBars konfigurationsfil. Du kan också ställa in AMP_API_KEY.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "Byt konto...";
 "Switch Claude Code account" = "Byt Claude Code-konto";
@@ -2111,14 +2103,14 @@
 "Paste the Cookie request header from zed.dev." = "Klistra in Cookie-förfrågningshuvudet från zed.dev.";
 "Points" = "Poäng";
 "Poe usage history is unavailable." = "Användningshistoriken för Poe är inte tillgänglig.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "Lagrat i ~/.openbar/config.json. Få din nyckel från poe.com/api/keys.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "Sparas i OpenBars konfigurationsfil. Hämta nyckeln från poe.com/api/keys.";
 "Billing" = "Fakturering";
 "Invoice billing" = "Fakturabetalning";
 "Prepaid" = "Förbetalt";
 "Rate limit" = "Gräns för anropsfrekvens";
 "Billing and rate-limit data from the v0 Platform API" = "Faktureringsdata och gränser för anropsfrekvens från v0-plattformens API";
 "v0 cost history is not available via the Platform API." = "v0 kostnadshistorik är inte tillgänglig via plattformen API.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "Lagrat i ~/.config/openbar/config.json. Skapa en i v0-inställningarna eller ställ in V0_API_KEY.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "Sparas i OpenBars konfigurationsfil. Skapa en i v0-inställningarna eller ställ in V0_API_KEY.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "Öppna v0 API nycklar";
 "Scope" = "Omfattning";
@@ -2160,7 +2152,7 @@
 "Monthly quota" = "Månatlig Kvot";
 "Subscription usage from the Chutes API." = "Prenumerationsanvändning från Chutes API.";
 "Chutes cost history is not available from OpenBar." = "Kostnadshistorik för Chutes är inte tillgänglig från OpenBar.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "Lagrat i ~/.openbar/config.json. Klistra in en Chutes API-nyckel.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "Sparas i OpenBars konfigurationsfil. Klistra in en Chutes API-nyckel.";
 "chutes key..." = "Chutes API-nyckel...";
 "Spend" = "Utgifter";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "Fireworks-utgifterna kommer från faktureringsöversikten API; kostnadshistorik spåras inte.";
@@ -2201,7 +2193,7 @@
 "Shared pool" = "Gemensam kvot";
 "GitKraken cost history is not available." = "Kostnadshistorik för GitKraken är inte tillgänglig.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "xAI dagliga utgifter kräver en Management API nyckel och team ID. Förutbetalt saldo behandlas inte som utgifter.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Lagrat i ~/.openbar/config.json. Skapa en på console.x.ai under Inställningar > Hanteringsnycklar; inferens API-nycklar accepteras inte.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Sparas i OpenBars konfigurationsfil. Skapa en på console.x.ai under Inställningar > Hanteringsnycklar; API-nycklar för inferens accepteras inte.";
 "xai-..." = "xai-...";
 "Team ID" = "Team ID";
 "Vercel access token" = "Vercel-åtkomsttoken";
@@ -2210,7 +2202,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Krävs tillsammans med en Vercel-åtkomsttoken. Eller ange VERCEL_TEAM_ID.";
 "Required. Shown in the xAI Console URL and team settings." = "Krävs. Visas i xAI-konsolen URL och teaminställningar.";
 "Sakana AI cost summary is not supported." = "Sakana AI kostnadsöversikt stöds inte.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "Lagrat i ~/.openbar/config.json. Kopiera Sakana AI-konsolens Cookie-förfrågningshuvud.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "Sparas i OpenBars konfigurationsfil. Kopiera Sakana AI-konsolens Cookie-förfrågningshuvud.";
 "Open Sakana AI Console" = "Öppna Sakana AI-konsolen";
 "SuperGrok tokens" = "SuperGrok token";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "Klistra in en SuperGrok-bärare eller grok.com cookie. Öppna token-filen öppnar ~/.grok/auth.json.";
@@ -2327,7 +2319,7 @@
 "5-hour quota" = "5-timmars Kvot";
 "Weekly quota" = "Veckovis Kvot";
 "ZenMux cost history is not exposed by the Management API." = "ZenMux kostnadshistorik exponeras inte av ledningen API.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "Lagrat i ~/.openbar/config.json. Standard ZenMux slutledning API nycklar stöds inte.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "Sparas i OpenBars konfigurationsfil. Vanliga API-nycklar för ZenMux-inferens stöds inte.";
 "ZenMux management key…" = "ZenMux hanteringsnyckel...";
 "Monthly Plan" = "Månatlig prenumerationsplan";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "Läser nyckel Kvot, prenumerationsgränser, användning och plånbokssaldo från /v1/usage.";
@@ -2571,7 +2563,7 @@
 "Local Codex details; excluded from combined totals." = "Lokala Codex-detaljer; ingår inte i de sammanlagda totalerna.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Sparas i OpenBars konfigurationsfil. Du kan också ställa in COMMAND_CODE_API_KEY.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ token · %@ förfrågningar";
 "15m" = "15 min";

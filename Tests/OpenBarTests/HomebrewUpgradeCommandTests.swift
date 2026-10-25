@@ -172,7 +172,7 @@ struct HomebrewUpgradeCommandTests {
         #expect(cask.rawValue == tap)
         #expect(cask.qualifiedName == "\(tap)/openbar")
         let expected = tap == "homebrew/cask"
-            ? "https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/c/openbar.rb"
+            ? "https://raw.githubusercontent.com/Homebrew/homebrew-cask/master/Casks/o/openbar.rb"
             : "https://raw.githubusercontent.com/SergeSerb2/homebrew-tap/main/Casks/openbar.rb"
         #expect(cask.sourceURL.absoluteString == expected)
     }

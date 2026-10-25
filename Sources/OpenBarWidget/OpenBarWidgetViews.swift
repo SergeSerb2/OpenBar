@@ -752,7 +752,7 @@ enum UsageHistoryChartMode {
 enum WidgetColors {
     static func color(for instanceID: ProviderInstanceID) -> Color {
         guard let provider = instanceID.firstPartyProvider else { return .secondary }
-        // The widget cannot read ~/.openbar/config.json, so it resolves the user override from the
+        // The widget cannot read the OpenBar config file, so it resolves the user override from the
         // copy the app mirrors into the App Group.
         let color = ProviderAccentColors.sharedOverride(for: instanceID)
             ?? ProviderDescriptorRegistry.descriptor(for: provider).branding.widgetColor

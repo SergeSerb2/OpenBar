@@ -2,7 +2,7 @@ import Foundation
 
 /// User overrides for the provider brand colors.
 ///
-/// `~/.openbar/config.json` is the source of truth, and it reaches the app and the `openbar serve`
+/// The OpenBar config file is the source of truth, and it reaches the app and the `openbar serve`
 /// dashboard directly. The sandboxed widget cannot read that file, so the app mirrors the resolved
 /// map into the App Group defaults for it.
 ///

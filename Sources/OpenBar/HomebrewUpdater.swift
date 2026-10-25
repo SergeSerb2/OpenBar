@@ -24,7 +24,7 @@ enum HomebrewCask: String, Sendable {
 
     var sourceURL: URL {
         let path = switch self {
-        case .official: "Homebrew/homebrew-cask/master/Casks/c/openbar.rb"
+        case .official: "Homebrew/homebrew-cask/master/Casks/o/openbar.rb"
         case .tap: "SergeSerb2/homebrew-tap/main/Casks/openbar.rb"
         }
         return URL(string: "https://raw.githubusercontent.com/\(path)")!

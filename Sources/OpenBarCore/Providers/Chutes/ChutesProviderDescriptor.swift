@@ -38,7 +38,7 @@ public enum ChutesProviderDescriptor {
         apiKeyField: .init(
             id: "chutes-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Paste a Chutes API key.",
+            subtitle: "Stored in the OpenBar config file. Paste a Chutes API key.",
             placeholder: "chutes key..."),
         showsAPIDetail: true,
         availability: .configuredKey)

@@ -88,7 +88,7 @@ struct FactoryProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "factory-api-key",
                 title: "API key",
-                subtitle: "Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or "
+                subtitle: "Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or "
                     + "~/.factory/.env.",
                 kind: .secure,
                 placeholder: "fk-...",

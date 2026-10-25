@@ -463,7 +463,7 @@ enum GalleryTokensSection {
             case .meta: "Resets in 2h 14m · Updated 1m ago"
             case .caption: "Mon Tue Wed Thu Fri"
             case .hero: "62%"
-            case .code: "~/.openbar/config.json"
+            case .code: "~/.config/openbar/config.json"
             }
         }
     }

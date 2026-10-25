@@ -169,25 +169,6 @@
               <img src="./images/apple.svg" alt="" class="apple-icon" />
               <span data-i18n="hero.download">Download for macOS</span>
             </a>
-            <button
-              id="brew-copy"
-              type="button"
-              class="brew-copy button-press"
-              aria-label="Copy Homebrew install command" data-i18n-aria-label="clipboard.copyBrew"
-            >
-              <span class="brew-prompt" aria-hidden="true">$</span>
-              <span data-brew-label class="brew-command">brew install --cask SergeSerb2/tap/openbar</span>
-              <span data-brew-icon class="brew-icon" aria-hidden="true">
-                <svg data-icon="copy" viewBox="0 0 18 18" fill="none">
-                  <rect x="6.25" y="3.25" width="8.5" height="8.5" rx="1.4" stroke="currentColor" stroke-width="1.5" />
-                  <path d="M11.75 14.75H4.65c-.77 0-1.4-.63-1.4-1.4v-7.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <svg data-icon="check" viewBox="0 0 18 18" fill="none">
-                  <path d="M4.5 9.25 7.5 12.25 13.5 6.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <span class="sr-only" data-brew-status aria-live="polite"></span>
-            </button>
           </div>
 
           <p class="hero-fineprint" data-i18n="hero.fineprintShort">Free &amp; open source · macOS 14+</p>
@@ -732,13 +713,13 @@
           <article class="technical-block" style="--reveal-delay: 60ms">
             <h3 data-i18n="detail.installTitle">Install &amp; updates</h3>
             <p>
-              <span data-i18n-rich="detail.installBody">Universal app via {releases} with Sparkle auto-updates, or via {cask} (updates via {upgrade}).</span>
+              <span data-i18n-rich="detail.installBody">Download the notarized app from {releases}. Updates come through Sparkle.</span>
             </p>
           </article>
           <article class="technical-block" style="--reveal-delay: 110ms">
             <h3 data-i18n="detail.cliTitle">CLI</h3>
             <p>
-              <span data-i18n-rich="detail.cliBody">A bundled {openbar} binary plus standalone tarballs for macOS and Linux on each release. On Linux: {linuxCommand}.</span>
+              <span data-i18n-rich="detail.cliBody">The app bundles the {openbar} CLI. Standalone tarballs for macOS and Linux are also on {releases}.</span>
             </p>
           </article>
           <article class="technical-block" style="--reveal-delay: 160ms">

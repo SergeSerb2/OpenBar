@@ -637,27 +637,33 @@ swiftlint --strict
 # Creates: OpenBar.app with ad-hoc signing by default
 ```
 
-For an identity-signed package, set `OPENBAR_SIGNING=identity` and `APP_IDENTITY` to an installed Developer ID Application signing
-identity's full name, unique name substring, or SHA-1 certificate hash. Packaging resolves it through
+The release signing identity has one source of truth: `team_id` and `signing_identity` in `.github/release.json`.
+`Scripts/package_app.sh` and `Scripts/sign-and-notarize.sh` read both values through `Scripts/release_identity.sh`;
+`APP_IDENTITY` and `APP_TEAM_ID` override them for one invocation. See `docs/RELEASING.md` for the identity check.
+
+For an identity-signed package, set `OPENBAR_SIGNING=identity`. Packaging uses the release identity unless
+`APP_IDENTITY` names another installed Developer ID Application signing identity by full name, unique name substring,
+or SHA-1 certificate hash. Packaging resolves it through
 `security find-identity -p codesigning -v`, derives the Team ID from the selected identity, and signs with that
 certificate's hash. A missing or ambiguous match, a certificate other than Developer ID Application with a ten-character Team ID, or a conflicting
 `APP_TEAM_ID` fails before entitlements are generated. Self-signed and Apple Development/Distribution certificates are not supported by this
 path; use ad-hoc packaging or a Developer ID Application identity. Developer ID names carry a Team ID, whereas
 development certificate names can carry a personal ID. Explicit identity selections are also validated in LLDB builds.
 
-App and widget entitlements use the resolved team. Only upstream-team identity-signed release builds embed the
-upstream provisioning profile and CloudKit entitlements; other teams package without those upstream resources.
+App and widget entitlements use the resolved team's app group. No build embeds a provisioning profile or CloudKit
+entitlements: iCloud Sync is deferred until the release team has a Developer ID provisioning profile.
 Widget build failures and timestamp/signature failures still fail packaging. The sandboxed launch smoke check is
 retained; the existing `OPENBAR_SKIP_LAUNCH_SMOKE=1` override explicitly reports that it skipped validation.
 
 ### Release Build (Notarized)
 ```bash
 ./Scripts/sign-and-notarize.sh
-# Creates: OpenBar-<version>.zip and OpenBar-<version>.dSYM.zip
+# Creates: OpenBar-macos-universal-<version>.zip and OpenBar-macos-universal-<version>.dSYM.zip
 ```
 
-`sign-and-notarize.sh` honors `APP_IDENTITY` and passes the same selection to packaging; it defaults to the upstream
-Developer ID. Timestamping and hardened runtime remain required for all identity-signed releases.
+`sign-and-notarize.sh` honors `APP_IDENTITY` and passes the same selection to packaging; without it, it signs with
+`signing_identity` from `.github/release.json`. Timestamping and hardened runtime remain required for all
+identity-signed releases.
 
 See `docs/RELEASING.md` for full release process.
 

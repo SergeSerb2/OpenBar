@@ -464,10 +464,7 @@ function applyAttributeMessages(dataAttribute, targetAttribute) {
 
 function richToken(name) {
   const codeTokens = {
-    cask: "brew install --cask SergeSerb2/tap/openbar",
     openbar: "openbar",
-    linuxCommand: "brew install SergeSerb2/tap/openbar",
-    upgrade: "brew upgrade",
   };
   if (codeTokens[name]) {
     const code = document.createElement("code");
@@ -724,32 +721,3 @@ if (reducedHeroMotion) {
   window.setTimeout(() => mockupStage.classList.add("is-mark-animated"), markStartDelay);
   window.setTimeout(animatePopoverDetails, popoverStartDelay);
 }
-
-const brewCopyButton = document.querySelector("#brew-copy");
-const brewCopyLabel = brewCopyButton?.querySelector("[data-brew-label]");
-const brewCopyIcon = brewCopyButton?.querySelector("[data-brew-icon]");
-const brewCopyStatus = brewCopyButton?.querySelector("[data-brew-status]");
-let brewCopyResetTimer;
-
-async function copyBrewCommand() {
-  const command = brewCopyLabel?.textContent?.trim();
-  if (!command || !navigator.clipboard?.writeText) return;
-
-  try {
-    await navigator.clipboard.writeText(command);
-  } catch {
-    return;
-  }
-
-  window.clearTimeout(brewCopyResetTimer);
-  brewCopyIcon.dataset.copied = "true";
-  brewCopyStatus.textContent = message("clipboard.copied");
-  brewCopyButton.setAttribute("aria-label", message("clipboard.copied"));
-  brewCopyResetTimer = window.setTimeout(() => {
-    delete brewCopyIcon.dataset.copied;
-    brewCopyStatus.textContent = "";
-    brewCopyButton.setAttribute("aria-label", message("clipboard.copyBrew"));
-  }, 1500);
-}
-
-brewCopyButton?.addEventListener("click", copyBrewCommand);

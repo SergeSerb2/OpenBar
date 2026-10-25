@@ -296,30 +296,6 @@ h1, h2, h3, h4 {
   transform: translateY(-0.5px);
 }
 
-.brew-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  max-width: 100%;
-  height: 2.75rem;
-  padding: 0 0.6rem 0 0.95rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg-raised);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-.brew-copy:hover { background: color-mix(in srgb, var(--bg-raised) 92%, var(--text)); }
-.brew-prompt { color: var(--faint); }
-.brew-command { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.brew-icon { display: grid; width: 1.6rem; height: 1.6rem; place-items: center; color: var(--muted); flex: none; }
-.brew-icon svg { width: 0.95rem; height: 0.95rem; }
-.brew-icon [data-icon="check"] { display: none; color: var(--ok); }
-.brew-icon[data-copied="true"] [data-icon="copy"] { display: none; }
-.brew-icon[data-copied="true"] [data-icon="check"] { display: block; }
-
 /* MARK: Language picker */
 
 .language-picker { position: relative; }
