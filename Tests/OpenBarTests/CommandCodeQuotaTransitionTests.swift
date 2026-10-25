@@ -124,16 +124,16 @@ struct CommandCodeQuotaTransitionTests {
         let store = self.makeStore(settings: settings, notifier: notifier)
         let plan = try #require(CommandCodePlanCatalog.plans.first { ($0.monthlyCreditsUSD ?? 0) > 0 })
 
-        let availableWithPlan = self.snapshot(
-            remaining: 6,
-            plan: plan,
-            fiveHourWindow: self.rollingWindow(usedPercent: 40))
-        let warningWithPlan = self.snapshot(
-            remaining: 4,
-            plan: plan,
-            fiveHourWindow: self.rollingWindow(usedPercent: 60))
-        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: availableWithPlan)
-        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warningWithPlan)
+        // Each call is a fresh observation: the store ignores samples older than the last one it saw.
+        let availableWithPlan = {
+            self.snapshot(remaining: 6, plan: plan, fiveHourWindow: self.rollingWindow(usedPercent: 40))
+        }
+        let warningWithPlan = {
+            self.snapshot(remaining: 4, plan: plan, fiveHourWindow: self.rollingWindow(usedPercent: 60))
+        }
+        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: availableWithPlan())
+        let warning = warningWithPlan()
+        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warning)
         let missingSubscription = self.snapshot(
             remaining: 0,
             purchasedCredits: 5,
@@ -142,18 +142,18 @@ struct CommandCodeQuotaTransitionTests {
             fiveHourWindow: self.rollingWindow(usedPercent: 60))
         let stabilizedFailure = UsageStore.commandCodeSnapshotResolvingDepletionOnEnrichmentFailure(
             current: missingSubscription,
-            previous: warningWithPlan)
+            previous: warning)
         store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: stabilizedFailure)
         let repeatedFailure = UsageStore.commandCodeSnapshotResolvingDepletionOnEnrichmentFailure(
             current: missingSubscription,
             previous: stabilizedFailure)
         store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: repeatedFailure)
-        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warningWithPlan)
+        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warningWithPlan())
 
         #expect(notifier.quotaWarningPosts.count == 1)
 
-        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: availableWithPlan)
-        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warningWithPlan)
+        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: availableWithPlan())
+        store.handleQuotaWarningTransitions(provider: .commandcode, snapshot: warningWithPlan())
         #expect(notifier.quotaWarningPosts.count == 2)
     }
 

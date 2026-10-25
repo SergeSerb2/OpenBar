@@ -142,6 +142,7 @@ defineProvider({
         const start = new Date(now);
         start.setDate(start.getDate() - 30);
         let history: { records: ObjectValue[]; complete: boolean } | undefined;
+        let retained: { records: ObjectValue[]; complete: boolean } | undefined;
         try {
           history = await failover(async (host) => {
             const records: ObjectValue[] = [];
@@ -153,9 +154,8 @@ defineProvider({
               try {
                 data = await request(host, path, minted.token);
               } catch (error) {
-                if ((error as OpenBarHTTPError).transportClass === "cancelled") throw error;
-                if ((error as { failureKind?: string }).failureKind === "authentication-expired") throw error;
-                if (records.length) return { records, complete: false };
+                /* Restart on the sibling host; keep this host's pages only if every host fails. */
+                if (records.length > (retained?.records.length ?? 0)) retained = { records, complete: false };
                 throw error;
               }
               if (data.records != null && !Array.isArray(data.records)) return invalid("invalid history records");
@@ -173,9 +173,11 @@ defineProvider({
               }
               let added = 0;
               for (const row of rows) {
-                const key = text(row.session_id)?.trim() || JSON.stringify(row);
-                if (seen.has(key)) continue;
-                seen.add(key);
+                const id = text(row.session_id)?.trim();
+                if (id) {
+                  if (seen.has(id)) continue;
+                  seen.add(id);
+                }
                 records.push(row);
                 added++;
               }
@@ -186,7 +188,11 @@ defineProvider({
                   const date = text(row.time);
                   return date !== undefined && new Date(date).getTime() < start.getTime();
                 });
-              if (reachedStart || (total === undefined ? rows.length < 50 : records.length >= total)) {
+              const repeated = rows.length > 0 && !added;
+              if (
+                !repeated &&
+                (reachedStart || (total === undefined ? rows.length < 50 : page * 50 + rows.length >= total))
+              ) {
                 complete = true;
                 break;
               }
@@ -197,6 +203,7 @@ defineProvider({
         } catch (error) {
           if ((error as OpenBarHTTPError).transportClass === "cancelled") throw error;
           if ((error as { failureKind?: string }).failureKind === "authentication-expired") evict();
+          else history = retained;
         }
         const details: OpenBarDetailSection[] = [];
         if (history) {

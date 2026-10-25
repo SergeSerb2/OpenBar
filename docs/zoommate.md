@@ -268,5 +268,5 @@ host; a bearer-only request may omit cookies on the alternate host. Cross-origin
 - `Sources/OpenBarCore/Plugins/ProviderPluginPersistentCookies.swift` — validated single-entry cache, migration, and conditional rejection.
 - `Sources/OpenBar/Providers/ZoomMate/ZoomMateProviderImplementation.swift` — existing settings pickers and bindings.
 
-History requests stop after 20 pages. When records remain, a page fails, or a repeated page stops progress,
-retained totals and charts are labeled partial. Stable session IDs are counted once. The current quota stays available.
+History requests stop after 20 pages. A failed page restarts pagination on the other host. When records remain,
+every host fails mid-history, or a repeated page stops progress, retained totals and charts are labeled partial. Stable session IDs are counted once. The current quota stays available.

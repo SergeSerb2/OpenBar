@@ -117,8 +117,7 @@ defineProvider({
         )
           parse("invalid Money value");
         if (currency === null) currency = code;
-        if (code !== currency) parse("mixed cost currencies");
-        total += units + nanos / 1e9;
+        if (code === currency) total += units + nanos / 1e9;
       }
       if (!Number.isFinite(total)) parse("nonfinite spend");
       return currency === null ? { empty: true } : { cost: { used: total, currency, period: "Last 30 days" } };
