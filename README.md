@@ -312,8 +312,9 @@ OpenBar is released under the [MIT License](LICENSE). Copyright Peter Steinberge
 (OpenBar).
 
 OpenBar is based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps CodexBar's
-provider integrations, CLI, and docs, and CodexBar's release history stays in the [changelog](CHANGELOG.md). Tools
-built for CodexBar's `codexbar` CLI can usually switch to `openbar`, which keeps the same JSON output.
+provider integrations, CLI, and docs, and CodexBar's release history stays in the [changelog](CHANGELOG.md). The
+[community integrations](https://github.com/steipete/CodexBar#related) built for CodexBar's `codexbar` CLI can
+usually switch to `openbar`, which keeps the same JSON output.
 
 Cost tracking was inspired by [ccusage](https://github.com/ryoppippi/ccusage). Third-party licenses are listed in
 [THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md).
