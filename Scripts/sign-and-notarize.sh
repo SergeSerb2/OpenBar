@@ -2,10 +2,11 @@
 set -euo pipefail
 
 APP_NAME="OpenBar"
-APP_IDENTITY="${APP_IDENTITY:-Developer ID Application: Peter Steinberger (Y5PE65HELJ)}"
 APP_BUNDLE="OpenBar.app"
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 source "$ROOT/version.env"
+source "$ROOT/Scripts/release_identity.sh"
+APP_IDENTITY="${APP_IDENTITY:-$OPENBAR_RELEASE_SIGNING_IDENTITY}"
 source "$ROOT/Scripts/release_artifacts.sh"
 source "$ROOT/Scripts/package_product_paths.sh"
 source "$ROOT/Scripts/release_dsym_paths.sh"

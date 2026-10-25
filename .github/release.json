@@ -2,6 +2,8 @@
   "app": "OpenBar",
   "repository": "SergeSerb2/OpenBar",
   "bundle_id": "com.serbinenko.openbar",
+  "team_id": "78A5P57U23",
+  "signing_identity": "Developer ID Application: Serge Serbinenko (78A5P57U23)",
   "minimum_macos": "14.0",
   "architectures": [
     "arm64",

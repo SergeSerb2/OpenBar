@@ -15,7 +15,8 @@ case "$ENVIRONMENT" in
   *) echo "ERROR: environment must be development or production" >&2; exit 1 ;;
 esac
 
-TEAM_ID="Y5PE65HELJ"
+source "$(cd "$(dirname "$0")/.." && pwd)/release_identity.sh"
+TEAM_ID="${APP_TEAM_ID:-$OPENBAR_RELEASE_TEAM_ID}"
 CONTAINER_ID="iCloud.com.serbinenko.openbar"
 SCHEMA_FILE="$(cd "$(dirname "$0")" && pwd)/schema.ckdb"
 

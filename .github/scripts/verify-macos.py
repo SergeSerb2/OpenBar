@@ -20,6 +20,7 @@ assert plist['CFBundleShortVersionString'] == version['MARKETING_VERSION']
 assert plist['CFBundleVersion'] == version['BUILD_NUMBER']
 assert plist['LSMinimumSystemVersion'] == config['minimum_macos']
 assert plist['SUPublicEDKey'] == config['sparkle_public_key']
+assert plist['OpenBarTeamID'] == config['team_id']
 assert plist['SUFeedURL'] == f'https://raw.githubusercontent.com/{config["repository"]}/main/appcast.xml'
 main = app / 'Contents/MacOS' / config['app']
 required = set(config['architectures'])
@@ -39,7 +40,7 @@ for path in app.rglob('*'):
         minima = deployment_targets(load)
         assert minima, f'{path}: no deployment target for {arch}'
         assert all(tuple(map(int, m.split('.')[:2])) <= limit for m in minima), f'{path}: deployment target exceeds {limit}: {minima}'
-subprocess.run(['codesign', '--verify', '--deep', '--strict', '-R', f'=anchor apple generic and certificate leaf[subject.OU] = "Y5PE65HELJ" and identifier "{config["bundle_id"]}"', str(app)], check=True)
+subprocess.run(['codesign', '--verify', '--deep', '--strict', '-R', f'=anchor apple generic and certificate leaf[subject.OU] = "{config["team_id"]}" and identifier "{config["bundle_id"]}"', str(app)], check=True)
 subprocess.run(['spctl', '--assess', '--type', 'execute', '--verbose=2', str(app)], check=True)
 subprocess.run(['xcrun', 'stapler', 'validate', str(app)], check=True)
 # Verify the separately shipped dSYM belongs to this exact app executable.

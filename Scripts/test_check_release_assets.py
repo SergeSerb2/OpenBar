@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the release checker without network, signing, or Keychain access."""
 
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -8,6 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parent.parent
+TEAM_ID = json.loads((ROOT / ".github/release.json").read_text())["team_id"]
 
 
 class ReleaseAssetTests(unittest.TestCase):
@@ -40,7 +42,7 @@ case "$tool" in
   codesign)
     [[ "$*" == '--verify --deep --strict --all-architectures --verbose=2 '* ]] || exit 1
     [[ -d "${!#}" ]] || exit 1
-    if [[ "$FAIL_TOOL" == wrong-signer && "$*" == *'certificate leaf[subject.OU] = "Y5PE65HELJ"'* ]]; then
+    if [[ "$FAIL_TOOL" == wrong-signer && "$*" == *"certificate leaf[subject.OU] = \\"$TEAM_ID\\""* ]]; then
       exit 42
     fi
     ;;
@@ -63,6 +65,7 @@ esac
                     "FAIL_TOOL": failure,
                     "ARCHES": arches,
                     "EXISTING_APP": str(existing_app),
+                    "TEAM_ID": TEAM_ID,
                 },
                 capture_output=True,
                 text=True,
@@ -79,7 +82,7 @@ esac
         self.assertIn("ditto <-x> <-k> <--norsrc>", calls)
         self.assertIn("codesign <--verify> <--deep> <--strict> <--all-architectures>", calls)
         self.assertIn('<--test-requirement> <=anchor apple generic and identifier "com.serbinenko.openbar"', calls)
-        self.assertIn('certificate leaf[subject.OU] = "Y5PE65HELJ"', calls)
+        self.assertIn(f'certificate leaf[subject.OU] = "{TEAM_ID}"', calls)
         self.assertIn("certificate 1[field.1.2.840.113635.100.6.2.6] exists", calls)
         self.assertIn("certificate leaf[field.1.2.840.113635.100.6.1.13] exists", calls)
 

@@ -6,6 +6,7 @@ TAG=${1:-$(git -C "$SCRIPT_DIR/.." describe --tags --abbrev=0)}
 
 # Asset presence alone cannot detect a damaged or incorrectly signed release.
 source "$SCRIPT_DIR/release_artifacts.sh"
+source "$SCRIPT_DIR/release_identity.sh"
 ARCHIVE=$(openbar_app_zip_name "${TAG#v}" "${ARCHES:-arm64 x86_64}")
 TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/openbar-release-assets.XXXXXX")
 trap 'rm -rf "$TEMP_DIR"' EXIT
@@ -18,7 +19,7 @@ if [[ ! -d "$TEMP_DIR/OpenBar.app" || -L "$TEMP_DIR/OpenBar.app" ]]; then
   exit 1
 fi
 REQUIREMENT='=anchor apple generic and identifier "com.serbinenko.openbar"'
-REQUIREMENT+=' and certificate leaf[subject.OU] = "Y5PE65HELJ"'
+REQUIREMENT+=" and certificate leaf[subject.OU] = \"${OPENBAR_RELEASE_TEAM_ID}\""
 REQUIREMENT+=' and certificate 1[field.1.2.840.113635.100.6.2.6] exists'
 REQUIREMENT+=' and certificate leaf[field.1.2.840.113635.100.6.1.13] exists'
 codesign --verify --deep --strict --all-architectures --verbose=2 \

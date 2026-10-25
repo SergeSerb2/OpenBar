@@ -4,7 +4,8 @@ import Security
 #endif
 
 public enum AppGroupSupport {
-    public static let defaultTeamID = "Y5PE65HELJ"
+    /// Mirrors `team_id` in `.github/release.json`; the release policy check fails when they differ.
+    public static let defaultTeamID = "78A5P57U23"
     public static let teamIDInfoKey = "OpenBarTeamID"
     public static let legacyReleaseGroupID = "group.com.serbinenko.openbar"
     public static let legacyDebugGroupID = "group.com.serbinenko.openbar.debug"

@@ -4,6 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${ROOT_DIR}/Scripts/release_identity.sh"
 APP_BUNDLE="${ROOT_DIR}/OpenBar.app"
 APP_PROCESS_PATTERN="OpenBar.app/Contents/MacOS/OpenBar"
 DEBUG_PROCESS_PATTERN="${ROOT_DIR}/.build/debug/OpenBar"
@@ -90,7 +91,7 @@ resolve_signing_mode() {
     return
   fi
 
-  local candidate="Developer ID Application: Peter Steinberger (Y5PE65HELJ)"
+  local candidate="${OPENBAR_RELEASE_SIGNING_IDENTITY:-}"
   if has_signing_identity "${candidate}"; then
     APP_IDENTITY="${candidate}"
     export APP_IDENTITY

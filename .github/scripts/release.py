@@ -57,6 +57,18 @@ def metadata():
     return version, values['BUILD_NUMBER']
 
 
+def signing_identity(root=None):
+    """Return the release Team ID and identity; the app's compiled fallback Team ID must agree."""
+    root = root or ROOT
+    config = json.loads((root / '.github/release.json').read_text())
+    team, identity = config['team_id'], config['signing_identity']
+    assert re.fullmatch(r'[A-Z0-9]{10}', team), 'team_id must be a 10-character Apple Team ID'
+    assert re.fullmatch(r'Developer ID Application: .+ \(' + team + r'\)', identity), 'signing_identity must be the Developer ID Application identity of team_id'
+    swift = (root / 'Sources/OpenBarCore/AppGroupSupport.swift').read_text()
+    assert re.search(r'static let defaultTeamID = "' + team + '"', swift), 'AppGroupSupport.defaultTeamID must equal team_id in .github/release.json'
+    return team, identity
+
+
 def is_prerelease(version):
     return '-' in version
 
@@ -104,6 +116,7 @@ def require_absent(tag):
 def validate():
     dry = os.environ['DRY_RUN'] == 'true'
     version, build = metadata()
+    signing_identity()
     body = notes(version, dry)
     sha = run('git', 'rev-parse', 'HEAD')
     subprocess.run(['git', 'merge-base', '--is-ancestor', sha, 'origin/main'], check=True)
@@ -131,6 +144,11 @@ def validate():
         for key, value in data.items():
             output.write(f'{key}={value}\n')
     print(f'Validated {tag} at {sha}, push CI {ci}, dry_run={dry}')
+
+
+def identity():
+    team, name = signing_identity()
+    print(f'Release identity: {name}; AppGroupSupport.defaultTeamID matches {team}')
 
 
 def availability():
@@ -260,5 +278,5 @@ def publish():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['validate', 'availability', 'inventory', 'appcast', 'publish'])
+    parser.add_argument('command', choices=['validate', 'availability', 'inventory', 'appcast', 'publish', 'identity'])
     globals()[parser.parse_args().command]()

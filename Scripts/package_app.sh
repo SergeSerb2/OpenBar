@@ -15,11 +15,11 @@ resolve_package_signing_mode() {
 
 resolve_package_signing_identity() {
   if [[ "$SIGNING_MODE" == "adhoc" ]]; then
-    APP_TEAM_ID="${APP_TEAM_ID:-Y5PE65HELJ}"
+    APP_TEAM_ID="${APP_TEAM_ID:-$OPENBAR_RELEASE_TEAM_ID}"
     return
   fi
 
-  local requested="${APP_IDENTITY:-Developer ID Application: Peter Steinberger (Y5PE65HELJ)}"
+  local requested="${APP_IDENTITY:-$OPENBAR_RELEASE_SIGNING_IDENTITY}"
   local identities line name hash selected_name="" selected_hash="" matches=0
   if ! identities=$(security find-identity -p codesigning -v); then
     echo "ERROR: Unable to list valid code-signing identities." >&2
@@ -94,6 +94,7 @@ esac
 
 # Load version info
 source "$ROOT/version.env"
+source "$ROOT/Scripts/release_identity.sh"
 source "$ROOT/Scripts/package_product_paths.sh"
 source "$ROOT/Scripts/sparkle_signing_paths.sh"
 

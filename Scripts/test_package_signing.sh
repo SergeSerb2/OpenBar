@@ -78,6 +78,7 @@ unset MOCK_CODESIGN_STATUS
 
 python3 - "$PACKAGE_SCRIPT" "$RELEASE_SCRIPT" "$ROOT/Scripts/compile_and_run.sh" <<'PY'
 import itertools
+import json
 import os
 import plistlib
 import subprocess
@@ -143,7 +144,7 @@ print('16 entitlement/profile configuration cases passed.')
 
 # Execute the actual entitlement block against synthetic identity listings only.
 # A direct APP_IDENTITY call must not inherit upstream team-bound resources.
-upstream = 'Developer ID Application: Example Upstream (Y5PE65HELJ)'
+upstream = 'Developer ID Application: Example Upstream (OTHERTEAM1)'
 fork = 'Developer ID Application: Example Fork (TESTTEAM01)'
 first_hash = 'A' * 40
 second_hash = 'B' * 40
@@ -154,7 +155,7 @@ cases = [
     ('lowercase hash', second_hash.lower(), None, listing, 0, 'TESTTEAM01'),
     ('unique substring', 'Example Fork', None, listing, 0, 'TESTTEAM01'),
     ('matching override', fork, 'TESTTEAM01', listing, 0, 'TESTTEAM01'),
-    ('conflicting override', fork, 'Y5PE65HELJ', listing, 0, None),
+    ('conflicting override', fork, 'OTHERTEAM1', listing, 0, None),
     ('empty override', fork, '', listing, 0, 'TESTTEAM01'),
     ('missing identity', 'Missing', None, listing, 0, None),
     ('ambiguous identity', 'Developer ID Application:', None, listing, 0, None),
@@ -204,6 +205,9 @@ with tempfile.TemporaryDirectory(prefix='openbar-identity-test-') as directory:
 print(f'{len(cases) * 2} direct identity cases passed without signing or Keychain access.')
 
 release_source = Path(sys.argv[2]).read_text()
+release_config = Path(sys.argv[1]).parent.parent / '.github/release.json'
+release_identity = json.loads(release_config.read_text())['signing_identity']
+identity_helper = Path(sys.argv[1]).parent / 'release_identity.sh'
 identity_assignment = next(line for line in release_source.splitlines() if line.startswith('APP_IDENTITY='))
 package_call = next(line for line in release_source.splitlines() if './Scripts/package_app.sh release' in line)
 with tempfile.TemporaryDirectory(prefix='openbar-release-identity-test-') as directory:
@@ -217,9 +221,9 @@ with tempfile.TemporaryDirectory(prefix='openbar-release-identity-test-') as dir
         env.pop('APP_IDENTITY', None)
         if identity is not None:
             env['APP_IDENTITY'] = identity
-        result = subprocess.run(['bash', '-eu', '-c', identity_assignment + '\n' + package_call],
+        result = subprocess.run(['bash', '-eu', '-c', f'source "{identity_helper}"\n' + identity_assignment + '\n' + package_call],
                                 cwd=root, env=env, capture_output=True, text=True)
-        expected = identity or 'Developer ID Application: Peter Steinberger (Y5PE65HELJ)'
+        expected = identity or release_identity
         assert result.returncode == 0 and result.stdout == expected, result
 print('2 release identity forwarding cases passed without signing or notarization.')
 
@@ -231,13 +235,14 @@ dev_selection = dev_source[start:end]
 legacy_listing = f'  1) {first_hash} "OpenBar Development"\n'
 for label, identities, explicit, expected_mode, expected_identity in [
     ('legacy only', legacy_listing, '', 'adhoc', ''),
-    ('legacy with Apple identity', legacy_listing + listing, '', 'identity', upstream),
+    ('legacy with Apple identity', legacy_listing + listing, '', 'identity', fork),
     ('no identities', '', '', 'adhoc', ''),
     ('development identity only', f'  1) {first_hash} "Apple Development: Fixture (PERSONID01)"\n', '', 'adhoc', ''),
     ('explicit missing identity', '', 'Missing', 'identity', 'Missing'),
     ('explicit legacy identity', legacy_listing, 'OpenBar Development', 'identity', 'OpenBar Development'),
 ]:
-    env = dict(os.environ, SIGNING_MODE='', APP_IDENTITY=explicit, APP_TEAM_ID='', MOCK_IDENTITIES=identities)
+    env = dict(os.environ, SIGNING_MODE='', APP_IDENTITY=explicit, APP_TEAM_ID='', MOCK_IDENTITIES=identities,
+               OPENBAR_RELEASE_SIGNING_IDENTITY=fork)
     stubs = 'security() { [[ "$*" == "find-identity -p codesigning -v" ]] || exit 99; printf "%s" "$MOCK_IDENTITIES"; }; log() { :; }'
     result = subprocess.run(['bash', '-eu', '-c', stubs + '\n' + dev_selection +
                              '\nresolve_signing_mode\nprintf "%s|%s" "$SIGNING_MODE" "$APP_IDENTITY"'],

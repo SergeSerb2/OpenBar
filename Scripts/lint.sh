@@ -79,6 +79,10 @@ check_release_assets() {
   python3 "${ROOT_DIR}/Scripts/test_check_release_assets.py"
 }
 
+check_release_identity() {
+  python3 "${ROOT_DIR}/.github/scripts/release.py" identity
+}
+
 check_sparkle_signing_paths() {
   "${ROOT_DIR}/Scripts/test_sparkle_signing_paths.sh"
 }
@@ -162,6 +166,7 @@ run_portable_checks() {
   check_release_dsym_paths
   check_release_checksum
   check_release_assets
+  check_release_identity
   check_sparkle_signing_paths
   check_swift_static_sdk_installer
   check_mimo_usage_script
