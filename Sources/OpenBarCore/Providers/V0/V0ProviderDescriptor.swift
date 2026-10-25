@@ -22,7 +22,7 @@ public enum V0ProviderDescriptor {
         apiKeyField: .init(
             id: "v0-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY.",
+            subtitle: "Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY.",
             placeholder: "v0_...",
             action: (
                 id: "v0-open-api-keys",

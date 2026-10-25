@@ -38,7 +38,7 @@ public enum SakanaProviderDescriptor {
             field: .init(
                 id: "sakana-cookie",
                 title: "Cookie header",
-                subtitle: "Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header.",
+                subtitle: "Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header.",
                 placeholder: "Cookie: ...",
                 action: (
                     id: "sakana-open-dashboard",

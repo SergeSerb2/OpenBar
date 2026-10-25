@@ -363,11 +363,9 @@
 "Store multiple OpenCode Cookie headers." = "Deseu diverses capçaleres Cookie d'OpenCode.";
 "Store multiple OpenCode Go Cookie headers." = "Deseu diverses capçaleres Cookie d'OpenCode Go.";
 "Stored in the OpenBar config file." = "Desat al fitxer de configuració del OpenBar.";
-"Stored in ~/.openbar/config.json. " = "Desat a ~/.openbar/config.json. ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "Desat a ~/.openbar/config.json. Enganxeu la clau del tauler de Synthetic.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "Desat a ~/.openbar/config.json. Enganxeu la clau d'API del vostre pla de programació des de Model Studio.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "Desat a ~/.openbar/config.json. Enganxeu la vostra clau d'API de MiniMax.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "Desat a ~/.openbar/config.json. També podeu proporcionar KILO_API_KEY o ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "Desat al fitxer de configuració d'OpenBar. Enganxeu la clau del tauler de Synthetic.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "Desat al fitxer de configuració d'OpenBar. Enganxeu la clau d'API del vostre pla de programació des de Model Studio.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "Desat al fitxer de configuració d'OpenBar. Enganxeu la vostra clau d'API de MiniMax.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "Desa l'historial d'ús local de Codex (8 setmanes) per personalitzar les prediccions de Ritme.";
 "Surprise me" = "Sorprèn-me";
 "Switcher shows icons" = "El selector mostra icones";
@@ -1058,7 +1056,7 @@
 "Open Moonshot Console" = "Obriu la consola de Moonshot";
 "Open Ollama API Keys" = "Obriu les claus API d'Ollama";
 "Open llmman" = "Obre llmman";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "Desat a ~/.openbar/config.json. Només cal quan llmman serve requereix claus API.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "Desat al fitxer de configuració d'OpenBar. Només cal quan llmman serve requereix claus API.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "Adreça de llmman serve. Per defecte, http://127.0.0.1:17434.";
 "Open StepFun Platform" = "Obriu la plataforma StepFun";
 "Open T3 Chat Settings" = "Obriu la configuració de T3 Chat";
@@ -1110,21 +1108,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "Inicieu sessió a cursor.com al navegador i després actualitzeu Cursor a OpenBar.";
 "Simulated error text" = "Text d'error simulat";
 "StepFun platform account (phone number or email)." = "Compte de la plataforma StepFun (telèfon o correu).";
-"Stored in ~/.openbar/config.json." = "Desat a ~/.openbar/config.json.";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "Desat a ~/.openbar/config.json. També s'admet AZURE_OPENAI_API_KEY.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "Desat a ~/.openbar/config.json. Per a l'API oficial de Kimi, useu Moonshot / Kimi API.";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "Desat a ~/.openbar/config.json. Obteniu la clau API a la consola Volcengine Ark.";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "Desat a ~/.openbar/config.json. Obteniu la clau a la configuració d'Ollama.";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "Desat a ~/.openbar/config.json. Obteniu la clau a console.deepgram.com.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "Desat a ~/.openbar/config.json. Obteniu la clau a elevenlabs.io/app/settings/api-keys.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "Desat a ~/.openbar/config.json. Obteniu la clau a openrouter.ai/settings/keys i definiu-hi un límit de despesa per activar el seguiment de quota.";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "Desat a ~/.openbar/config.json. A Warp, obriu Settings > Platform > API Keys i creeu-ne una.";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "Desat a ~/.openbar/config.json. Les mètriques requereixen accés a Groq Enterprise Prometheus.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "Desat a ~/.openbar/config.json. Es prefereix OPENAI_ADMIN_KEY; OPENAI_API_KEY encara funciona.";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "Desat a ~/.openbar/config.json. Requereix una clau Anthropic Admin API.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "Desat a ~/.openbar/config.json. S'usa per a /v1/quota-stats.";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Desat a ~/.openbar/config.json. També podeu proporcionar CODEBUFF_API_KEY o deixar que OpenBar llegeixi ~/.config/manicode/credentials.json (creat per `codebuff login`).";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Desat a ~/.openbar/config.json. També podeu proporcionar KILO_API_KEY o ~/.local/share/kilo/auth.json (kilo.access).";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "Desat al fitxer de configuració d'OpenBar. També s'admet AZURE_OPENAI_API_KEY.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "Desat al fitxer de configuració d'OpenBar. Obteniu la clau a la configuració d'Ollama.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "Desat al fitxer de configuració d'OpenBar. Obteniu la clau a console.deepgram.com.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "Desat al fitxer de configuració d'OpenBar. Obteniu la clau a elevenlabs.io/app/settings/api-keys.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "Desat al fitxer de configuració d'OpenBar. A Warp, obriu Settings > Platform > API Keys i creeu-ne una.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "Desat al fitxer de configuració d'OpenBar. Requereix una clau Anthropic Admin API.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "Desat al fitxer de configuració d'OpenBar. S'usa per a /v1/quota-stats.";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Desat al fitxer de configuració d'OpenBar. També podeu proporcionar CODEBUFF_API_KEY o deixar que OpenBar llegeixi ~/.config/manicode/credentials.json (creat per `codebuff login`).";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Desat al fitxer de configuració d'OpenBar. També podeu proporcionar KILO_API_KEY o ~/.local/share/kilo/auth.json (kilo.access).";
 "T3 Chat cookie" = "Galeta de T3 Chat";
 "Team mode" = "Mode d'equip";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "Aquest compte ja no està disponible a OpenBar. Actualitzeu la llista de comptes i torneu-ho a provar.";
@@ -1337,7 +1329,7 @@
 "usage_percent_suffix_left" = "restant";
 "usage_percent_suffix_used" = "usat";
 "Weekly" = "Setmanal";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "No s'ha trobat el token d'API de z.ai. Definiu apiKey a ~/.openbar/config.json o Z_AI_API_KEY.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "No s'ha trobat el token d'API de z.ai. Definiu apiKey a ~/.config/openbar/config.json (ubicació antiga: ~/.openbar/config.json) o Z_AI_API_KEY.";
 "(%d%% risk)" = "(%d%% risc d'esgotament)";
 
 /* Settings sidebar redesign */
@@ -1993,9 +1985,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "Mostra l'ús des de `tcr`; no canvia de compte, perquè tcr tria el compte per a cada sol·licitud. Les credencials romanen gestionades per tcr; OpenBar mai les llegeix.";
 "Stay Awake" = "Estigueu despert";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "Emmagatzemat al fitxer de configuració OpenBar. Llegeix el pressupost mensual i l'ús encaminat des de /v1/usage.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Emmagatzemat a ~/.openbar/config.json. OPENAI_ADMIN_KEY és necessari per a l'ús de l'organització; Les claus heretades/d'usuari només obtenen una alternativa de saldo del millor esforç.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Emmagatzemat a ~/.openbar/config.json. També podeu proporcionar FACTORY_API_KEY o ~/.factory/.env.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "Emmagatzemat a ~/.openbar/config.json. També podeu configurar AMP_API_KEY.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Desat al fitxer de configuració d'OpenBar. OPENAI_ADMIN_KEY és necessari per a l'ús de l'organització; amb les claus antigues o d'usuari només s'intenta mostrar el saldo.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Desat al fitxer de configuració d'OpenBar. També podeu proporcionar FACTORY_API_KEY o ~/.factory/.env.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "Desat al fitxer de configuració d'OpenBar. També podeu configurar AMP_API_KEY.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "Canvia de compte...";
 "Switch Claude Code account" = "Canvia el compte Claude Code";
@@ -2116,14 +2108,14 @@
 "Paste the Cookie request header from zed.dev." = "Enganxeu la capçalera de la sol·licitud Cookie de zed.dev.";
 "Points" = "Punts";
 "Poe usage history is unavailable." = "L'historial d'ús de Poe no està disponible.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "Emmagatzemat a ~/.openbar/config.json. Obteniu la vostra clau a poe.com/api/keys.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "Desat al fitxer de configuració d'OpenBar. Obteniu la vostra clau a poe.com/api/keys.";
 "Billing" = "Facturació";
 "Invoice billing" = "Pagament amb factura";
 "Prepaid" = "Prepagament";
 "Rate limit" = "Límit de sol·licituds";
 "Billing and rate-limit data from the v0 Platform API" = "Dades de facturació i límit de sol·licituds de la plataforma v0 API";
 "v0 cost history is not available via the Platform API." = "L'historial de costos v0 no està disponible a través de la plataforma API.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "Emmagatzemat a ~/.config/openbar/config.json. Creeu-ne un a la configuració de v0 o configureu V0_API_KEY.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "Desat al fitxer de configuració d'OpenBar. Creeu-ne un a la configuració de v0 o configureu V0_API_KEY.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "Obriu les claus v0 API";
 "Scope" = "Àmbit";
@@ -2165,7 +2157,7 @@
 "Monthly quota" = "Quota mensual";
 "Subscription usage from the Chutes API." = "Ús de la subscripció del Chutes API.";
 "Chutes cost history is not available from OpenBar." = "L'historial de costos de Chutes no està disponible a OpenBar.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "Emmagatzemat a ~/.openbar/config.json. Enganxeu una clau Chutes API.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "Desat al fitxer de configuració d'OpenBar. Enganxeu una clau Chutes API.";
 "chutes key..." = "Clau API de Chutes...";
 "Spend" = "Despesa";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "La despesa Fireworks prové del resum de facturació API; no es fa un seguiment de l'historial de costos.";
@@ -2206,7 +2198,7 @@
 "Shared pool" = "Quota compartida";
 "GitKraken cost history is not available." = "L'historial de costos de GitKraken no està disponible.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "La despesa diària xAI requereix una clau de gestió API i un equip ID. El saldo de prepagament no es tracta com a despesa.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Emmagatzemat a ~/.openbar/config.json. Creeu-ne un a console.x.ai a Configuració > Claus de gestió; Les claus d'inferència API no s'accepten.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Desat al fitxer de configuració d'OpenBar. Creeu-ne una a console.x.ai a Configuració > Claus de gestió; no s'accepten claus d'API d'inferència.";
 "xai-..." = "xai-...";
 "Team ID" = "Equip ID";
 "Vercel access token" = "Testimoni d'accés de Vercel";
@@ -2215,7 +2207,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Obligatori amb un testimoni d'accés de Vercel. O definiu VERCEL_TEAM_ID.";
 "Required. Shown in the xAI Console URL and team settings." = "Obligatori. Es mostra a la consola xAI URL i a la configuració de l'equip.";
 "Sakana AI cost summary is not supported." = "El resum de costos Sakana AI no s'admet.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "Emmagatzemat a ~/.openbar/config.json. Copieu la capçalera de sol·licitud de la consola Sakana AI Cookie.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "Desat al fitxer de configuració d'OpenBar. Copieu la capçalera de sol·licitud Cookie de la consola de Sakana AI.";
 "Open Sakana AI Console" = "Obriu la consola Sakana AI";
 "SuperGrok tokens" = "SuperGrok tokens";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "Enganxeu un portador SuperGrok o grok.com cookie. Obre el fitxer tokens obre ~/.grok/auth.json.";
@@ -2332,7 +2324,7 @@
 "5-hour quota" = "Quota de 5 hores";
 "Weekly quota" = "Quota setmanal";
 "ZenMux cost history is not exposed by the Management API." = "L'historial de costos de ZenMux no està exposat per la direcció API.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "Emmagatzemat a ~/.openbar/config.json. Les claus estàndard ZenMux d'inferència API no s'admeten.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "Desat al fitxer de configuració d'OpenBar. No s'admeten les claus d'API d'inferència estàndard de ZenMux.";
 "ZenMux management key…" = "Clau de gestió ZenMux...";
 "Monthly Plan" = "Pla de subscripció mensual";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "Llegeix la clau Quota, els límits de subscripció, l'ús i el saldo de la cartera de /v1/usage.";
@@ -2576,7 +2568,7 @@
 "Local Codex details; excluded from combined totals." = "Detalls locals de Codex; exclosos dels totals combinats.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Desat al fitxer de configuració d'OpenBar. També podeu configurar COMMAND_CODE_API_KEY.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ tokens · %@ sol·licituds";
 "15m" = "15 min";

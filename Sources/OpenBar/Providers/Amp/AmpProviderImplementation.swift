@@ -60,7 +60,7 @@ struct AmpProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "amp-api-token",
                 title: "Access token",
-                subtitle: "Stored in ~/.openbar/config.json. You can also set AMP_API_KEY.",
+                subtitle: "Stored in the OpenBar config file. You can also set AMP_API_KEY.",
                 kind: .secure,
                 placeholder: "sgamp_...",
                 binding: context.binding(\.ampAPIToken),

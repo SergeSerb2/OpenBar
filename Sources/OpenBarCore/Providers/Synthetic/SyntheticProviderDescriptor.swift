@@ -23,7 +23,7 @@ public enum SyntheticProviderDescriptor {
         apiKeyField: .init(
             id: "synthetic-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard.",
+            subtitle: "Stored in the OpenBar config file. Paste the key from the Synthetic dashboard.",
             placeholder: "Paste key…"),
         showsAPIDetail: true,
         availability: .configuredKey)

@@ -40,8 +40,8 @@ public enum MiniMaxAPISettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "MiniMax API token not found. Set apiKey in ~/.openbar/config.json, " +
-                "MINIMAX_CODING_API_KEY, or MINIMAX_API_KEY."
+            "MiniMax API token not found. Set apiKey in ~/.config/openbar/config.json " +
+                "(legacy: ~/.openbar/config.json), MINIMAX_CODING_API_KEY, or MINIMAX_API_KEY."
         }
     }
 }

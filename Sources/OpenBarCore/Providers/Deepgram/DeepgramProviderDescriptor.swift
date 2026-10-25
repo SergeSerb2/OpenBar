@@ -28,7 +28,7 @@ public enum DeepgramProviderDescriptor {
         apiKeyField: .init(
             id: "deepgram-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Get your key from console.deepgram.com.",
+            subtitle: "Stored in the OpenBar config file. Get your key from console.deepgram.com.",
             placeholder: "dg_..."),
         workspaceField: .init(
             environmentKey: DeepgramSettingsReader.projectIDEnvironmentKey,

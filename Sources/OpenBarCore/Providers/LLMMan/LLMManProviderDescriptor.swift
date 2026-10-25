@@ -27,7 +27,7 @@ public enum LLMManProviderDescriptor {
         apiKeyField: .init(
             id: "llmman-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys.",
+            subtitle: "Stored in the OpenBar config file. Only needed when llmman serve requires API keys.",
             placeholder: "LLMMAN_API_KEY"),
         endpoint: .init(
             environmentKey: LLMManSettingsReader.hostEnvironmentKey,

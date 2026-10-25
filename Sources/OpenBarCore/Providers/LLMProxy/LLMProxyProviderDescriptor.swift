@@ -30,7 +30,7 @@ public enum LLMProxyProviderDescriptor {
         apiKeyField: .init(
             id: "llmproxy-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Used for /v1/quota-stats.",
+            subtitle: "Stored in the OpenBar config file. Used for /v1/quota-stats.",
             placeholder: "proxy key…"),
         endpoint: .init(
             environmentKey: LLMProxySettingsReader.baseURLEnvironmentKey,

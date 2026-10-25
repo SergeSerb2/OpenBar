@@ -28,7 +28,7 @@ public enum ZenMuxProviderDescriptor {
         apiKeyField: .init(
             id: "zenmux-management-api-key",
             title: "Management API key",
-            subtitle: "Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported.",
+            subtitle: "Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported.",
             placeholder: "ZenMux management key…",
             action: ("zenmux-open-management", "Open ZenMux Management", "https://zenmux.ai/platform/management")),
         showsAPIDetail: true,

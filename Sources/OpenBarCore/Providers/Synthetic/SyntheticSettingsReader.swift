@@ -17,7 +17,8 @@ public enum SyntheticSettingsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "Synthetic API key not found. Set apiKey in ~/.openbar/config.json or SYNTHETIC_API_KEY."
+            "Synthetic API key not found. Set apiKey in ~/.config/openbar/config.json " +
+                "(legacy: ~/.openbar/config.json) or SYNTHETIC_API_KEY."
         }
     }
 }

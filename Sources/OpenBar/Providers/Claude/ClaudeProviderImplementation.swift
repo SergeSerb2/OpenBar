@@ -305,7 +305,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "claude-admin-api-key",
                 title: "Admin API key",
-                subtitle: "Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key.",
+                subtitle: "Stored in the OpenBar config file. Requires an Anthropic Admin API key.",
                 kind: .secure,
                 placeholder: "sk-ant-admin...",
                 binding: context.binding(\.claudeAdminAPIKey),

@@ -13,7 +13,8 @@ public enum GroqUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing Groq API key. Set apiKey in ~/.openbar/config.json or GROQ_API_KEY."
+            "Missing Groq API key. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) " +
+                "or GROQ_API_KEY."
         case .invalidURL:
             "Groq metrics URL is invalid."
         case let .accessDenied(message):
