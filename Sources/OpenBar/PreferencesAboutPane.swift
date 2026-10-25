@@ -1,11 +1,11 @@
 import AppKit
+import OpenBarCore
 import SwiftUI
 
 @MainActor
 struct AboutPane: View {
     let updater: UpdaterProviding
     @Bindable var selection: PreferencesSelection
-    @State private var iconHover = false
     @AppStorage("autoUpdateEnabled") private var autoUpdateEnabled: Bool = true
     @AppStorage(UpdateChannel.userDefaultsKey)
     private var updateChannelRaw: String = UpdateChannel.defaultChannel.rawValue
@@ -34,10 +34,11 @@ struct AboutPane: View {
 
     private var form: some View {
         Form {
-            Section {
+            // The hero sits on the window background: the header of a section without rows, so no group box.
+            Section {} header: {
                 self.hero
                     .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
+                    .foregroundStyle(.primary)
             }
 
             self.updatesSection
@@ -62,7 +63,7 @@ struct AboutPane: View {
                         Text(L("link_acknowledgements"))
                         Spacer()
                         Image(systemName: "chevron.forward")
-                            .font(.caption.weight(.semibold))
+                            .font(OpenBarTheme.Fonts.caption.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
                     .contentShape(Rectangle())
@@ -73,13 +74,13 @@ struct AboutPane: View {
                 Text(L("section_links"))
             } footer: {
                 Text(L("copyright"))
+                    .font(OpenBarTheme.Fonts.caption)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .multilineTextAlignment(.center)
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .onAppear {
             guard !self.didLoadUpdaterState else { return }
             // Align Sparkle's flag with the persisted preference on first load.
@@ -127,45 +128,46 @@ struct AboutPane: View {
             }
         } header: {
             Text(L("section_updates"))
+                .settingsHeroFollowingHeader()
         }
     }
 
+    /// App icon, name, version, and tagline (docs/design §9.4). Static: no hover scale and no shadow pass.
     private var hero: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: OpenBarSpacing.relaxed) {
             if let image = NSApplication.shared.applicationIconImage {
                 Button(action: self.openProjectHome) {
                     Image(nsImage: image)
                         .resizable()
-                        .frame(width: 92, height: 92)
-                        .cornerRadius(16)
-                        .scaleEffect(self.iconHover ? 1.05 : 1.0)
-                        .shadow(color: self.iconHover ? .accentColor.opacity(0.25) : .clear, radius: 6)
+                        .scaledToFit()
+                        .frame(
+                            width: OpenBarSettingsMetrics.aboutIconSize,
+                            height: OpenBarSettingsMetrics.aboutIconSize)
                 }
                 .buttonStyle(.plain)
                 .focusEffectDisabled()
-                .onHover { hovering in
-                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
-                        self.iconHover = hovering
-                    }
-                }
+                .accessibilityLabel(L("link_github"))
             }
 
-            VStack(spacing: 2) {
-                Text("OpenBar")
-                    .font(.title3).bold()
+            VStack(spacing: OpenBarSpacing.hairline) {
+                Text(verbatim: "OpenBar")
+                    .font(OpenBarTheme.Fonts.title)
                 Text(String(format: L("version_format"), AppVersion.displayString))
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                 if let buildTimestamp {
                     Text(String(format: L("built_format"), buildTimestamp))
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
                 Text(L("about_tagline"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, OpenBarSpacing.tight)
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, OpenBarSpacing.regular)
     }
 
     private var updateChannel: UpdateChannel {
@@ -318,8 +320,8 @@ struct AboutLinkRow: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.caption)
-                    .foregroundStyle(self.hovering ? Color.accentColor : Color.secondary)
+                    .font(OpenBarTheme.Fonts.caption)
+                    .foregroundStyle(self.hovering ? OpenBarTheme.Colors.accent : Color.secondary)
             }
             .contentShape(Rectangle())
         }

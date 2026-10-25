@@ -443,7 +443,9 @@ the trailing edge):
 
 **Detail:** grouped `Form` (`.formStyle(.grouped)`), content max width 600 centered (existing 780 max is
 too wide for forms; keep 780 for the Spend dashboard). Native controls, `.toggleStyle(.switch)`,
-`.tint(accent)`. Section headers system; footers `caption` tertiary (`SettingsSectionFooter`).
+`.tint(accent)`. Section headers system; footers `caption` in the **secondary** label color
+(`SettingsSectionFooter`). Owner decision 2026-10-24: tertiary measured 1.88:1 (light) and 2.26:1 (dark) on the
+window background, too faint for guidance text; secondary measures 3.95:1 and 5.89:1.
 
 - **Provider detail header** (`ProviderDetailHeaderRow`): 40-pt tile (`cardFill`, radius 9) holding the
   24-pt logo · name (`title`) · subline (`meta` secondary: account · source) · enable switch right.

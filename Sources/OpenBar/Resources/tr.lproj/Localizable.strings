@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Kullanım anlık görüntülerini eşzamanla";
 "Show accounts from other Macs" = "Diğer Mac'lerdeki hesapları göster";
 "Requires a signed release build of OpenBar." = "OpenBar'ın imzalı bir sürüm derlemesi gerekir.";
+"iCloud Sync is not available in this build of OpenBar." = "iCloud eşzamanlama, OpenBar'ın bu derlemesinde kullanılamıyor.";
 "Sign in to iCloud in System Settings to enable sync." = "Eşzamanlamayı etkinleştirmek için Sistem Ayarları'nda iCloud'a giriş yapın.";
 "iCloud access is restricted on this Mac." = "Bu Mac'te iCloud erişimi kısıtlı.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Eşzamanlama duraklatıldı: başka bir Mac daha yeni bir OpenBar sürümü kullanıyor. Devam etmek için güncelleyin.";

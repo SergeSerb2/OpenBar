@@ -69,8 +69,7 @@ struct AcknowledgementsView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
     }
 }
 
@@ -117,7 +116,7 @@ private struct AcknowledgementRow: View {
                     .truncationMode(.tail)
                 Spacer()
                 Text(self.acknowledgement.license)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
         }
@@ -132,7 +131,7 @@ private struct AcknowledgementDetail<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(self.title)
-                .font(.subheadline.weight(.semibold))
+                .font(OpenBarTheme.Fonts.laneTitle)
             self.content
         }
     }

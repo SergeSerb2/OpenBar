@@ -33,7 +33,7 @@ struct PluginsPane: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(L("Plugins directory"))
                         Text(Self.pluginsDirectoryDisplayPath)
-                            .font(.caption)
+                            .font(OpenBarTheme.Fonts.caption)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                     }
@@ -64,9 +64,7 @@ struct PluginsPane: View {
                 }
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .background(FocusResigningBackground())
         .onAppear { self.refresh() }
         .sheet(item: self.$pendingApproval) { pending in
@@ -145,15 +143,12 @@ struct PluginsPane: View {
                     TextField(setting.title, text: self.settingBinding(plugin.manifest.id, setting: setting))
                 }
                 if let subtitle = setting.subtitle {
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                    Text(subtitle).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                 }
             }
             if let error = self.store.errors[plugin.manifest.id] {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout)
-                    .foregroundStyle(.red)
+                SettingsStatusMessage(error, tone: .critical)
                     .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
             }
             HStack {
                 if !approved {
@@ -176,11 +171,8 @@ struct PluginsPane: View {
         Section {
             LabeledContent(L("File")) { Text(Self.displayPath(result.fileURL)).textSelection(.enabled) }
             LabeledContent(L("Status"), value: L("Error"))
-            Label(result.error ?? L("Unknown validation error"), systemImage: "exclamationmark.triangle.fill")
-                .font(.callout)
-                .foregroundStyle(.red)
+            SettingsStatusMessage(result.error ?? L("Unknown validation error"), tone: .critical)
                 .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
                 Button(L("Delete…"), role: .destructive) {
@@ -397,7 +389,7 @@ private struct PluginApprovalSheet: View {
                 }
             } else {
                 Text(L("Enter every endpoint setting to review the exact network origins."))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
             HStack {

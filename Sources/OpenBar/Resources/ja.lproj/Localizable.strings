@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "使用状況のスナップショットを同期する";
 "Show accounts from other Macs" = "他の Mac のアカウントを表示する";
 "Requires a signed release build of OpenBar." = "OpenBar の署名付きリリース ビルドが必要です。";
+"iCloud Sync is not available in this build of OpenBar." = "このビルドの OpenBar では iCloud同期を利用できません。";
 "Sign in to iCloud in System Settings to enable sync." = "システム設定で iCloud にサインインして同期を有効にします。";
 "iCloud access is restricted on this Mac." = "この Mac では iCloud アクセスが制限されています。";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "同期が一時停止されています: 別の Mac が新しいバージョンの OpenBar を使用しています。更新して再開します。";

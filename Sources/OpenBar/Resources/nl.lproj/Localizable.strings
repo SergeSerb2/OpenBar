@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Synchroniseer gebruiksmomentopnamen";
 "Show accounts from other Macs" = "Toon accounts van andere Macs";
 "Requires a signed release build of OpenBar." = "Vereist een ondertekende releasebuild van OpenBar.";
+"iCloud Sync is not available in this build of OpenBar." = "iCloud-synchronisatie is niet beschikbaar in deze build van OpenBar.";
 "Sign in to iCloud in System Settings to enable sync." = "Log in bij iCloud in Systeeminstellingen om synchronisatie in te schakelen.";
 "iCloud access is restricted on this Mac." = "iCloud-toegang is beperkt op deze Mac.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Synchronisatie is gepauzeerd: een andere Mac gebruikt een nieuwere versie van OpenBar. Update om te hervatten.";

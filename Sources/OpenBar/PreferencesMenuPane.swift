@@ -113,9 +113,7 @@ struct MenuPane: View {
 
             AgentSessionsSettingsSection(settings: self.settings)
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .background(FocusResigningBackground())
     }
 }

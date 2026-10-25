@@ -61,7 +61,7 @@ struct ProviderSwitcherShortcutEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L("Provider Switcher Shortcuts")).font(.headline)
+            Text(L("Provider Switcher Shortcuts")).font(OpenBarTheme.Fonts.cardTitle)
             Text(
                 L(
                     "These shortcuts work while the provider switcher menu is open. "
@@ -77,8 +77,8 @@ struct ProviderSwitcherShortcutEditor: View {
             }
             Text(
                 L("Examples: alt+cmd+2, shift+right. Refresh (cmd+r), Settings (cmd+,) and Quit (cmd+q) are reserved."))
-                .font(.caption).foregroundStyle(.secondary)
-            if let failure { Text(failure).foregroundStyle(.red).accessibilityLabel(L(
+                .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
+            if let failure { SettingsStatusMessage(failure, tone: .critical).accessibilityLabel(L(
                 "Error: %@",
                 String(describing: failure))) }
             HStack {

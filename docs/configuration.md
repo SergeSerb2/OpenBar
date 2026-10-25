@@ -287,6 +287,7 @@ See the [generated provider ID list](provider-ids.md), sourced from `UsageProvid
 The order of `providers` controls display/order in the app and CLI. Reorder the array to change ordering.
 
 ## iCloud sync
+In a build without the CloudKit entitlement, such as OpenBar 1.0, Settings → iCloud Sync shows only "iCloud Sync is not available in this build of OpenBar." and no sync controls.
 The three sync sub-options are disabled while the main sync switch is off, iCloud is unavailable, or a newer app version is required. Their saved choices are retained when sync is turned off and restored when it is enabled again.
 
 Opt-in (Settings → iCloud Sync, off by default; requires a signed release build and an iCloud account). When enabled, OpenBar syncs across the user's Macs via CloudKit (private database, container `iCloud.com.serbinenko.openbar`):

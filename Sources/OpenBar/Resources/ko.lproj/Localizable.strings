@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "사용량 스냅샷 동기화";
 "Show accounts from other Macs" = "다른 Mac의 계정 보기";
 "Requires a signed release build of OpenBar." = "OpenBar의 서명된 릴리스 빌드가 필요합니다.";
+"iCloud Sync is not available in this build of OpenBar." = "이 OpenBar 빌드에서는 iCloud 동기화를 사용할 수 없습니다.";
 "Sign in to iCloud in System Settings to enable sync." = "동기화를 활성화하려면 시스템 설정에서 iCloud에 로그인하세요.";
 "iCloud access is restricted on this Mac." = "이 Mac에서는 iCloud 액세스가 제한되어 있습니다.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "동기화가 일시 중지되었습니다. 다른 Mac에서 최신 버전의 OpenBar를 사용하고 있습니다. 재개하려면 업데이트하세요.";

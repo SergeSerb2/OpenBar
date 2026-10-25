@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "ซิงค์ภาพรวมการใช้งาน";
 "Show accounts from other Macs" = "แสดงบัญชีจาก Mac เครื่องอื่น";
 "Requires a signed release build of OpenBar." = "จำเป็นต้องมีรุ่น OpenBar ที่ลงนามแล้ว";
+"iCloud Sync is not available in this build of OpenBar." = "การซิงค์ iCloud ไม่พร้อมใช้งานใน OpenBar รุ่นนี้";
 "Sign in to iCloud in System Settings to enable sync." = "ลงชื่อเข้าใช้ iCloud ในการตั้งค่าระบบเพื่อเปิดใช้งานการซิงค์";
 "iCloud access is restricted on this Mac." = "การเข้าถึง iCloud ถูกจำกัดบน Mac เครื่องนี้";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "การซิงค์ถูกหยุดชั่วคราว: Mac เครื่องอื่นใช้ OpenBar เวอร์ชันใหม่กว่า อัปเดตเพื่อดำเนินการต่อ";

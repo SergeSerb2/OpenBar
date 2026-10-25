@@ -6,22 +6,25 @@ struct CodexWorkspacesInspectorView: View {
     @Bindable var model: CodexWorkspacesInspectorModel
 
     var body: some View {
-        switch CodexWorkspacePrimaryContentState.resolve(
-            snapshot: self.model.snapshot,
-            isRefreshing: self.model.isLoading,
-            didFailInitialLoad: self.model.hasLoadFailure)
-        {
-        case .loading:
-            self.loadingContent
-        case .initialFailure:
-            self.initialFailureContent
-        case .completeEmpty:
-            self.emptyContent
-        case let .partial(snapshot):
-            self.content(for: snapshot, isPartial: true)
-        case let .content(snapshot):
-            self.content(for: snapshot, isPartial: false)
+        Group {
+            switch CodexWorkspacePrimaryContentState.resolve(
+                snapshot: self.model.snapshot,
+                isRefreshing: self.model.isLoading,
+                didFailInitialLoad: self.model.hasLoadFailure)
+            {
+            case .loading:
+                self.loadingContent
+            case .initialFailure:
+                self.initialFailureContent
+            case .completeEmpty:
+                self.emptyContent
+            case let .partial(snapshot):
+                self.content(for: snapshot, isPartial: true)
+            case let .content(snapshot):
+                self.content(for: snapshot, isPartial: false)
+            }
         }
+        .tint(OpenBarTheme.Colors.accent)
     }
 
     private var loadingContent: some View {
@@ -32,7 +35,7 @@ struct CodexWorkspacesInspectorView: View {
                 .foregroundStyle(.secondary)
             if let progressFraction = self.progressFraction {
                 Text(progressFraction, format: .percent.precision(.fractionLength(0)))
-                    .font(.caption.monospacedDigit())
+                    .font(OpenBarTheme.Fonts.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
         }
@@ -102,9 +105,10 @@ struct CodexWorkspacesInspectorView: View {
         List(selection: self.projectSelection) {
             ForEach(presentation.rankedProjects) { project in
                 HStack(spacing: 8) {
-                    Circle()
-                        .fill(self.severityColor(project.severity))
-                        .frame(width: 7, height: 7)
+                    SettingsSidebarStatusMark(
+                        kind: self.severityMark(project.severity),
+                        color: self.severityColor(project.severity))
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(project.name)
                             .lineLimit(1)
@@ -114,7 +118,7 @@ struct CodexWorkspacesInspectorView: View {
                                 Text(latestActivity, style: .relative)
                             }
                         }
-                        .font(.caption2)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                     }
@@ -125,7 +129,7 @@ struct CodexWorkspacesInspectorView: View {
                         Text(self.costText(project.cost))
                             .monospacedDigit()
                     }
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 }
                 .tag(project.id)
@@ -162,7 +166,7 @@ struct CodexWorkspacesInspectorView: View {
                         .lineLimit(1)
                     if let path = selectedProject?.path {
                         Text(path)
-                            .font(.caption)
+                            .font(OpenBarTheme.Fonts.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -185,27 +189,25 @@ struct CodexWorkspacesInspectorView: View {
 
             if self.model.hidesPersonalInfo {
                 Label(L("hide_personal_info_title"), systemImage: "eye.slash")
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
 
             if self.model.isLoading {
                 Label(self.progressText, systemImage: "arrow.clockwise")
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
 
             if isPartial {
-                Label(L("codex_workspaces_partial_data"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                SettingsStatusMessage(L("codex_workspaces_partial_data"), tone: .warning)
+                    .font(OpenBarTheme.Fonts.meta)
                     .accessibilityHint(L("codex_workspaces_estimated_local_logs"))
             }
 
             if self.model.hasLoadFailure {
-                Label(L("codex_workspaces_failed_read_logs"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                SettingsStatusMessage(L("codex_workspaces_failed_read_logs"), tone: .warning)
+                    .font(OpenBarTheme.Fonts.meta)
             }
         }
         .padding(20)
@@ -215,7 +217,7 @@ struct CodexWorkspacesInspectorView: View {
     private func metric(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.callout.weight(.semibold).monospacedDigit())
@@ -237,7 +239,7 @@ struct CodexWorkspacesInspectorView: View {
                                 .lineLimit(1)
                             if let path = row.path {
                                 Text(path)
-                                    .font(.caption)
+                                    .font(OpenBarTheme.Fonts.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
                                     .truncationMode(.middle)
@@ -352,14 +354,23 @@ struct CodexWorkspacesInspectorView: View {
         }
     }
 
+    /// The severity's shape repeats its color: a dot, a triangle, or an octagon.
+    private func severityMark(_ severity: CodexLocalUsageSeverity) -> SettingsSidebarStatusMark.Kind {
+        switch severity {
+        case .normal: .operational
+        case .elevated: .minorIssue
+        case .high: .outage
+        }
+    }
+
     private func severityColor(_ severity: CodexLocalUsageSeverity) -> Color {
         switch severity {
         case .normal:
-            .green
+            OpenBarTheme.Colors.ok
         case .elevated:
-            .orange
+            OpenBarTheme.Colors.warning
         case .high:
-            .red
+            OpenBarTheme.Colors.critical
         }
     }
 }

@@ -9,19 +9,43 @@ struct ICloudSyncPane: View {
         "Secrets use iCloud end-to-end encryption via encryptedValues. " +
         "Hooks and machine-local paths never sync."
 
+    /// The engine records `.missingEntitlement` from `CloudSyncEntitlementGate` when it starts. The pane also
+    /// reads the gate itself so a window opened before that start never shows sync controls that would fail.
+    private static let buildHasCloudKitEntitlement = CloudSyncEntitlementGate.hasICloudServicesEntitlement()
+
+    static func isAvailableInThisBuild(availability: SyncAvailability, hasEntitlement: Bool) -> Bool {
+        hasEntitlement && availability != .missingEntitlement
+    }
+
     var body: some View {
+        if Self.isAvailableInThisBuild(
+            availability: self.state.availability,
+            hasEntitlement: Self.buildHasCloudKitEntitlement)
+        {
+            self.syncForm
+        } else {
+            Form {
+                Section {
+                    Label {
+                        Text(L("iCloud Sync is not available in this build of OpenBar."))
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "icloud.slash")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .settingsPaneForm()
+        }
+    }
+
+    private var syncForm: some View {
         Form {
             if self.state.status.needsAppUpdate {
                 Section {
-                    Label(
+                    SettingsStatusMessage(
                         L("Sync is paused: another Mac uses a newer version of OpenBar. Update to resume."),
-                        systemImage: "exclamationmark.triangle.fill")
-                        .font(.callout)
-                        .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                        tone: .warning)
                 }
             }
 
@@ -62,7 +86,6 @@ struct ICloudSyncPane: View {
             Section {
                 if self.devices.isEmpty {
                     Text(L("No synced Macs yet."))
-                        .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(self.devices, id: \.deviceID) { device in
@@ -85,7 +108,7 @@ struct ICloudSyncPane: View {
                 SettingsSectionFooter(L(Self.securityFootnote))
             }
         }
-        .formStyle(.grouped)
+        .settingsPaneForm()
     }
 
     private var syncCanBeEnabled: Bool {
@@ -161,17 +184,19 @@ private struct ICloudSyncDeviceRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(self.device.hostName)
                 Text(String(format: L("Last seen %@"), self.device.lastSeen.relativeDescription()))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if self.isCurrentDevice {
                 Text(L("This Mac"))
-                    .font(.caption2.weight(.medium))
+                    .font(OpenBarTheme.Fonts.caption.weight(.medium))
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.quaternary, in: Capsule())
+                    .padding(.horizontal, OpenBarSpacing.compact)
+                    .padding(.vertical, OpenBarSpacing.hairline)
+                    .background(SettingsFillBackground(shape: RoundedRectangle(
+                        cornerRadius: OpenBarRadius.chip,
+                        style: .continuous)))
             }
         }
     }
