@@ -148,8 +148,8 @@ extension CostUsageScanner {
                     guard !line.bytes.isEmpty, projectionError == nil else { return }
                     let bytes: Data
                     do {
-                        bytes = try line.wasTruncated ? Self.projectClaudeUsageLine(
-                            fileURL: fileURL, line: line, checkCancellation: checkCancellation) : line.bytes
+                        bytes = try Self.claudeAccountingBytes(
+                            fileURL: fileURL, line: line, checkCancellation: checkCancellation)
                     } catch {
                         projectionError = error
                         return
@@ -269,11 +269,14 @@ extension CostUsageScanner {
         return ClaudeParseResult(rows: rows, parsedBytes: parsedBytes)
     }
 
-    private static func projectClaudeUsageLine(
+    /// Returns empty data for a record too large to project whose top-level type shows it carries no usage;
+    /// the assistant filter then drops it like any other non-assistant record.
+    private static func claudeAccountingBytes(
         fileURL: URL,
         line: CostUsageJsonl.Line,
         checkCancellation: CancellationCheck?) throws -> Data
     {
+        guard line.wasTruncated else { return line.bytes }
         let accountingKeys: Set = [
             "type", "timestamp", "sessionId", "session_id", "requestId", "request_id", "id", "model",
             "isSidechain", "stop_reason", "input_tokens", "output_tokens", "cache_creation_input_tokens",
@@ -285,6 +288,8 @@ extension CostUsageScanner {
             keepingValue: { accountingKeys.contains($0) || Self.vertexProviderKeys.contains($0.lowercased()) },
             preservesContainers: true,
             rejectsTokenOverflow: true)
+        // Top-level scalars only, so it stays small when the full projection overflows on a huge tool result.
+        var outline = SessionToolJSONProjection(keepingValue: { $0 == "type" })
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
         try handle.seek(toOffset: UInt64(line.startOffset))
@@ -295,10 +300,17 @@ extension CostUsageScanner {
             guard !chunk.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
             for byte in chunk {
                 projection.consume(byte)
+                outline.consume(byte)
             }
             remaining -= Int64(chunk.count)
         }
         guard let bytes = projection.finish() else {
+            // Only an assistant record can carry usage; any other record was always skipped.
+            if let outlineBytes = outline.finish(), let record = try? ClaudeJSONObject.decode(outlineBytes),
+               (record["type"] as? String) != "assistant"
+            {
+                return Data()
+            }
             throw NSError(domain: "OpenBar.CostUsage", code: 1, userInfo: [
                 NSLocalizedDescriptionKey: "Claude history is incomplete: a record exceeds accounting bounds. "
                     + "Reduce its metadata size and refresh; the source has not been checkpointed.",
