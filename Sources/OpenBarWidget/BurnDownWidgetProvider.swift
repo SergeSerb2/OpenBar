@@ -507,12 +507,14 @@ struct BurnDownTimelineProvider: AppIntentTimelineProvider {
         for configuration: BurnDownSelectionIntent,
         in context: Context) async -> Timeline<BurnDownEntry>
     {
+        let provider = configuration.provider.provider
+        let snapshot = WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot()
+        let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: snapshot, provider: provider)
         let entry = BurnDownEntry(
             date: Date(),
-            provider: configuration.provider.provider,
+            provider: provider,
             window: configuration.window,
-            snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot())
-        let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: entry.snapshot, provider: entry.provider)
+            snapshot: WidgetEntryPayload.Kind.compact.pruned(snapshot, provider: provider, family: context.family))
         return Timeline(entries: [entry], policy: .after(refresh))
     }
 }
@@ -539,11 +541,13 @@ struct CombinedBurnDownTimelineProvider: AppIntentTimelineProvider {
         for configuration: BurnProviderSelectionIntent,
         in context: Context) async -> Timeline<CombinedBurnDownEntry>
     {
+        let provider = configuration.provider.provider
+        let snapshot = WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot()
+        let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: snapshot, provider: provider)
         let entry = CombinedBurnDownEntry(
             date: Date(),
-            provider: configuration.provider.provider,
-            snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot())
-        let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: entry.snapshot, provider: entry.provider)
+            provider: provider,
+            snapshot: WidgetEntryPayload.Kind.compact.pruned(snapshot, provider: provider, family: context.family))
         return Timeline(entries: [entry], policy: .after(refresh))
     }
 }

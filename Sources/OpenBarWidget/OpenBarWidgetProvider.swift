@@ -146,6 +146,10 @@ struct OpenBarSwitcherEntry: TimelineEntry {
 }
 
 struct OpenBarTimelineProvider: AppIntentTimelineProvider {
+    /// The Usage, History, and Accounts widgets share this provider but read different parts of the
+    /// snapshot.
+    var payload: WidgetEntryPayload.Kind = .usage
+
     func placeholder(in context: Context) -> OpenBarWidgetEntry {
         OpenBarWidgetEntry(
             date: Date(),
@@ -158,7 +162,10 @@ struct OpenBarTimelineProvider: AppIntentTimelineProvider {
         return OpenBarWidgetEntry(
             date: Date(),
             provider: provider,
-            snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.snapshot())
+            snapshot: self.payload.pruned(
+                WidgetSnapshotStore.load() ?? WidgetPreviewData.snapshot(),
+                provider: provider,
+                family: context.family))
     }
 
     func timeline(
@@ -168,8 +175,12 @@ struct OpenBarTimelineProvider: AppIntentTimelineProvider {
         let provider = configuration.provider.provider
         let snapshot = WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot()
         let now = Date()
-        let entry = OpenBarWidgetEntry(date: now, provider: provider, snapshot: snapshot)
+        // Schedule against the full snapshot, then keep only what this widget kind draws.
         let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: snapshot, provider: provider, now: now)
+        let entry = OpenBarWidgetEntry(
+            date: now,
+            provider: provider,
+            snapshot: self.payload.pruned(snapshot, provider: provider, family: context.family))
         return Timeline(entries: [entry], policy: .after(refresh))
     }
 }
@@ -186,19 +197,15 @@ struct OpenBarSwitcherTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (OpenBarSwitcherEntry) -> Void) {
-        completion(self.makeEntry())
+        completion(self.makeEntry(family: context.family).entry)
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<OpenBarSwitcherEntry>) -> Void) {
-        let entry = self.makeEntry()
-        let refresh = BurnDownRefreshSchedule.nextRefresh(
-            snapshot: entry.snapshot,
-            provider: entry.provider,
-            now: entry.date)
+        let (entry, refresh) = self.makeEntry(family: context.family)
         completion(Timeline(entries: [entry], policy: .after(refresh)))
     }
 
-    private func makeEntry() -> OpenBarSwitcherEntry {
+    private func makeEntry(family: WidgetFamily) -> (entry: OpenBarSwitcherEntry, refresh: Date) {
         let snapshot = WidgetSnapshotStore.load() ?? WidgetPreviewData.emptySnapshot()
         let providers = Self.supportedProviders(from: snapshot)
         let stored = WidgetSelectionStore.loadSelectedProvider()
@@ -206,11 +213,14 @@ struct OpenBarSwitcherTimelineProvider: TimelineProvider {
         if selected.instanceID != stored {
             WidgetSelectionStore.saveSelectedProvider(selected)
         }
-        return OpenBarSwitcherEntry(
-            date: Date(),
+        let now = Date()
+        let refresh = BurnDownRefreshSchedule.nextRefresh(snapshot: snapshot, provider: selected, now: now)
+        let entry = OpenBarSwitcherEntry(
+            date: now,
             provider: selected,
             availableProviders: providers,
-            snapshot: snapshot)
+            snapshot: WidgetEntryPayload.Kind.usage.pruned(snapshot, provider: selected, family: family))
+        return (entry, refresh)
     }
 
     static func supportedProviders(from snapshot: WidgetSnapshot) -> [UsageProvider] {
@@ -242,7 +252,10 @@ struct OpenBarCompactTimelineProvider: AppIntentTimelineProvider {
             date: Date(),
             provider: provider,
             metric: metric,
-            snapshot: WidgetSnapshotStore.load() ?? WidgetPreviewData.snapshot())
+            snapshot: WidgetEntryPayload.Kind.compact.pruned(
+                WidgetSnapshotStore.load() ?? WidgetPreviewData.snapshot(),
+                provider: provider,
+                family: context.family))
     }
 
     func timeline(
@@ -256,9 +269,107 @@ struct OpenBarCompactTimelineProvider: AppIntentTimelineProvider {
             date: Date(),
             provider: provider,
             metric: metric,
-            snapshot: snapshot)
+            snapshot: WidgetEntryPayload.Kind.compact.pruned(snapshot, provider: provider, family: context.family))
         let refresh = Date().addingTimeInterval(30 * 60)
         return Timeline(entries: [entry], policy: .after(refresh))
+    }
+}
+
+// MARK: - Entry payloads
+
+/// Per-kind budgets for what a timeline entry carries.
+///
+/// WidgetKit keeps timeline entries in the widget host's memory, and the shared snapshot holds every
+/// enabled provider with a month of daily history. Each widget kind keeps only what its views read:
+/// the configured provider (or its accounts), at most the days its family draws, and no detail
+/// sections. Pruning happens after the refresh schedule is computed, and the persisted shared
+/// snapshot is never modified.
+enum WidgetEntryPayload {
+    enum Kind {
+        /// Usage, switcher, and account usage tiles: one provider; history only on large (7 days).
+        case usage
+        /// History widget: one provider, two weeks of history.
+        case history
+        /// Accounts widget: the provider's saved accounts, no history.
+        case accounts
+        /// Compact metric and burn-down widgets: one provider, no history.
+        case compact
+
+        func pruned(_ snapshot: WidgetSnapshot, provider: UsageProvider, family: WidgetFamily) -> WidgetSnapshot {
+            switch self {
+            case .usage:
+                WidgetEntryPayload.pruned(
+                    snapshot,
+                    provider: provider,
+                    dailyPoints: family == .systemLarge ? WidgetTileSize.largeHistoryDays : 0)
+            case .history:
+                WidgetEntryPayload.pruned(snapshot, provider: provider, dailyPoints: WidgetEntryPayload.historyDays)
+            case .accounts:
+                WidgetEntryPayload.pruned(
+                    snapshot,
+                    provider: provider,
+                    dailyPoints: 0,
+                    keepsEntries: false,
+                    keepsAccounts: true)
+            case .compact:
+                WidgetEntryPayload.pruned(snapshot, provider: provider, dailyPoints: 0)
+            }
+        }
+    }
+
+    /// Days of history the History widget draws.
+    static let historyDays = 14
+
+    static func pruned(
+        _ snapshot: WidgetSnapshot,
+        provider: UsageProvider,
+        dailyPoints: Int,
+        keepsEntries: Bool = true,
+        keepsAccounts: Bool = false,
+        accountID: String? = nil) -> WidgetSnapshot
+    {
+        let instanceID = provider.instanceID
+        let entries = keepsEntries
+            ? snapshot.entries.filter { $0.provider == instanceID }.map { self.pruned($0, dailyPoints: dailyPoints) }
+            : []
+        let accounts = keepsAccounts
+            ? snapshot.accounts
+            .filter { $0.provider == instanceID && (accountID == nil || $0.id == accountID) }
+            .map { account in
+                WidgetSnapshot.AccountEntry(
+                    id: account.id,
+                    provider: account.provider,
+                    label: account.label,
+                    usage: account.usage.map { self.pruned($0, dailyPoints: 0) })
+            }
+            : []
+        return WidgetSnapshot(
+            entries: entries,
+            accounts: accounts,
+            accountOverflowCounts: keepsAccounts
+                ? snapshot.accountOverflowCounts.filter { $0.key == instanceID.rawValue }
+                : [:],
+            enabledProviders: snapshot.enabledProviders,
+            usageBarsShowUsed: snapshot.usageBarsShowUsed,
+            generatedAt: snapshot.generatedAt)
+    }
+
+    static func pruned(_ entry: WidgetSnapshot.ProviderEntry, dailyPoints: Int) -> WidgetSnapshot.ProviderEntry {
+        WidgetSnapshot.ProviderEntry(
+            instanceID: entry.provider,
+            updatedAt: entry.updatedAt,
+            primary: entry.primary,
+            secondary: entry.secondary,
+            tertiary: entry.tertiary,
+            usageRows: entry.usageRows,
+            creditsRemaining: entry.creditsRemaining,
+            codeReviewRemainingPercent: entry.codeReviewRemainingPercent,
+            tokenUsage: entry.tokenUsage,
+            dailyUsage: Array(entry.dailyUsage.suffix(max(0, dailyPoints))),
+            providerCost: entry.providerCost,
+            quotaOwnerKey: entry.quotaOwnerKey,
+            balanceText: entry.balanceText,
+            details: nil)
     }
 }
 

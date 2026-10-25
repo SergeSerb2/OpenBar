@@ -372,10 +372,12 @@ struct WidgetTileLayoutTests {
 
     @Test
     func `severity tracks what is left, not what is displayed`() {
-        #expect(QuotaSeverity.isLow(remaining: 10))
-        #expect(QuotaSeverity.isLow(remaining: 0))
-        #expect(!QuotaSeverity.isLow(remaining: 10.1))
-        #expect(!QuotaSeverity.isLow(remaining: nil))
+        #expect(QuotaSeverity.tone(remaining: 10) == .critical)
+        #expect(QuotaSeverity.tone(remaining: 0) == .critical)
+        #expect(QuotaSeverity.tone(remaining: 10.1) == .warning)
+        #expect(QuotaSeverity.tone(remaining: 25) == .warning)
+        #expect(QuotaSeverity.tone(remaining: 25.1) == .normal)
+        #expect(QuotaSeverity.tone(remaining: nil) == .normal)
     }
 
     @Test

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="bg-black">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,7 +8,8 @@
       name="description"
       content="A tiny macOS menu bar app that tracks AI coding-provider usage windows, credits, costs, and resets across 109 providers — Codex, OpenAI, Claude, Cursor, Gemini, Copilot, LiteLLM, Helmcode, v0, TypeSafe, and more."
     />
-    <meta name="theme-color" content="#0a0a0c" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0b10" />
     <link rel="canonical" href="https://sergeserb2.github.io/OpenBar/" />
     <link rel="alternate" hreflang="x-default" href="https://sergeserb2.github.io/OpenBar/" />
     <link rel="alternate" hreflang="en" href="https://sergeserb2.github.io/OpenBar/?lang=en" />
@@ -41,13 +42,13 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://sergeserb2.github.io/OpenBar/" />
-    <meta property="og:image" content="https://sergeserb2.github.io/OpenBar/social.png?v=98ea56b91a37cab6" />
+    <meta property="og:image" content="https://sergeserb2.github.io/OpenBar/social.png?v=7fb58633ec1b8418" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta name="twitter:image" content="https://sergeserb2.github.io/OpenBar/social.png?v=98ea56b91a37cab6" />
+    <meta name="twitter:image" content="https://sergeserb2.github.io/OpenBar/social.png?v=7fb58633ec1b8418" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="icon" type="image/png" href="./icon.png?v=2" />
-    <link rel="apple-touch-icon" href="./icon.png?v=2" />
+    <link rel="icon" type="image/png" href="./icon.png?v=3" />
+    <link rel="apple-touch-icon" href="./icon.png?v=3" />
     <script>
       (() => {
         const queryTheme = new URLSearchParams(location.search).get('theme');
@@ -63,217 +64,125 @@
         document.documentElement.dataset.themePreference = preference;
       })();
     </script>
-    <link rel="stylesheet" href="./site-utilities.css?v=1" />
-    <link rel="stylesheet" href="./site.css?v=3" />
+    <link rel="stylesheet" href="./site-utilities.css?v=2" />
+    <link rel="stylesheet" href="./site.css?v=4" />
 
   </head>
 
-  <body class="min-h-screen overflow-x-hidden text-zinc-100">
-    <header class="absolute inset-x-0 top-0 z-20 flex h-[var(--header-height)] items-center justify-between bg-transparent px-5 sm:px-8 md:grid md:grid-cols-[1fr_auto_1fr] lg:px-12">
-      <a href="#top" class="button-press flex w-fit items-center gap-2.5 text-sm font-semibold tracking-[-0.03em] text-white sm:text-base" aria-label="OpenBar home" data-i18n-aria-label="nav.home">
-        <img src="./icon.png?v=2" alt="" class="h-7 w-7 rounded-[7px] sm:h-8 sm:w-8 sm:rounded-lg" />
-        <span>OpenBar</span>
-      </a>
+  <body>
+    <svg class="symbol-sprite" width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <symbol id="sym-check" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M8 .8a7.2 7.2 0 1 1 0 14.4A7.2 7.2 0 0 1 8 .8Zm3.97 4.43a.9.9 0 0 0-1.27.06L7.0 9.31 5.33 7.67a.9.9 0 1 0-1.26 1.28l2.33 2.3a.9.9 0 0 0 1.3-.05l4.33-4.7a.9.9 0 0 0-.06-1.27Z"/></symbol>
+        <symbol id="sym-triangle" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M6.55 1.95c.64-1.12 2.26-1.12 2.9 0l6.05 10.6c.64 1.12-.17 2.5-1.45 2.5H1.95c-1.28 0-2.09-1.38-1.45-2.5ZM8 4.85a.95.95 0 0 0-.95.95v3.7a.95.95 0 1 0 1.9 0V5.8A.95.95 0 0 0 8 4.85Zm0 6.1a1.05 1.05 0 1 0 0 2.1 1.05 1.05 0 0 0 0-2.1Z"/></symbol>
+        <symbol id="sym-octagon" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M5.1 1h5.8L15 5.1v5.8L10.9 15H5.1L1 10.9V5.1ZM8 3.6a.95.95 0 0 0-.95.95v4.5a.95.95 0 1 0 1.9 0v-4.5A.95.95 0 0 0 8 3.6Zm0 6.85a1.05 1.05 0 1 0 0 2.1 1.05 1.05 0 0 0 0-2.1Z"/></symbol>
+        <symbol id="sym-glyph" viewBox="0 0 18 18"><rect x="1" y="3.5" width="9.6" height="5" rx="2.5" fill="currentColor"/><rect x="11.6" y="3.5" width="5.4" height="5" rx="2.5" fill="currentColor" opacity=".28"/><rect x="1" y="11" width="6.6" height="3.5" rx="1.75" fill="currentColor"/><rect x="8.6" y="11" width="8.4" height="3.5" rx="1.75" fill="currentColor" opacity=".28"/></symbol>
+        <symbol id="sym-wifi" viewBox="0 0 16 16"><path d="M1.2 6.7a9.6 9.6 0 0 1 13.6 0M3.6 9.1a6.2 6.2 0 0 1 8.8 0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 13.6 5.95 11.5a2.9 2.9 0 0 1 4.1 0Z" fill="currentColor"/></symbol>
+        <symbol id="sym-battery" viewBox="0 0 24 16"><rect x="1" y="3" width="19" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".55"/><rect x="3" y="5" width="12" height="6" rx="1.5" fill="currentColor"/><path d="M21.6 6.2v3.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".55"/></symbol>
+        <symbol id="sym-refresh" viewBox="0 0 16 16"><path d="M12.7 6.8A5 5 0 1 1 8 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7.7 1.1 10.9 3.5 7.7 5.9Z" fill="currentColor"/></symbol>
+        <symbol id="sym-chart" viewBox="0 0 16 16"><g fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1.8" y="8.6" width="3.1" height="5.6" rx=".9"/><rect x="6.45" y="5" width="3.1" height="9.2" rx=".9"/><rect x="11.1" y="1.8" width="3.1" height="12.4" rx=".9"/></g></symbol>
+        <symbol id="sym-chevron" viewBox="0 0 16 16"><path d="M6 3 11 8 6 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      </defs>
+    </svg>
 
-      <nav class="hidden items-center justify-center gap-3 md:flex" aria-label="Project links" data-i18n-aria-label="nav.projectLinks">
-        <a
-          href="https://github.com/SergeSerb2/OpenBar/blob/main/docs/providers.md"
-          class="button-press hidden text-[14px] text-zinc-400 hover:text-white sm:block"
-         data-i18n="nav.docs">docs</a>
-        <span class="hidden text-sm text-zinc-700 sm:block" aria-hidden="true" data-project-separator>/</span>
-        <a
-          href="https://github.com/SergeSerb2/OpenBar"
-          class="button-press group flex items-center justify-center gap-2.5 text-[14px] text-zinc-400 hover:text-white"
-          aria-label="OpenBar source on GitHub" data-i18n-aria-label="nav.sourceGitHub"
-        >
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 .8a11.4 11.4 0 0 0-3.6 22.2c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.4-1.3-5.4-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.1 1.2a10.8 10.8 0 0 1 5.7 0C16.9 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.4 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.4 11.4 0 0 0 12 .8Z" />
-          </svg>
-          <span class="hidden sm:inline" data-i18n-rich="nav.sourceStars">
-            source
-          </span>
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a href="#top" class="brand button-press" aria-label="OpenBar home" data-i18n-aria-label="nav.home">
+          <img src="./icon.png?v=3" alt="" width="28" height="28" />
+          <span>OpenBar</span>
         </a>
-      </nav>
 
-      <nav class="flex items-center justify-end gap-2 sm:gap-3" aria-label="Display and download" data-i18n-aria-label="nav.displayDownload">
-        <button class="theme-option grid" id="theme-toggle" type="button" data-theme-value="system" aria-label="Theme: system. Switch to light" title="System theme">
-              <svg data-theme-icon="system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect width="20" height="14" x="2" y="3" rx="2" />
-                <line x1="8" x2="16" y1="21" y2="21" />
-                <line x1="12" x2="12" y1="17" y2="21" />
-              </svg>
-              <svg data-theme-icon="light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-              </svg>
-              <svg data-theme-icon="dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
-              </svg>
-        </button>
-
-        <div class="language-picker" id="language-picker">
-          <button
-            class="language-picker-trigger button-press"
-            id="language-picker-trigger"
-            type="button"
-            aria-haspopup="listbox"
-            aria-expanded="false"
-            aria-controls="language-picker-menu"
-            aria-label="Language" data-i18n-aria-label="nav.language"
+        <nav class="header-links" aria-label="Project links" data-i18n-aria-label="nav.projectLinks">
+          <a href="https://github.com/SergeSerb2/OpenBar/blob/main/docs/providers.md" class="header-link button-press" data-i18n="nav.docs">docs</a>
+          <a
+            href="https://github.com/SergeSerb2/OpenBar"
+            class="header-link button-press"
+            aria-label="OpenBar source on GitHub" data-i18n-aria-label="nav.sourceGitHub"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .8a11.4 11.4 0 0 0-3.6 22.2c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.4-1.3-1.8-1.3-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.4-1.3-5.4-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.1 1.2a10.8 10.8 0 0 1 5.7 0C16.9 4.7 18 5 18 5c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.4 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A11.4 11.4 0 0 0 12 .8Z" />
             </svg>
-            <span data-lang-short>EN</span>
-          </button>
-          <div class="language-picker-menu" id="language-picker-menu" hidden>
-            <div class="language-picker-menu-scroll" id="language-picker-list" role="listbox" aria-label="Language" data-i18n-aria-label="nav.language"></div>
-          </div>
-        </div>
+            <span data-i18n-rich="nav.sourceStars">source</span>
+          </a>
+        </nav>
 
-        <span class="header-divider hidden sm:block" aria-hidden="true"></span>
-        <a
-          href="https://github.com/SergeSerb2/OpenBar/releases/latest"
-          class="download-button button-press inline-flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium sm:h-10 sm:px-5"
-        >
-          <span class="grid h-4 w-4 place-items-center" aria-hidden="true">
+        <nav class="header-actions" aria-label="Display and download" data-i18n-aria-label="nav.displayDownload">
+          <button class="theme-option icon-button button-press" id="theme-toggle" type="button" data-theme-value="system" aria-label="Theme: system. Switch to light" title="System theme">
+            <svg data-theme-icon="system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect width="20" height="14" x="2" y="3" rx="2" />
+              <line x1="8" x2="16" y1="21" y2="21" />
+              <line x1="12" x2="12" y1="17" y2="21" />
+            </svg>
+            <svg data-theme-icon="light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <svg data-theme-icon="dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+            </svg>
+          </button>
+
+          <div class="language-picker" id="language-picker">
+            <button
+              class="language-picker-trigger button-press"
+              id="language-picker-trigger"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-controls="language-picker-menu"
+              aria-label="Language" data-i18n-aria-label="nav.language"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+              </svg>
+              <span data-lang-short>EN</span>
+            </button>
+            <div class="language-picker-menu" id="language-picker-menu" hidden>
+              <div class="language-picker-menu-scroll" id="language-picker-list" role="listbox" aria-label="Language" data-i18n-aria-label="nav.language"></div>
+            </div>
+          </div>
+
+          <a href="https://github.com/SergeSerb2/OpenBar/releases/latest" class="button button-primary button-small button-press">
             <img src="./images/apple.svg" alt="" class="apple-icon" />
-          </span>
-          <span data-i18n="nav.download">download</span>
-        </a>
-      </nav>
+            <span data-i18n="nav.download">download</span>
+          </a>
+        </nav>
+      </div>
     </header>
 
     <main id="top">
-      <section class="hero-section relative overflow-hidden">
-          <div class="mockup-stage" id="mockup-stage" aria-hidden="true">
-          <div class="mockup-glow" aria-hidden="true"></div>
-          <div class="mockup-wrap" id="mockup-wrap">
-            <img
-              src="./hero-mockup.svg"
-              alt="MacBook menu bar"
-              data-i18n-alt="mockup.macbookAlt"
-              class="block h-full w-full select-none object-contain"
-              draggable="false"
-              width="6111"
-              height="3239"
-              fetchpriority="high"
-            />
-          </div>
-          <div class="mockup-hud-layer">
-            <div class="mockup-artboard">
-            <div class="mockup-hud-anchor">
-            <div class="system-menubar" aria-label="macOS menu bar status items" data-i18n-aria-label="mockup.menuBarAria">
-              <img class="sf-symbol sf-symbol--openclaw" src="./images/menubar/openclaw-menubar.svg" alt="" aria-hidden="true" />
-              <div class="menu-bar-mark" aria-label="OpenBar menu bar icon" data-i18n-aria-label="mockup.menuIconAria">
-                <span></span>
-                <span></span>
-              </div>
-              <img class="sf-symbol" src="./images/menubar/wifi.png" alt="" aria-hidden="true" style="filter: brightness(0) invert(86%) drop-shadow(0 0.08em 0.18em rgba(0, 0, 0, 0.58))" />
-              <img class="sf-symbol" src="./images/menubar/personalhotspot.png" alt="" aria-hidden="true" style="filter: brightness(0) invert(86%) drop-shadow(0 0.08em 0.18em rgba(0, 0, 0, 0.58))" />
-              <img class="sf-symbol" src="./images/menubar/person-circle.png" alt="" aria-hidden="true" style="filter: brightness(0) invert(86%) drop-shadow(0 0.08em 0.18em rgba(0, 0, 0, 0.58))" />
-              <span class="time" id="menu-time">Sun Jun 28&nbsp;&nbsp;9:41 AM</span>
-            </div>
-            <aside class="codex-popover" aria-label="Open OpenBar usage panel" data-i18n-aria-label="mockup.usagePanelAria">
-              <header class="popover-top">
-                <p><strong>Codex</strong><span data-i18n="mockup.updatedJustNow">Updated just now</span></p>
-                <p class="right"><strong>user@example.com</strong><span data-i18n="mockup.plus">Plus</span></p>
-              </header>
-
-              <section class="popover-section">
-                <h3 data-i18n="mockup.session">Session</h3>
-                <div class="usage-meter" style="--fill: 60%; --danger: 58%; --meter-delay: 420ms;"><i style="--tick: 20%;"></i><i style="--tick: 48%;"></i></div>
-                <p class="usage-row">
-                  <span><strong data-i18n="mockup.left60">60% left</strong><strong data-i18n="mockup.reserve2">2% in reserve</strong></span>
-                  <span class="right"><strong data-i18n="mockup.resets2h53m">Resets in 2h 53m</strong><strong data-i18n="mockup.lastsUntilReset">Lasts until reset</strong></span>
-                </p>
-              </section>
-
-              <section class="popover-section">
-                <h3 data-i18n="mockup.weekly">Weekly</h3>
-                <div class="usage-meter" style="--fill: 73%; --danger: 73%; --meter-delay: 520ms;"><i style="--tick: 20%;"></i><i style="--tick: 48%;"></i></div>
-                <p class="usage-row">
-                  <span><strong data-i18n="mockup.left73">73% left</strong><strong data-i18n="mockup.onPace">On pace</strong></span>
-                  <span class="right"><strong data-i18n="mockup.resets5d4h">Resets in 5d 4h</strong><strong data-i18n="mockup.runsOut4d21h">Runs out in 4d 21h</strong></span>
-                </p>
-              </section>
-
-              <section class="reset-credit">
-                <p><strong data-i18n="mockup.limitResetCredits">Limit Reset Credits</strong><span data-i18n="mockup.nextExpires28d2h">Next expires in 28d 2h</span></p>
-                <p><strong data-i18n="mockup.manualResetAvailable">1 reset available</strong></p>
-              </section>
-
-              <section class="number-grid" aria-label="Recent Codex usage" data-i18n-aria-label="mockup.recentUsageAria">
-                <p class="popover-number"><span data-i18n="mockup.today">Today</span><strong>$51.56</strong></p>
-                <p class="popover-number"><span data-i18n="mockup.last31DaysCost">Last 31 days Cost</span><strong>$5,251.23</strong></p>
-                <p class="popover-number"><span data-i18n="mockup.last31DaysTokens">Last 31 days tokens</span><strong>5.9B</strong></p>
-                <p class="popover-number"><span data-i18n="mockup.latestTokens">Latest tokens</span><strong>85M</strong></p>
-              </section>
-
-              <figure class="usage-chart" aria-label="31 day usage chart" data-i18n-aria-label="mockup.usageChartAria">
-                <i style="--h: 52%;"></i><i style="--h: 55%;"></i><i style="--h: 38%;"></i><i style="--h: 60%;"></i><i style="--h: 34%;"></i><i style="--h: 73%;"></i><i style="--h: 33%;"></i><i style="--h: 10%;"></i><i style="--h: 28%;"></i><i style="--h: 47%;"></i><i style="--h: 18%;"></i><i style="--h: 5%;"></i><i style="--h: 20%;"></i><i style="--h: 18%;"></i><i style="--h: 4%;"></i><i style="--h: 9%;"></i><i style="--h: 32%;"></i><i style="--h: 40%;"></i><i style="--h: 28%;"></i><i style="--h: 38%;"></i><i style="--h: 45%;"></i><i style="--h: 31%;"></i><i style="--h: 39%;"></i><i style="--h: 42%;"></i><i style="--h: 34%;"></i><i style="--h: 8%;"></i><i style="--h: 6%;"></i><i style="--h: 7%;"></i><i style="--h: 17%;"></i><i style="--h: 38%;"></i><i style="--h: 4%;"></i>
-              </figure>
-
-              <p class="popover-note"><strong data-i18n="mockup.topModel">Top model: Example-1</strong><br /><span data-i18n="mockup.estimatedLogs">Estimated from local Codex logs for the selected acco...</span></p>
-
-              <section class="popover-foot">
-                <strong data-i18n="mockup.credits">Credits</strong>
-                <div class="credit-meter"></div>
-                <p class="credit-row"><strong data-i18n="mockup.zeroLeft">0 left</strong><span>1K tokens</span></p>
-                <p class="buy-row">
-                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.2" stroke="currentColor" stroke-width="1.8" /><path d="M8 5v6M5 8h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
-                  <span data-i18n="mockup.buyCredits">Buy credits...</span>
-                </p>
-              </section>
-            </aside>
-            </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="hero-content px-5 sm:px-8 lg:px-12">
-          <div class="section-inner">
+      <section class="hero">
         <div class="hero-copy">
-          <div class="reveal flex items-center justify-center gap-2.5 text-[15px] tracking-[-0.025em] text-zinc-400 sm:justify-start sm:text-lg">
+          <p class="hero-eyebrow">
             <span data-i18n="hero.badgeStart">AI usage limits</span>
-            <img src="./icon.png?v=2" alt="" class="h-6 w-6 rounded-md shadow-[0_0_1.5rem_rgba(14,165,233,0.24)]" />
+            <img src="./icon.png?v=3" alt="" width="22" height="22" />
             <span data-i18n="hero.badgeEnd">for macOS</span>
-          </div>
-
-          <h1 class="reveal reveal-2 mt-5 text-[clamp(3rem,5.7vw,60px)] font-semibold leading-[0.98] tracking-[-0.06em] text-zinc-100">
-            <span class="hero-title-line" data-i18n="hero.prefix">Every AI coding limit,</span>
-            <span class="hero-title-line" data-i18n="hero.accent">in your menu bar.</span>
-          </h1>
-
-          <p class="reveal reveal-3 mt-6 max-w-[38rem] text-balance text-[clamp(1rem,1.25vw,1.28rem)] leading-[1.42] tracking-[-0.035em] text-zinc-400">
-            <span data-i18n="hero.descriptionShort">Track usage windows, credit balances, and reset countdowns across the AI tools you actually pay for.</span>
           </p>
+          <h1 class="hero-title">
+            <span data-i18n="hero.prefix">Every AI coding limit,</span>
+            <span class="hero-title-accent" data-i18n="hero.accent">in your menu bar.</span>
+          </h1>
+          <p class="hero-lead" data-i18n="hero.descriptionShort">Track usage windows, credit balances, and reset countdowns across the AI tools you actually pay for.</p>
 
-          <div class="hero-cta-row reveal reveal-4 mt-8 sm:mt-10">
-            <a
-              href="https://github.com/SergeSerb2/OpenBar/releases/latest"
-              class="download-button hero-download button-press inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-medium"
-            >
-              <span class="grid h-4 w-4 place-items-center" aria-hidden="true">
-                <img src="./images/apple.svg" alt="" class="apple-icon" />
-              </span>
+          <div class="hero-actions">
+            <a href="https://github.com/SergeSerb2/OpenBar/releases/latest" class="button button-primary button-press">
+              <img src="./images/apple.svg" alt="" class="apple-icon" />
               <span data-i18n="hero.download">Download for macOS</span>
             </a>
             <button
               id="brew-copy"
               type="button"
-              class="button-press brew-pill inline-flex h-11 max-w-full items-center gap-3 rounded-full px-4 font-mono text-[13px] text-zinc-100 hover:bg-white/10"
+              class="brew-copy button-press"
               aria-label="Copy Homebrew install command" data-i18n-aria-label="clipboard.copyBrew"
             >
-              <span class="text-zinc-400" aria-hidden="true">$</span>
-              <span data-brew-label class="truncate text-zinc-100">brew install --cask SergeSerb2/tap/openbar</span>
-              <span data-brew-icon class="grid h-5 w-5 shrink-0 place-items-center text-zinc-400" aria-hidden="true">
-                <svg data-icon="copy" class="h-3.5 w-3.5" viewBox="0 0 18 18" fill="none">
+              <span class="brew-prompt" aria-hidden="true">$</span>
+              <span data-brew-label class="brew-command">brew install --cask SergeSerb2/tap/openbar</span>
+              <span data-brew-icon class="brew-icon" aria-hidden="true">
+                <svg data-icon="copy" viewBox="0 0 18 18" fill="none">
                   <rect x="6.25" y="3.25" width="8.5" height="8.5" rx="1.4" stroke="currentColor" stroke-width="1.5" />
                   <path d="M11.75 14.75H4.65c-.77 0-1.4-.63-1.4-1.4v-7.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
-                <svg data-icon="check" class="h-3.5 w-3.5" viewBox="0 0 18 18" fill="none">
+                <svg data-icon="check" viewBox="0 0 18 18" fill="none">
                   <path d="M4.5 9.25 7.5 12.25 13.5 6.25" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </span>
@@ -281,26 +190,100 @@
             </button>
           </div>
 
-          <p class="reveal reveal-5 mt-5 text-sm tracking-[-0.02em] text-zinc-600">
-            <span data-i18n="hero.fineprintShort">Free &amp; open source · macOS 14+</span>
-          </p>
+          <p class="hero-fineprint" data-i18n="hero.fineprintShort">Free &amp; open source · macOS 14+</p>
         </div>
+
+        <div class="stage" id="mockup-stage" aria-hidden="true">
+          <div class="stage-desktop">
+            <div class="system-menubar" aria-label="macOS menu bar status items" data-i18n-aria-label="mockup.menuBarAria">
+              <svg class="menubar-apple" viewBox="0 0 16 19"><path fill="currentColor" d="M13.2 10.1c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.8-3-.8C3.7 4.9 2.2 5.8 1.4 7.3c-1.7 2.9-.4 7.2 1.2 9.5.8 1.1 1.7 2.4 3 2.4 1.2-.1 1.6-.8 3.1-.8 1.4 0 1.8.8 3.1.8 1.3 0 2.1-1.2 2.9-2.3.9-1.3 1.3-2.6 1.3-2.7 0 0-2.7-1-2.8-4.1ZM10.9 3.3C11.5 2.5 12 1.4 11.8.3c-1 .1-2.1.6-2.8 1.4-.6.7-1.2 1.8-1 2.9 1.1.1 2.2-.5 2.9-1.3Z"/></svg>
+              <span class="menubar-spacer"></span>
+              <span class="menu-bar-mark" aria-label="OpenBar menu bar icon" data-i18n-aria-label="mockup.menuIconAria"><svg><use href="#sym-glyph" /></svg></span>
+              <svg class="menubar-symbol"><use href="#sym-wifi" /></svg>
+              <svg class="menubar-symbol menubar-battery"><use href="#sym-battery" /></svg>
+              <span class="time" id="menu-time">Sun Jun 28&nbsp;&nbsp;9:41 AM</span>
+            </div>
+
+            <div class="desk-widget">
+              <div class="desk-widget-col">
+                <div class="desk-widget-head">
+                  <span class="desk-mark" style="--brand:#CC7C5E">CL</span>
+                  <strong>Claude</strong>
+                  <span class="desk-fresh">1m</span>
+                </div>
+                <div class="desk-spacer"></div>
+                <p class="desk-hero">60%</p>
+                <p class="desk-meta" data-i18n="mockup.session">Session</p>
+                <div class="meter" style="--fill: 60%; --brand: #CC7C5E"><i></i><b></b></div>
+                <p class="desk-meta" data-i18n="mockup.resets2h53m">Resets in 2h 53m</p>
+              </div>
+              <span class="desk-rule"></span>
+              <div class="desk-widget-col">
+                <p class="desk-row desk-cost"><span data-i18n="mockup.today">Today</span><strong>$51.56</strong></p>
+                <div class="desk-spacer"></div>
+                <p class="desk-row"><span data-i18n="mockup.weekly">Weekly</span><strong>73%</strong></p>
+                <div class="meter" style="--fill: 73%; --brand: #CC7C5E"><i></i><b></b></div>
+                <p class="desk-meta" data-i18n="mockup.resets5d4h">Resets in 5d 4h</p>
+              </div>
+            </div>
+
+            <div class="ob-menu" aria-label="Open OpenBar usage panel" data-i18n-aria-label="mockup.usagePanelAria">
+              <div class="ob-rail">
+                <span class="ob-seg is-selected" style="--week: 73%"><span class="ob-logo" style="--icon:url('./logos/claude.svg')"></span>Claude</span>
+                <span class="ob-seg" style="--brand:#F54E00; --week: 41%"><span class="ob-logo" style="--icon:url('./logos/cursor.svg')"></span>Cursor</span>
+                <span class="ob-seg" style="--brand:#AB87EA; --week: 88%"><span class="ob-logo" style="--icon:url('./logos/gemini.svg')"></span>Gemini</span>
+                <span class="ob-seg" style="--brand:#A855F7; --week: 22%"><span class="ob-logo" style="--icon:url('./logos/copilot.svg')"></span>Copilot</span>
+              </div>
+
+              <div class="ob-card">
+                <p class="ob-head">
+                  <span class="ob-logo" style="--icon:url('./logos/claude.svg')"></span>
+                  <strong>Claude</strong>
+                  <span class="ob-plan">Max</span>
+                  <svg class="ob-chevron"><use href="#sym-chevron" /></svg>
+                </p>
+                <p class="ob-sub"><span>user@example.com</span> · <span data-i18n="mockup.updatedJustNow">Updated just now</span></p>
+                <div class="ob-lane">
+                  <p class="ob-lane-top"><span data-i18n="mockup.session">Session</span><strong data-i18n="mockup.left60">60% left</strong></p>
+                  <div class="meter usage-meter" style="--fill: 60%; --brand: #CC7C5E"><i></i><b></b><em style="--pace: 55%"></em></div>
+                  <p class="ob-lane-meta"><span data-i18n="mockup.resets2h53m">Resets in 2h 53m</span><span class="tone-ok"><svg><use href="#sym-check" /></svg><span data-i18n="mockup.onPace">On pace</span></span></p>
+                </div>
+                <div class="ob-lane">
+                  <p class="ob-lane-top"><span data-i18n="mockup.weekly">Weekly</span><strong data-i18n="mockup.left73">73% left</strong></p>
+                  <div class="meter usage-meter" style="--fill: 73%; --brand: #CC7C5E"><i></i><b></b><em style="--pace: 62%"></em></div>
+                  <p class="ob-lane-meta"><span data-i18n="mockup.resets5d4h">Resets in 5d 4h</span><span class="tone-ok"><svg><use href="#sym-check" /></svg><span data-i18n="mockup.lastsUntilReset">Lasts until reset</span></span></p>
+                </div>
+              </div>
+
+              <div class="ob-card ob-cost">
+                <p class="ob-cost-row"><span data-i18n="mockup.today">Today</span><strong>$51.56</strong></p>
+                <p class="ob-cost-row"><span data-i18n="mockup.last31DaysCost">Last 31 days Cost</span><strong>$5,251.23</strong></p>
+              </div>
+
+              <ul class="ob-native">
+                <li><svg><use href="#sym-refresh" /></svg><span data-i18n="mockup.refresh">Refresh</span><kbd>⌘R</kbd></li>
+                <li><svg><use href="#sym-chart" /></svg><span data-i18n="mockup.usageDashboard">Usage Dashboard</span></li>
+                <li class="ob-separator"></li>
+                <li><span class="ob-native-pad"></span><span data-i18n="mockup.settings">Settings...</span><kbd>⌘,</kbd></li>
+                <li><span class="ob-native-pad"></span><span data-i18n="mockup.quit">Quit OpenBar</span><kbd>⌘Q</kbd></li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="provider-section px-5 py-20 sm:px-8 lg:px-12 lg:py-28" data-provider-section>
+      <section class="provider-section" data-provider-section>
         <div class="section-inner">
-        <header class="relative z-10 grid gap-5 tablet:grid-cols-[1fr_0.86fr] tablet:items-center">
-          <h2 class="provider-reveal max-w-3xl text-balance text-[clamp(2.4rem,4.4vw,5rem)] font-semibold leading-[0.98] tracking-[-0.07em] text-zinc-100">
+        <header class="provider-head">
+          <h2 class="provider-title">
             <span data-i18n-rich="providers.title">109 providers,{mobileBreak}one menu bar</span>
           </h2>
-          <p class="provider-reveal max-w-2xl text-[clamp(1rem,1.35vw,1.28rem)] leading-[1.45] tracking-[-0.035em] text-zinc-400" style="--reveal-delay: 70ms">
+          <p class="provider-lead">
             <span data-i18n="providers.description">Track usage windows, balances, and spend where each provider exposes them — including Helmcode, v0, and TypeSafe.</span>
           </p>
         </header>
 
-        <ul class="relative z-10 mt-12 grid list-none gap-3 p-0 tablet:grid-cols-3 xl:grid-cols-5">
+        <ul class="provider-grid">
           <li class="provider-card" data-provider="codex"><a class="provider-card-link" href="https://github.com/SergeSerb2/OpenBar/blob/main/docs/codex.md"><span class="provider-logo" data-icon="◎" style="--brand:#49A3B0;--icon:url('./logos/codex-dark.svg')"><img src="./logos/codex-dark.svg" alt="" loading="lazy" onerror="this.remove()" /></span><p><strong>Codex</strong><span data-i18n="auth.oauth">OAuth</span></p></a></li>
           <li class="provider-card" data-provider="claude"><a class="provider-card-link" href="https://github.com/SergeSerb2/OpenBar/blob/main/docs/claude.md"><span class="provider-logo" data-icon="✳" style="--brand:#CC7C5E;--icon:url('./logos/claude.svg')"><img src="./logos/claude.svg" alt="" loading="lazy" onerror="this.remove()" /></span><p><strong>Claude</strong><span data-i18n="auth.oauth">OAuth</span></p></a></li>
           <li class="provider-card" data-provider="cursor"><a class="provider-card-link" href="https://github.com/SergeSerb2/OpenBar/blob/main/docs/cursor.md"><span class="provider-logo" data-icon="◆" style="--brand:#F54E00;--icon:url('./logos/cursor.svg')"><img src="./logos/cursor.svg" alt="" loading="lazy" onerror="this.remove()" /></span><p><strong>Cursor</strong><span data-i18n="auth.cookies">Cookies</span></p></a></li>
@@ -417,147 +400,78 @@
         </div>
       </section>
 
-      <section class="features-section px-5 py-20 sm:px-8 lg:px-12 lg:py-28" data-scroll-section>
+      <section class="section features-section" data-scroll-section>
         <div class="section-inner">
-          <h2 class="features-heading provider-reveal text-balance" data-i18n="features.title">Limits, spend, and status</h2>
+          <h2 class="section-title" data-i18n="features.title">Limits, spend, and status</h2>
 
-          <div class="features-grid relative z-10">
-            <article class="feature-card provider-reveal" style="--reveal-delay: 80ms">
-              <div class="feature-card-copy">
-                <h3 data-i18n="features.resetsTitle">Resets you can plan around</h3>
-                <p data-i18n="features.resetsBody">Per-provider session, weekly, and monthly windows with countdowns to the next reset — no more guessing whether to start a long task.</p>
-              </div>
-              <div class="feature-card-visual" aria-hidden="true">
-                <img src="./features/feature-resets.webp" alt="" width="1620" height="1020" loading="lazy" />
-                <div class="feature-card-overlay is-usage-menu">
-                  <div class="feature-usage-panel">
-                    <header class="feature-usage-header">
-                      <p><strong>Codex</strong><span data-i18n="mockup.updatedJustNow">Updated just now</span></p>
-                      <p class="feature-usage-account"><strong>user@example.com</strong><span data-i18n="mockup.plus">Plus</span></p>
-                    </header>
-
-                    <section class="feature-usage-block">
-                      <h4 class="feature-usage-title" data-i18n="mockup.session">Session</h4>
-                      <div class="feature-usage-track" aria-hidden="true">
-                        <div class="feature-usage-fill" style="--amount: 100%">
-                          <i style="--flex: 89"></i>
-                          <i class="is-reserve" style="--flex: 5"></i>
-                          <i class="is-spent" style="--flex: 6"></i>
-                        </div>
-                      </div>
-                      <div class="feature-usage-meta">
-                        <div>
-                          <p><strong data-i18n="mockup.left89">89% left</strong><span class="is-subtle" data-i18n="mockup.reserve5">5% in reserve</span></p>
-                        </div>
-                        <div>
-                          <p><strong data-i18n="mockup.resets4h12m">Resets in 4h 12m</strong><span class="is-subtle" data-i18n="mockup.lastsUntilReset">Lasts until reset</span></p>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section class="feature-usage-block">
-                      <h4 class="feature-usage-title" data-i18n="mockup.weekly">Weekly</h4>
-                      <div class="feature-usage-track" aria-hidden="true">
-                        <div class="feature-usage-fill" style="--amount: 100%">
-                          <i style="--flex: 98"></i>
-                          <i class="is-spent" style="--flex: 2"></i>
-                        </div>
-                      </div>
-                      <div class="feature-usage-meta">
-                        <div>
-                          <p><strong data-i18n="mockup.left98">98% left</strong></p>
-                        </div>
-                        <div>
-                          <p><strong data-i18n="mockup.resets6d23h">Resets in 6d 23h</strong></p>
-                        </div>
-                      </div>
-                    </section>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <div class="feature-visual" aria-hidden="true">
+                <div class="mini-card">
+                  <p class="ob-head">
+                    <span class="ob-logo" style="--icon:url('./logos/codex-dark.svg')"></span>
+                    <strong>Codex</strong>
+                    <span class="ob-plan" data-i18n="mockup.plus">Plus</span>
+                  </p>
+                  <div class="ob-lane">
+                    <p class="ob-lane-top"><span data-i18n="mockup.session">Session</span><strong data-i18n="mockup.left89">89% left</strong></p>
+                    <div class="meter" style="--fill: 89%; --brand: #10A37F"><i></i><b></b></div>
+                    <p class="ob-lane-meta"><span data-i18n="mockup.resets4h12m">Resets in 4h 12m</span><span class="tone-ok"><svg><use href="#sym-check" /></svg><span data-i18n="mockup.lastsUntilReset">Lasts until reset</span></span></p>
+                  </div>
+                  <div class="ob-lane">
+                    <p class="ob-lane-top"><span data-i18n="mockup.weekly">Weekly</span><strong data-i18n="mockup.left98">98% left</strong></p>
+                    <div class="meter" style="--fill: 98%; --brand: #10A37F"><i></i><b></b></div>
+                    <p class="ob-lane-meta"><span data-i18n="mockup.resets6d23h">Resets in 6d 23h</span></p>
                   </div>
                 </div>
               </div>
+              <h3 data-i18n="features.resetsTitle">Resets you can plan around</h3>
+              <p data-i18n="features.resetsBody">Per-provider session, weekly, and monthly windows with countdowns to the next reset — no more guessing whether to start a long task.</p>
             </article>
-            <article class="feature-card provider-reveal" style="--reveal-delay: 140ms">
-              <div class="feature-card-copy">
-                <h3 data-i18n="features.spendTitle">Credits, spend, and cost scans</h3>
-                <p data-i18n="features.spendBody">Credit balances and monthly spend where the provider exposes them, plus configurable local cost scans for Codex and Claude.</p>
-              </div>
-              <div class="feature-card-visual" aria-hidden="true">
-                <img src="./features/feature-credits.webp" alt="" width="1620" height="1020" loading="lazy" />
-                <div class="feature-card-overlay">
-                  <div class="feature-cost-panel">
-                    <div class="feature-credit-head">
-                      <p><strong data-i18n="mockup.limitResetCredits">Limit Reset Credits</strong><span data-i18n="mockup.nextExpires27d21h">Next expires in 27d 21h</span></p>
-                      <p><strong data-i18n="mockup.manualResetAvailable">1 reset available</strong></p>
-                    </div>
-                    <dl class="feature-cost-stats">
-                      <div>
-                        <dt data-i18n="mockup.today">Today</dt>
-                        <dd>$86.62</dd>
-                      </div>
-                      <div>
-                        <dt data-i18n="mockup.last31DaysCost">Last 31 days Cost</dt>
-                        <dd>$5,286.29</dd>
-                      </div>
-                      <div>
-                        <dt data-i18n="mockup.last31DaysTokens">Last 31 days tokens</dt>
-                        <dd>5.9B</dd>
-                      </div>
-                      <div>
-                        <dt data-i18n="mockup.latestTokens">Latest tokens</dt>
-                        <dd>119M</dd>
-                      </div>
-                    </dl>
-                    <div class="feature-cost-chart" aria-hidden="true">
-                      <i style="--h: 72%"></i><i style="--h: 77%"></i><i style="--h: 53%"></i><i style="--h: 81%"></i><i style="--h: 46%"></i><i style="--h: 96%"></i><i style="--h: 47%"></i><i style="--h: 10%"></i><i style="--h: 29%"></i><i style="--h: 64%"></i><i style="--h: 21%"></i><i style="--h: 5%"></i><i style="--h: 23%"></i><i style="--h: 22%"></i><i style="--h: 4%"></i><i style="--h: 10%"></i><i style="--h: 37%"></i><i style="--h: 45%"></i><i style="--h: 33%"></i><i style="--h: 50%"></i><i style="--h: 58%"></i><i style="--h: 35%"></i><i style="--h: 48%"></i><i style="--h: 55%"></i><i style="--h: 40%"></i><i style="--h: 8%"></i><i style="--h: 7%"></i><i style="--h: 8%"></i><i style="--h: 20%"></i><i style="--h: 54%"></i><i style="--h: 22%"></i>
-                    </div>
+
+            <article class="feature-card">
+              <div class="feature-visual" aria-hidden="true">
+                <div class="mini-card">
+                  <p class="mini-split"><strong data-i18n="mockup.limitResetCredits">Limit Reset Credits</strong><span data-i18n="mockup.manualResetAvailable">1 reset available</span></p>
+                  <p class="mini-note" data-i18n="mockup.nextExpires27d21h">Next expires in 27d 21h</p>
+                  <dl class="mini-stats">
+                    <div><dt data-i18n="mockup.today">Today</dt><dd>$86.62</dd></div>
+                    <div><dt data-i18n="mockup.last31DaysCost">Last 31 days Cost</dt><dd>$5,286.29</dd></div>
+                    <div><dt data-i18n="mockup.last31DaysTokens">Last 31 days tokens</dt><dd>5.9B</dd></div>
+                    <div><dt data-i18n="mockup.latestTokens">Latest tokens</dt><dd>119M</dd></div>
+                  </dl>
+                  <div class="mini-bars" style="--brand: #10A37F">
+                    <i style="--h: 52%"></i><i style="--h: 61%"></i><i style="--h: 38%"></i><i style="--h: 70%"></i><i style="--h: 33%"></i><i style="--h: 84%"></i><i style="--h: 41%"></i><i style="--h: 12%"></i><i style="--h: 29%"></i><i style="--h: 57%"></i><i style="--h: 66%"></i><i style="--h: 48%"></i><i style="--h: 0%"></i><i style="--h: 74%"></i><i style="--h: 90%"></i><i style="--h: 58%"></i><i style="--h: 63%"></i><i style="--h: 36%"></i><i style="--h: 77%"></i><i class="is-latest" style="--h: 69%"></i>
                   </div>
                 </div>
               </div>
+              <h3 data-i18n="features.spendTitle">Credits, spend, and cost scans</h3>
+              <p data-i18n="features.spendBody">Credit balances and monthly spend where the provider exposes them, plus configurable local cost scans for Codex and Claude.</p>
             </article>
-            <article class="feature-card provider-reveal" style="--reveal-delay: 200ms">
-              <div class="feature-card-copy">
-                <h3 data-i18n="features.statusTitle">Status &amp; incidents</h3>
-                <p data-i18n="features.statusBody">Provider status polling surfaces incident badges in the menu and an indicator overlay on the bar icon.</p>
-              </div>
-              <div class="feature-card-visual" aria-hidden="true">
-                <img src="./features/feature-status.webp" alt="" width="1620" height="1020" loading="lazy" />
-                <div class="feature-card-overlay is-status-menu">
-                  <div class="feature-status-panel">
-                    <p class="feature-status-summary"><span data-i18n="mockup.partialDegradation">Partial degradation</span> <span data-i18n="mockup.twoIncidents">2 incidents</span></p>
-                    <ul class="feature-status-list" aria-hidden="true">
-                      <li class="is-critical">
-                        <span class="feature-status-dot"></span>
-                        <span class="feature-status-name">Codex API</span>
-                        <span class="feature-status-label" data-i18n="mockup.majorOutage">Major outage</span>
-                      </li>
-                      <li class="is-minor">
-                        <span class="feature-status-dot"></span>
-                        <span class="feature-status-name">Chat Completions</span>
-                        <span class="feature-status-label" data-i18n="mockup.degraded">Degraded</span>
-                      </li>
-                      <li>
-                        <span class="feature-status-dot"></span>
-                        <span class="feature-status-name">CLI</span>
-                        <span class="feature-status-label" data-i18n="mockup.operational">Operational</span>
-                      </li>
-                      <li>
-                        <span class="feature-status-dot"></span>
-                        <span class="feature-status-name">Responses</span>
-                        <span class="feature-status-label" data-i18n="mockup.operational">Operational</span>
-                      </li>
-                    </ul>
-                  </div>
+
+            <article class="feature-card">
+              <div class="feature-visual" aria-hidden="true">
+                <div class="mini-card">
+                  <p class="mini-split"><strong data-i18n="mockup.partialDegradation">Partial degradation</strong><span data-i18n="mockup.twoIncidents">2 incidents</span></p>
+                  <ul class="status-list">
+                    <li class="tone-critical"><svg><use href="#sym-octagon" /></svg><span>Codex API</span><em data-i18n="mockup.majorOutage">Major outage</em></li>
+                    <li class="tone-warning"><svg><use href="#sym-triangle" /></svg><span>Chat Completions</span><em data-i18n="mockup.degraded">Degraded</em></li>
+                    <li class="tone-ok"><svg><use href="#sym-check" /></svg><span>CLI</span><em data-i18n="mockup.operational">Operational</em></li>
+                    <li class="tone-ok"><svg><use href="#sym-check" /></svg><span>Responses</span><em data-i18n="mockup.operational">Operational</em></li>
+                  </ul>
                 </div>
               </div>
+              <h3 data-i18n="features.statusTitle">Status &amp; incidents</h3>
+              <p data-i18n="features.statusBody">Provider status polling surfaces incident badges in the menu and an indicator overlay on the bar icon.</p>
             </article>
           </div>
         </div>
       </section>
 
-      <section class="cli-section px-5 py-20 sm:px-8 lg:px-12 lg:py-28" data-scroll-section>
-        <div class="section-inner relative z-10">
+      <section class="cli-section" data-scroll-section>
+        <div class="section-inner">
           <div class="split-layout">
-            <div class="split-visual-wrap provider-reveal" role="img" aria-label="OpenBar CLI output preview" data-i18n-aria-label="cli.outputPreviewAria">
+            <div class="split-visual-wrap" role="img" aria-label="OpenBar CLI output preview" data-i18n-aria-label="cli.outputPreviewAria">
               <div class="cli-terminal">
                 <div class="cli-terminal-chrome">
                   <div class="cli-terminal-dots" aria-hidden="true">
@@ -621,17 +535,17 @@
             </div>
 
             <div class="split-copy">
-              <h2 class="split-copy-heading provider-reveal" style="--reveal-delay: 70ms">
+              <h2 class="split-copy-heading" style="--reveal-delay: 70ms">
                 <span class="section-title-line">OpenBar</span>
                 <span class="section-title-line" data-i18n="cli.titleLine2">on CLI</span>
               </h2>
-              <p class="split-copy-lead provider-reveal" style="--reveal-delay: 110ms">
+              <p class="split-copy-lead" style="--reveal-delay: 110ms">
                 <span data-i18n-rich="cli.lead">A bundled {openbar} binary with the same usage output as the menu bar — scripts, CI, and quick terminal checks.</span>
               </p>
-              <p class="split-copy-note provider-reveal" style="--reveal-delay: 150ms">
+              <p class="split-copy-note" style="--reveal-delay: 150ms">
                 <span data-i18n="cli.note">Standalone tarballs for macOS and Linux on every release.</span>
               </p>
-              <p class="cli-footnote provider-reveal" style="--reveal-delay: 190ms">
+              <p class="cli-footnote" style="--reveal-delay: 190ms">
                 <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path fill="currentColor" d="M12 2.5 4.5 6.5v5.8c0 4.55 3.08 8.02 7.5 9.2 4.42-1.18 7.5-4.65 7.5-9.2V6.5L12 2.5Z" opacity="0.22" />
                   <path d="M12 2.5 4.5 6.5v5.8c0 4.55 3.08 8.02 7.5 9.2 4.42-1.18 7.5-4.65 7.5-9.2V6.5L12 2.5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
@@ -644,23 +558,23 @@
         </div>
       </section>
 
-      <section class="widgets-section px-5 py-20 sm:px-8 lg:px-12 lg:py-28" data-scroll-section>
-        <div class="section-inner relative z-10">
+      <section class="widgets-section" data-scroll-section>
+        <div class="section-inner">
           <div class="split-layout split-layout--copy-left">
             <div class="split-copy">
-              <h2 class="split-copy-heading provider-reveal">
+              <h2 class="split-copy-heading">
                 <span class="section-title-line">OpenBar</span>
                 <span class="section-title-line" data-i18n="widgets.titleLine2">widgets</span>
               </h2>
-              <p class="split-copy-lead provider-reveal" style="--reveal-delay: 70ms">
+              <p class="split-copy-lead" style="--reveal-delay: 70ms">
                 <span data-i18n="widgets.lead">WidgetKit widgets for supported providers — usage windows, reset countdowns, and spend where available. Drop them on your Home Screen and desktop.</span>
               </p>
-              <p class="split-copy-note provider-reveal" style="--reveal-delay: 120ms">
+              <p class="split-copy-note" style="--reveal-delay: 120ms">
                 <span data-i18n="widgets.note">Small, medium, and large sizes. Switch providers without leaving the widget.</span>
               </p>
             </div>
 
-            <div class="split-visual-wrap provider-reveal" style="--reveal-delay: 80ms">
+            <div class="split-visual-wrap" style="--reveal-delay: 80ms">
               <div class="mac-widget-sheet" role="img" aria-label="macOS widget gallery preview" data-i18n-aria-label="widgets.galleryAria">
                 <div class="mac-widget-sheet__body">
                   <aside class="mac-widget-sidebar" aria-label="Widget categories" data-i18n-aria-label="widgets.categoriesAria">
@@ -669,7 +583,7 @@
                         <circle cx="11" cy="11" r="7" />
                         <path d="m20 20-3.2-3.2" />
                       </svg>
-                      <span>codexb</span>
+                      <span>openbar</span>
                     </div>
                     <ul class="mac-widget-nav">
                       <li>
@@ -685,7 +599,7 @@
                       </li>
                       <li class="is-active">
                         <span class="mac-widget-nav-icon is-app" aria-hidden="true">
-                          <img src="./icon.png?v=2" alt="" loading="lazy" />
+                          <img src="./icon.png?v=3" alt="" loading="lazy" />
                         </span>
                         OpenBar
                       </li>
@@ -699,21 +613,24 @@
                       <div class="mac-widget-row">
                         <article class="widget-tile is-small">
                           <div class="widget-preview">
-                            <img src="./widgets/03-openbar-metric-compact.png" alt="" width="204" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/03-openbar-metric-compact.png" alt="" width="248" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/03-openbar-metric-compact-dark.png" alt="" width="248" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Metric</h4>
                           <p data-i18n="widgets.metricCaption">Compact widget for credits or cost.</p>
                         </article>
                         <article class="widget-tile is-medium">
                           <div class="widget-preview">
-                            <img src="./widgets/01-openbar-history-small.png" alt="" width="428" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/01-openbar-history-small.png" alt="" width="527" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/01-openbar-history-small-dark.png" alt="" width="527" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar History</h4>
                           <p data-i18n="widgets.historyCaption">Usage history chart with recent totals.</p>
                         </article>
                         <article class="widget-tile is-large">
                           <div class="widget-preview">
-                            <img src="./widgets/02-openbar-history-large.png" alt="" width="388" height="370" loading="lazy" />
+                            <img class="widget-light" src="./widgets/02-openbar-history-large.png" alt="" width="527" height="552" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/02-openbar-history-large-dark.png" alt="" width="527" height="552" loading="lazy" />
                           </div>
                           <h4>OpenBar History</h4>
                           <p data-i18n="widgets.historyCaption">Usage history chart with recent totals.</p>
@@ -723,21 +640,24 @@
                       <div class="mac-widget-row">
                         <article class="widget-tile is-small">
                           <div class="widget-preview">
-                            <img src="./widgets/06-openbar-usage-compact.png" alt="" width="204" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/06-openbar-usage-compact.png" alt="" width="248" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/06-openbar-usage-compact-dark.png" alt="" width="248" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Usage</h4>
                           <p data-i18n="widgets.usageCaption">Session and weekly usage with credits and costs.</p>
                         </article>
                         <article class="widget-tile is-medium">
                           <div class="widget-preview">
-                            <img src="./widgets/07-openbar-usage-wide.png" alt="" width="428" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/07-openbar-usage-wide.png" alt="" width="527" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/07-openbar-usage-wide-dark.png" alt="" width="527" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Usage</h4>
                           <p data-i18n="widgets.usageCaption">Session and weekly usage with credits and costs.</p>
                         </article>
                         <article class="widget-tile is-large">
                           <div class="widget-preview">
-                            <img src="./widgets/08-openbar-usage-large.png" alt="" width="388" height="388" loading="lazy" />
+                            <img class="widget-light" src="./widgets/08-openbar-usage-large.png" alt="" width="527" height="552" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/08-openbar-usage-large-dark.png" alt="" width="527" height="552" loading="lazy" />
                           </div>
                           <h4>OpenBar Usage</h4>
                           <p data-i18n="widgets.usageCaption">Session and weekly usage with credits and costs.</p>
@@ -747,21 +667,24 @@
                       <div class="mac-widget-row">
                         <article class="widget-tile is-small">
                           <div class="widget-preview">
-                            <img src="./widgets/09-openbar-switcher-compact.png" alt="" width="204" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/09-openbar-switcher-compact.png" alt="" width="248" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/09-openbar-switcher-compact-dark.png" alt="" width="248" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Switcher</h4>
                           <p data-i18n="widgets.switcherCaption">Usage widget with a provider switcher.</p>
                         </article>
                         <article class="widget-tile is-medium">
                           <div class="widget-preview">
-                            <img src="./widgets/10-openbar-switcher-wide.png" alt="" width="428" height="204" loading="lazy" />
+                            <img class="widget-light" src="./widgets/10-openbar-switcher-wide.png" alt="" width="527" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/10-openbar-switcher-wide-dark.png" alt="" width="527" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Switcher</h4>
                           <p data-i18n="widgets.switcherCaption">Usage widget with a provider switcher.</p>
                         </article>
                         <article class="widget-tile is-large">
                           <div class="widget-preview">
-                            <img src="./widgets/11-openbar-switcher-large.png" alt="" width="388" height="388" loading="lazy" />
+                            <img class="widget-light" src="./widgets/11-openbar-switcher-large.png" alt="" width="527" height="552" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/11-openbar-switcher-large-dark.png" alt="" width="527" height="552" loading="lazy" />
                           </div>
                           <h4>OpenBar Switcher</h4>
                           <p data-i18n="widgets.switcherCaption">Usage widget with a provider switcher.</p>
@@ -771,14 +694,16 @@
                       <div class="mac-widget-row">
                         <article class="widget-tile is-medium">
                           <div class="widget-preview">
-                            <img src="./widgets/04-openbar-burndown.png" alt="" width="427" height="203" loading="lazy" />
+                            <img class="widget-light" src="./widgets/04-openbar-burndown.png" alt="" width="527" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/04-openbar-burndown-dark.png" alt="" width="527" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Burn Down</h4>
                           <p data-i18n="widgets.burndownCaption">Remaining budget compared with an ideal steady burn rate.</p>
                         </article>
                         <article class="widget-tile is-medium">
                           <div class="widget-preview">
-                            <img src="./widgets/05-openbar-burndown-combined.png" alt="" width="427" height="203" loading="lazy" />
+                            <img class="widget-light" src="./widgets/05-openbar-burndown-combined.png" alt="" width="527" height="248" loading="lazy" />
+                            <img class="widget-dark" src="./widgets/05-openbar-burndown-combined-dark.png" alt="" width="527" height="248" loading="lazy" />
                           </div>
                           <h4>OpenBar Burn Down (Combined)</h4>
                           <p data-i18n="widgets.burndownCombinedCaption">Session and weekly burn-down charts in one tile.</p>
@@ -799,30 +724,30 @@
         </div>
       </section>
 
-      <section class="technical-section px-5 py-16 sm:px-8 lg:px-12 lg:py-20" data-scroll-section>
+      <section class="technical-section" data-scroll-section>
         <div class="section-inner">
-        <p class="section-eyebrow provider-reveal" data-i18n="detail.more">More</p>
+        <p class="section-eyebrow" data-i18n="detail.more">More</p>
 
-        <div class="technical-grid relative z-10">
-          <article class="technical-block provider-reveal" style="--reveal-delay: 60ms">
+        <div class="technical-grid">
+          <article class="technical-block" style="--reveal-delay: 60ms">
             <h3 data-i18n="detail.installTitle">Install &amp; updates</h3>
             <p>
               <span data-i18n-rich="detail.installBody">Universal app via {releases} with Sparkle auto-updates, or via {cask} (updates via {upgrade}).</span>
             </p>
           </article>
-          <article class="technical-block provider-reveal" style="--reveal-delay: 110ms">
+          <article class="technical-block" style="--reveal-delay: 110ms">
             <h3 data-i18n="detail.cliTitle">CLI</h3>
             <p>
               <span data-i18n-rich="detail.cliBody">A bundled {openbar} binary plus standalone tarballs for macOS and Linux on each release. On Linux: {linuxCommand}.</span>
             </p>
           </article>
-          <article class="technical-block provider-reveal" style="--reveal-delay: 160ms">
+          <article class="technical-block" style="--reveal-delay: 160ms">
             <h3 data-i18n="detail.privacyTitle">Privacy</h3>
             <p>
               <span data-i18n-rich="detail.privacyBody">Reuses existing provider sessions — OAuth, device flow, API keys, browser cookies, local files — so no passwords are stored. Audit notes in {issue}.</span>
             </p>
           </article>
-          <article class="technical-block provider-reveal" style="--reveal-delay: 210ms">
+          <article class="technical-block" style="--reveal-delay: 210ms">
             <h3 data-i18n="detail.permissionsTitle">macOS permissions</h3>
             <p>
               <span data-i18n="detail.permissionsBody">Full Disk Access for Safari cookies, Keychain access for cookie decryption and OAuth flows, and Files &amp; Folders prompts when provider helpers read project directories.</span>
@@ -833,7 +758,7 @@
       </section>
     </main>
 
-    <footer class="site-footer px-5 sm:px-8 lg:px-12">
+    <footer class="site-footer">
       <span data-i18n="footer.builtBy">Built by</span>
       <a href="https://github.com/steipete">Peter Steinberger</a>
       <span aria-hidden="true"> · </span>
@@ -844,7 +769,7 @@
       <a href="https://trimmy.app">trimmy.app</a>
     </footer>
 
-    <script type="module" src="./site.js?v=4"></script>
+    <script type="module" src="./site.js?v=5"></script>
 
   </body>
 </html>

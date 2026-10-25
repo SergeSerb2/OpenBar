@@ -6,13 +6,15 @@ import WidgetKit
 // MARK: - Entry View
 
 struct BurnDownWidgetView: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let entry: BurnDownEntry
 
     var body: some View {
         let state = BurnDownState(
             snapshot: self.entry.snapshot,
             provider: self.entry.provider,
-            selection: self.entry.window)
+            selection: self.entry.window,
+            now: self.fixedNow ?? Date())
 
         Group {
             if let state, let window = state.selectedWindow {
@@ -26,22 +28,19 @@ struct BurnDownWidgetView: View {
                 BurnDownEmptyState()
             }
         }
-        .containerBackground(for: .widget) {
-            BurnWidgetBackground()
-        }
+        .containerBackground(.fill.tertiary, for: .widget)
     }
 }
 
 struct BurnDownEmptyState: View {
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 4) {
             Text(W("Open OpenBar"))
-                .font(.body)
-                .fontWeight(.semibold)
+                .font(WidgetTheme.Fonts.cardTitle)
             Text(W("No data"))
-                .font(.caption)
+                .font(WidgetTheme.Fonts.meta)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .opacity(0.55)
         }
         .padding(12)
     }
@@ -50,8 +49,8 @@ struct BurnDownEmptyState: View {
 // MARK: - Main Layout
 
 private struct BurnDownLayout: View {
-    @Environment(\.widgetRenderingMode) private var renderingMode
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.widgetPalette) private var palette
+    @Environment(\.widgetFixedNow) private var fixedNow
 
     let window: RateWindow
     let title: String
@@ -64,13 +63,11 @@ private struct BurnDownLayout: View {
     var resetsAtOverride: Date?
 
     var body: some View {
-        let dark = self.colorScheme == .dark
-        let isMonochrome = self.renderingMode != .fullColor
-        let geom = BurnGeom(window: self.window)
-        let theme = BurnTheme(provider: self.provider, geom: geom, dark: dark, isMonochrome: isMonochrome)
+        let now = self.fixedNow ?? Date()
+        let geom = BurnGeom(window: self.window, now: now)
+        let theme = BurnTheme(provider: self.provider, geom: geom, palette: self.palette)
         let windowMins = self.window.windowMinutes ?? 300
         let isDailyWindow = windowMins >= 1440
-        let now = Date()
         let estimatedResetMinutes = self.blankChart || geom.tNow >= 1
             ? nil
             : (1 - geom.tNow) * Double(windowMins)
@@ -117,16 +114,15 @@ private struct BurnDownLayout: View {
                         Circle()
                             .fill(theme.brandDot)
                             .frame(width: 7, height: 7)
-                            .shadow(color: theme.brandDot.opacity(0.7), radius: 3.5)
                         Text(burnProviderName(self.provider))
-                            .font(.system(size: 14.5, weight: .semibold))
+                            .font(WidgetTheme.Fonts.cardTitle)
                             .foregroundStyle(theme.text)
                             .lineLimit(1)
                     }
                     Text("\(self.title) · \(burnWindowLabel(self.window.windowMinutes))")
-                        .font(.system(size: 11))
+                        .font(WidgetTheme.Fonts.meta)
                         .foregroundStyle(theme.sub)
-                        .kerning(0.2)
+                        .lineLimit(1)
                 }
 
                 Spacer()
@@ -134,16 +130,15 @@ private struct BurnDownLayout: View {
                 VStack(alignment: .trailing, spacing: 1) {
                     if showBadgeNumber {
                         Text(badgeNum)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(WidgetTheme.Fonts.laneValue)
                             .foregroundStyle(theme.statusColor)
-                            .monospacedDigit()
                     }
                     HStack(spacing: 3) {
                         Text(arrow)
                             .font(.system(size: 8))
                             .foregroundStyle(theme.statusColor)
                         Text(statusWord)
-                            .font(.system(size: 10.5))
+                            .font(WidgetTheme.Fonts.meta)
                             .foregroundStyle(theme.sub)
                     }
                 }
@@ -161,24 +156,23 @@ private struct BurnDownLayout: View {
                                 .depleted ? W("budget spent") : runsDryBefore ? "~\(burnFmtDuration(outInMins))" :
                                 W("after reset"),
                             theme: theme,
-                            danger: geom.depleted || runsDryBefore)
+                            tone: geom.depleted ? .critical : runsDryBefore ? .warning : .normal)
                     }
                     .padding(.top, 8)
 
-                    Spacer()
+                    Spacer(minLength: 4)
 
                     HStack(alignment: .lastTextBaseline, spacing: 5) {
                         Text("\(Int(geom.vNow.rounded()))")
-                            .font(.system(size: 41, weight: .semibold))
+                            .font(WidgetTheme.Fonts.hero(size: 41))
                             .foregroundStyle(geom.depleted ? theme.danger : theme.text)
-                            .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                         Text("%")
                             .font(.system(size: 19, weight: .medium))
                             .foregroundStyle(theme.sub)
                         Text(W("left"))
-                            .font(.system(size: 11))
+                            .font(WidgetTheme.Fonts.meta)
                             .foregroundStyle(theme.sub)
                     }
                 }
@@ -191,9 +185,7 @@ private struct BurnDownLayout: View {
                         Color.clear.frame(height: 84)
                         Color.clear.frame(height: 13)
                     } else {
-                        BurnChartCanvas(
-                            geom: geom,
-                            theme: theme)
+                        BurnChart(geom: geom, theme: theme)
                             .frame(height: 84)
 
                         BurnAxisRow(
@@ -219,44 +211,43 @@ private struct BurnStatRow: View {
     let label: String
     let value: String
     let theme: BurnTheme
-    let danger: Bool
+    let tone: OpenBarQuotaTone
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(W(self.label))
-                .font(.system(size: 11.5))
+                .font(WidgetTheme.Fonts.meta)
                 .foregroundStyle(self.theme.sub)
             Spacer()
             Text(self.value)
-                .font(.system(size: 12.5, weight: .semibold))
-                .foregroundStyle(self.danger ? self.theme.danger : self.theme.text)
-                .monospacedDigit()
+                .font(WidgetTheme.Fonts.laneValue)
+                .foregroundStyle(self.theme.text(self.tone))
                 .lineLimit(1)
         }
     }
 }
 
 private struct BurnResetStatRow: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let resetAt: Date?
     let theme: BurnTheme
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(W("Resets in"))
-                .font(.system(size: 11.5))
+                .font(WidgetTheme.Fonts.meta)
                 .foregroundStyle(self.theme.sub)
             Spacer()
-            if let resetAt {
-                WidgetDateText.offset(resetAt)
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(self.theme.text)
-                    .monospacedDigit()
-                    .lineLimit(1)
-            } else {
-                Text("—")
-                    .font(.system(size: 12.5, weight: .semibold))
-                    .foregroundStyle(self.theme.text)
+            Group {
+                if let resetAt {
+                    WidgetDateText.offset(resetAt, now: self.fixedNow)
+                } else {
+                    Text("—")
+                }
             }
+            .font(WidgetTheme.Fonts.laneValue)
+            .foregroundStyle(self.theme.text)
+            .lineLimit(1)
         }
     }
 }
@@ -287,20 +278,20 @@ private struct BurnAxisRow: View {
 
             ZStack(alignment: .leading) {
                 Text(self.startLabel)
-                    .font(.system(size: 9.5))
+                    .font(WidgetTheme.Fonts.caption)
                     .foregroundStyle(self.theme.sub)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if showNow {
                     Text(W("now"))
-                        .font(.system(size: 9.5, weight: .semibold))
+                        .font(WidgetTheme.Fonts.caption.weight(.semibold))
                         .foregroundStyle(self.theme.text)
                         .position(x: nowX, y: geo.size.height / 2)
                 }
 
                 Text(self.resetLabel)
-                    .font(.system(size: 9.5))
+                    .font(WidgetTheme.Fonts.caption)
                     .foregroundStyle(self.theme.sub)
                     .monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -309,290 +300,288 @@ private struct BurnAxisRow: View {
     }
 }
 
-// MARK: - Chart Canvas
+// MARK: - Chart
 
-struct BurnChartCanvas: View {
+/// Burn-down chart in plain shapes (docs/design/README.md, 8): the "now" rule and baseline, the ideal
+/// steady burn (dashed), the recorded burn (solid) over a flat used-area tint, the projection
+/// (dotted), and the "now" point. Combined rows draw per-period usage bars behind the lines.
+struct BurnChart: View {
     let geom: BurnGeom
     let theme: BurnTheme
     var periods: Int?
-    var dark = false
 
     var body: some View {
-        Canvas { context, size in
-            let w = size.width
-            let h = size.height
-            let padT: CGFloat = self.periods == nil ? 8 : 5
-            let padB: CGFloat = 2
-            let padL: CGFloat = 1
-            let padR: CGFloat = 1
-
-            func X(_ t: Double) -> CGFloat {
-                padL + CGFloat(t) * (w - padL - padR)
-            }
-            func Y(_ v: Double) -> CGFloat {
-                padT + CGFloat(1 - v / 100) * (h - padT - padB)
-            }
-
-            let tNow = self.geom.tNow
-            let vNow = self.geom.vNow
-
+        let plot = BurnPlot(periods: self.periods)
+        let now = BurnPoint(t: self.geom.tNow, v: self.geom.vNow)
+        ZStack {
             if let periods = self.periods {
-                let barColor = self.dark ? Color.white : Color.black
-
-                // --- Usage bars (background texture) ---
-                // Drawn first so the actual line renders on top.
-                // Heights are relative-to-ideal: idealPerPeriod maps to ~46% of plot height.
-                let plotH = h - padT - padB
-                let refH = 0.46 * plotH // reference height = ideal-pace bar height
-                let idealPerPeriod = 100.0 / Double(periods)
-                let burnRate = tNow > 0.001 ? (100.0 - vNow) / tNow : 0.0 // %/unit-t
-                let slotW = (w - padL - padR) / CGFloat(periods)
-
-                for i in 0..<periods {
-                    let slotStart = Double(i) / Double(periods)
-                    let slotEnd = Double(i + 1) / Double(periods)
-                    let slotX = padL + CGFloat(slotStart) * (w - padL - padR)
-
-                    if slotEnd <= tNow {
-                        // Completed period — full-width bar
-                        let consumed = burnRate * (slotEnd - slotStart)
-                        let ratio = consumed / idealPerPeriod
-                        let totalBarH = CGFloat(ratio) * refH
-                        let baseH = min(totalBarH, refH)
-
-                        if baseH > 0 {
-                            let rect = CGRect(
-                                x: slotX,
-                                y: h - padB - baseH,
-                                width: slotW - 1,
-                                height: baseH)
-                            context.fill(Path(rect), with: .color(barColor.opacity(0.17)))
-                        }
-                        // Overage segment — above ideal reference line
-                        if totalBarH > refH {
-                            let overH = totalBarH - refH
-                            let rect = CGRect(
-                                x: slotX,
-                                y: h - padB - totalBarH,
-                                width: slotW - 1,
-                                height: overH)
-                            context.fill(Path(rect), with: .color(barColor.opacity(0.34)))
-                        }
-                    } else if slotStart < tNow {
-                        // Current (partial) period — narrower bar ending at tNow
-                        let partialFrac = (tNow - slotStart) / (slotEnd - slotStart)
-                        let consumed = burnRate * (tNow - slotStart)
-                        let ratio = consumed / idealPerPeriod
-                        let totalBarH = CGFloat(ratio) * refH
-                        let baseH = min(totalBarH, refH)
-                        let barW = CGFloat(partialFrac) * (slotW - 1)
-
-                        if baseH > 0 {
-                            let rect = CGRect(
-                                x: slotX,
-                                y: h - padB - baseH,
-                                width: barW,
-                                height: baseH)
-                            context.fill(Path(rect), with: .color(barColor.opacity(0.13)))
-                        }
-                        if totalBarH > refH {
-                            let overH = totalBarH - refH
-                            let rect = CGRect(
-                                x: slotX,
-                                y: h - padB - totalBarH,
-                                width: barW,
-                                height: overH)
-                            context.fill(Path(rect), with: .color(barColor.opacity(0.26)))
-                        }
-                    } else {
-                        // Future period — faint full-height placeholder
-                        let rect = CGRect(
-                            x: slotX,
-                            y: h - padB - refH,
-                            width: slotW - 1,
-                            height: refH)
-                        context.fill(Path(rect), with: .color(barColor.opacity(0.045)))
-                    }
+                ForEach(BurnBarsShape.Kind.allCases, id: \.self) { kind in
+                    BurnBarsShape(geom: self.geom, periods: periods, plot: plot, kind: kind)
+                        .fill(self.theme.barColor.opacity(kind.opacity))
                 }
             }
-
-            // --- Now vertical hairline ---
-            do {
-                var p = Path()
-                p.move(to: CGPoint(x: X(tNow), y: Y(100)))
-                p.addLine(to: CGPoint(x: X(tNow), y: Y(0)))
-                context.stroke(p, with: .color(self.theme.chartGrid), lineWidth: 1)
-            }
-
-            // --- Baseline ---
-            do {
-                var p = Path()
-                p.move(to: CGPoint(x: X(0), y: Y(0)))
-                p.addLine(to: CGPoint(x: X(1), y: Y(0)))
-                context.stroke(p, with: .color(self.theme.chartGrid), lineWidth: 1)
-            }
-
-            // --- Area fill (gradient from actual line down to baseline) ---
+            BurnGuidesShape(t: self.geom.tNow, plot: plot)
+                .stroke(self.theme.chartGrid, lineWidth: 1)
             if self.periods == nil {
-                var p = Path()
-                p.move(to: CGPoint(x: X(0), y: Y(100)))
-                p.addLine(to: CGPoint(x: X(tNow), y: Y(vNow)))
-                p.addLine(to: CGPoint(x: X(tNow), y: Y(0)))
-                p.addLine(to: CGPoint(x: X(0), y: Y(0)))
-                p.closeSubpath()
-
-                let gradient = Gradient(stops: [
-                    .init(color: self.theme.chartFillTop.opacity(self.theme.chartFillTopOpacity), location: 0),
-                    .init(color: self.theme.chartFillTop.opacity(0), location: 0.92),
-                ])
-                context.fill(
-                    p,
-                    with: .linearGradient(
-                        gradient,
-                        startPoint: CGPoint(x: 0, y: padT),
-                        endPoint: CGPoint(x: 0, y: h)))
+                BurnAreaShape(now: now, plot: plot)
+                    .fill(self.theme.chartFill)
             }
-
-            // --- Ideal line (dashed, knocked back) ---
-            do {
-                var p = Path()
-                p.move(to: CGPoint(x: X(0), y: Y(100)))
-                p.addLine(to: CGPoint(x: X(1), y: Y(0)))
-                context.stroke(
-                    p,
-                    with: .color(self.theme.chartIdeal),
-                    style: StrokeStyle(lineWidth: 1.4, lineCap: .round, dash: [2.5, 3]))
-            }
-
-            // --- Projection (fine dotted) ---
+            BurnLineShape(from: BurnPoint(t: 0, v: 100), to: BurnPoint(t: 1, v: 0), plot: plot)
+                .stroke(self.theme.chartIdeal, style: StrokeStyle(lineWidth: 1, lineCap: .round, dash: [3, 3]))
             if self.geom.slope < -0.01 {
-                var p = Path()
-                p.move(to: CGPoint(x: X(tNow), y: Y(vNow)))
-                p.addLine(to: CGPoint(x: X(self.geom.projT), y: Y(self.geom.projV)))
-                context.stroke(
-                    p,
-                    with: .color(self.theme.chartProj.opacity(0.95)),
-                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [0.5, 3.5]))
+                BurnLineShape(from: now, to: BurnPoint(t: self.geom.projT, v: self.geom.projV), plot: plot)
+                    .stroke(
+                        self.theme.chartProj,
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [0.5, 3.5]))
             }
-
-            // --- Actual line (solid, hero) ---
-            do {
-                var p = Path()
-                p.move(to: CGPoint(x: X(0), y: Y(100)))
-                p.addLine(to: CGPoint(x: X(tNow), y: Y(vNow)))
-                context.stroke(
-                    p,
-                    with: .color(self.theme.chartLine),
-                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-            }
-
-            // --- Now dot (filled, with ring punched in bg color) ---
-            let dotCenter = CGPoint(x: X(tNow), y: Y(vNow))
-            let ringPath = Path(ellipseIn: CGRect(
-                x: dotCenter.x - 5.4, y: dotCenter.y - 5.4, width: 10.8, height: 10.8))
-            context.fill(ringPath, with: .color(self.theme.chartNowRing))
-            let dotPath = Path(ellipseIn: CGRect(
-                x: dotCenter.x - 3.4, y: dotCenter.y - 3.4, width: 6.8, height: 6.8))
-            context.fill(dotPath, with: .color(self.theme.chartNowDot))
+            BurnLineShape(from: BurnPoint(t: 0, v: 100), to: now, plot: plot)
+                .stroke(self.theme.chartLine, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            BurnDotShape(center: now, radius: 3.5, plot: plot)
+                .fill(self.theme.chartNowDot)
         }
+        .flipsForRightToLeftLayoutDirection(true)
+        .accessibilityHidden(true)
     }
 }
 
-// MARK: - Background
+/// A point in chart space: `t` is the position in the window (0...1), `v` the percent left.
+struct BurnPoint: Equatable {
+    let t: Double
+    let v: Double
+}
 
-struct BurnWidgetBackground: View {
-    @Environment(\.widgetRenderingMode) private var renderingMode
-    @Environment(\.colorScheme) private var colorScheme
+/// Maps chart space into a shape's rectangle, with the insets the "now" point needs.
+struct BurnPlot: Equatable {
+    let top: CGFloat
+    let bottom: CGFloat = 2
+    let leading: CGFloat = 1
+    let trailing: CGFloat = 1
 
-    var body: some View {
-        if self.renderingMode == .fullColor {
-            let dark = self.colorScheme == .dark
-            LinearGradient(
-                colors: dark
-                    ? [BurnPalette.darkBgTop, BurnPalette.darkBgBottom]
-                    : [BurnPalette.lightBgTop, BurnPalette.lightBgBottom],
-                startPoint: .init(x: 0.15, y: 0),
-                endPoint: .init(x: 0.85, y: 1))
-                .overlay(alignment: .top) {
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(dark ? 0.04 : 0.60),
-                            Color.white.opacity(0),
-                        ],
-                        startPoint: .top,
-                        endPoint: .center)
-                }
-        } else {
-            Color.clear
+    init(periods: Int?) {
+        self.top = periods == nil ? 8 : 5
+    }
+
+    func point(_ point: BurnPoint, in rect: CGRect) -> CGPoint {
+        CGPoint(
+            x: rect.minX + self.leading + CGFloat(point.t) * (rect.width - self.leading - self.trailing),
+            y: rect.minY + self.top + CGFloat(1 - point.v / 100) * (rect.height - self.top - self.bottom))
+    }
+}
+
+struct BurnLineShape: Shape {
+    let from: BurnPoint
+    let to: BurnPoint
+    let plot: BurnPlot
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: self.plot.point(self.from, in: rect))
+        path.addLine(to: self.plot.point(self.to, in: rect))
+        return path
+    }
+}
+
+/// The "now" rule and the baseline, stroked together.
+struct BurnGuidesShape: Shape {
+    let t: Double
+    let plot: BurnPlot
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: self.plot.point(BurnPoint(t: self.t, v: 100), in: rect))
+        path.addLine(to: self.plot.point(BurnPoint(t: self.t, v: 0), in: rect))
+        path.move(to: self.plot.point(BurnPoint(t: 0, v: 0), in: rect))
+        path.addLine(to: self.plot.point(BurnPoint(t: 1, v: 0), in: rect))
+        return path
+    }
+}
+
+/// The used area under the recorded burn, filled flat (no gradient).
+struct BurnAreaShape: Shape {
+    let now: BurnPoint
+    let plot: BurnPlot
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: self.plot.point(BurnPoint(t: 0, v: 100), in: rect))
+        path.addLine(to: self.plot.point(self.now, in: rect))
+        path.addLine(to: self.plot.point(BurnPoint(t: self.now.t, v: 0), in: rect))
+        path.addLine(to: self.plot.point(BurnPoint(t: 0, v: 0), in: rect))
+        path.closeSubpath()
+        return path
+    }
+}
+
+struct BurnDotShape: Shape {
+    let center: BurnPoint
+    let radius: CGFloat
+    let plot: BurnPlot
+
+    func path(in rect: CGRect) -> Path {
+        let center = self.plot.point(self.center, in: rect)
+        return Path(ellipseIn: CGRect(
+            x: center.x - self.radius,
+            y: center.y - self.radius,
+            width: self.radius * 2,
+            height: self.radius * 2))
+    }
+}
+
+/// Per-period usage bars behind a combined row's lines, one batched path per kind. Heights are
+/// relative to the ideal pace: one period's ideal share maps to 46 % of the plot height.
+struct BurnBarsShape: Shape {
+    enum Kind: CaseIterable {
+        case completedBase
+        case completedOverage
+        case partialBase
+        case partialOverage
+        case future
+
+        var opacity: Double {
+            switch self {
+            case .completedBase: 0.17
+            case .completedOverage: 0.34
+            case .partialBase: 0.13
+            case .partialOverage: 0.26
+            case .future: 0.045
+            }
+        }
+    }
+
+    let geom: BurnGeom
+    let periods: Int
+    let plot: BurnPlot
+    let kind: Kind
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        guard self.periods > 0 else { return path }
+        let width = rect.width - self.plot.leading - self.plot.trailing
+        let plotHeight = rect.height - self.plot.top - self.plot.bottom
+        let baseline = rect.maxY - self.plot.bottom
+        let referenceHeight = 0.46 * plotHeight
+        let idealPerPeriod = 100.0 / Double(self.periods)
+        let tNow = self.geom.tNow
+        let burnRate = tNow > 0.001 ? (100.0 - self.geom.vNow) / tNow : 0.0
+        let slotWidth = width / CGFloat(self.periods)
+
+        for index in 0..<self.periods {
+            let slotStart = Double(index) / Double(self.periods)
+            let slotEnd = Double(index + 1) / Double(self.periods)
+            let slotX = rect.minX + self.plot.leading + CGFloat(slotStart) * width
+            if slotEnd <= tNow {
+                let total = CGFloat(burnRate * (slotEnd - slotStart) / idealPerPeriod) * referenceHeight
+                self.addBar(
+                    to: &path,
+                    x: slotX,
+                    width: slotWidth - 1,
+                    total: total,
+                    reference: referenceHeight,
+                    baseline: baseline,
+                    base: .completedBase,
+                    overage: .completedOverage)
+            } else if slotStart < tNow {
+                let partial = (tNow - slotStart) / (slotEnd - slotStart)
+                let total = CGFloat(burnRate * (tNow - slotStart) / idealPerPeriod) * referenceHeight
+                self.addBar(
+                    to: &path,
+                    x: slotX,
+                    width: CGFloat(partial) * (slotWidth - 1),
+                    total: total,
+                    reference: referenceHeight,
+                    baseline: baseline,
+                    base: .partialBase,
+                    overage: .partialOverage)
+            } else if self.kind == .future {
+                path.addRect(CGRect(
+                    x: slotX,
+                    y: baseline - referenceHeight,
+                    width: slotWidth - 1,
+                    height: referenceHeight))
+            }
+        }
+        return path
+    }
+
+    // swiftlint:disable:next function_parameter_count
+    private func addBar(
+        to path: inout Path,
+        x: CGFloat,
+        width: CGFloat,
+        total: CGFloat,
+        reference: CGFloat,
+        baseline: CGFloat,
+        base: Kind,
+        overage: Kind)
+    {
+        if self.kind == base {
+            let height = min(total, reference)
+            if height > 0 {
+                path.addRect(CGRect(x: x, y: baseline - height, width: width, height: height))
+            }
+        } else if self.kind == overage, total > reference {
+            path.addRect(CGRect(x: x, y: baseline - total, width: width, height: total - reference))
         }
     }
 }
 
 // MARK: - Theme
 
+/// Burn-down colors. Status follows the shared tones: on pace or conserving is `ok`, over pace is
+/// `warning`, a spent budget is `critical`. Outside full color everything is the tint at varying
+/// strength, so the glyphs (▲ ▼ ● ■ ◆) and words carry the status.
 struct BurnTheme {
     let text: Color
     let sub: Color
     let hair: Color
-    let accent: Color
     let statusColor: Color
+    let warning: Color
     let danger: Color
     let brandDot: Color
     let chartLine: Color
-    let chartFillTop: Color
-    let chartFillTopOpacity: Double
+    let chartFill: Color
     let chartIdeal: Color
     let chartProj: Color
     let chartGrid: Color
     let chartNowDot: Color
-    let chartNowRing: Color
+    let barColor: Color
 
-    init(provider: UsageProvider, geom: BurnGeom, dark: Bool, isMonochrome: Bool) {
-        if isMonochrome {
-            let fg = dark ? Color.white : Color.black
-            self.text = fg.opacity(dark ? 0.95 : 0.90)
-            self.sub = fg.opacity(dark ? 0.50 : 0.46)
-            self.hair = fg.opacity(dark ? 0.13 : 0.11)
-            self.accent = fg.opacity(dark ? 0.95 : 0.85)
-            self.statusColor = fg.opacity(dark ? 0.90 : 0.80)
-            self.danger = fg.opacity(dark ? 0.95 : 0.85)
-            self.brandDot = fg.opacity(dark ? 0.85 : 0.72)
-            self.chartLine = fg.opacity(dark ? 0.95 : 0.85)
-            self.chartFillTop = fg.opacity(dark ? 0.95 : 0.85)
-            self.chartFillTopOpacity = dark ? 0.20 : 0.16
-            self.chartIdeal = fg.opacity(dark ? 0.36 : 0.30)
-            self.chartProj = fg.opacity(dark ? 0.60 : 0.48)
-            self.chartGrid = fg.opacity(dark ? 0.12 : 0.10)
-            self.chartNowDot = fg.opacity(dark ? 1.0 : 0.92)
-            self.chartNowRing = dark
-                ? Color(red: 0.10, green: 0.10, blue: 0.12).opacity(0.92)
-                : Color(red: 0.96, green: 0.96, blue: 0.97).opacity(0.95)
-        } else {
-            let accentColor = Self.accentColor(geom.status, dark: dark)
-            self.accent = accentColor
-            self.statusColor = accentColor
-            self.text = dark ? Color.white.opacity(0.98) : Color(white: 0.20)
-            self.sub = dark ? Color(white: 0.60) : Color(white: 0.45)
-            self.hair = dark ? Color.white.opacity(0.10) : Color.black.opacity(0.09)
-            self.danger = BurnPalette.behindDark
-            self.brandDot = Self.brandDotColor(provider)
-            self.chartLine = accentColor
-            self.chartFillTop = accentColor
-            self.chartFillTopOpacity = dark ? 0.30 : 0.22
-            self.chartIdeal = dark ? Color.white.opacity(0.45) : Color.black.opacity(0.50)
-            // Projection goes red when behind (the one allowed color cue in full-color mode)
-            self.chartProj = geom.status == .behind ? BurnPalette.behindDark : accentColor
-            self.chartGrid = dark ? Color.white.opacity(0.10) : Color.black.opacity(0.09)
-            self.chartNowDot = accentColor
-            self.chartNowRing = dark ? BurnPalette.darkBgBottom : BurnPalette.lightBgBottom
+    init(provider: UsageProvider, geom: BurnGeom, palette: WidgetPalette) {
+        self.text = .primary
+        self.sub = .secondary
+        self.hair = palette.separator
+        self.chartGrid = Color.primary.opacity(palette.contrast == .increased ? 0.3 : 0.1)
+        self.chartIdeal = .secondary
+        self.barColor = .primary
+        guard palette.isFullColor else {
+            self.statusColor = .primary
+            self.warning = .primary
+            self.danger = .primary
+            self.brandDot = Color.primary.opacity(0.7)
+            self.chartLine = .primary
+            self.chartFill = Color.primary.opacity(0.12)
+            self.chartProj = Color.primary.opacity(0.55)
+            self.chartNowDot = .primary
+            return
         }
+        let ok = palette.color(OpenBarPalette.ok)
+        let warning = palette.color(OpenBarPalette.warning)
+        let status = geom.status == .behind ? warning : ok
+        self.statusColor = status
+        self.warning = warning
+        self.danger = palette.color(OpenBarPalette.critical)
+        self.brandDot = Self.brandDotColor(provider)
+        self.chartLine = status
+        self.chartFill = status.opacity(0.12)
+        self.chartProj = status
+        self.chartNowDot = status
     }
 
-    private static func accentColor(_ status: BurnGeom.Status, dark: Bool) -> Color {
-        switch status {
-        case .ahead: dark ? BurnPalette.aheadDark : BurnPalette.aheadLight
-        case .onpace: dark ? BurnPalette.onpaceDark : BurnPalette.onpaceLight
-        case .behind: dark ? BurnPalette.behindDark : BurnPalette.behindLight
+    func text(_ tone: OpenBarQuotaTone) -> Color {
+        switch tone {
+        case .critical: self.danger
+        case .warning: self.warning
+        case .normal, .stale: self.text
         }
     }
 
@@ -600,27 +589,6 @@ struct BurnTheme {
         let color = ProviderDescriptorRegistry.descriptor(for: provider).branding.burnDownWidgetColor
         return Color(red: color.red, green: color.green, blue: color.blue)
     }
-}
-
-// MARK: - Palette
-
-enum BurnPalette {
-    // Status accents — approximated from OKLCH (L=0.80 dark, L=0.62 light)
-    // oklch(0.80 0.15 152) / oklch(0.62 0.15 152) — green
-    static let aheadDark = Color(red: 0.306, green: 0.800, blue: 0.506)
-    static let aheadLight = Color(red: 0.192, green: 0.620, blue: 0.376)
-    // oklch(0.80 0.11 236) / oklch(0.62 0.11 236) — blue
-    static let onpaceDark = Color(red: 0.408, green: 0.668, blue: 0.910)
-    static let onpaceLight = Color(red: 0.264, green: 0.474, blue: 0.712)
-    // oklch(0.72 0.19 26) / oklch(0.60 0.19 26) — red-orange
-    static let behindDark = Color(red: 0.922, green: 0.420, blue: 0.227)
-    static let behindLight = Color(red: 0.762, green: 0.294, blue: 0.137)
-
-    // Backgrounds
-    static let darkBgTop = Color(red: 0.108, green: 0.108, blue: 0.132)
-    static let darkBgBottom = Color(red: 0.132, green: 0.132, blue: 0.156)
-    static let lightBgTop = Color(white: 0.990)
-    static let lightBgBottom = Color(red: 0.940, green: 0.940, blue: 0.960)
 }
 
 // MARK: - Geometry
@@ -649,13 +617,13 @@ struct BurnGeom {
         self.vNow >= 99.5
     }
 
-    init(window: RateWindow) {
+    init(window: RateWindow, now: Date = Date()) {
         let remaining = max(0, min(100, window.remainingPercent))
         self.vNow = remaining
 
         let t: Double
         if let resetsAt = window.resetsAt, let windowMins = window.windowMinutes, windowMins > 0 {
-            let minutesUntilReset = max(0, resetsAt.timeIntervalSinceNow / 60)
+            let minutesUntilReset = max(0, resetsAt.timeIntervalSince(now) / 60)
             let minutesElapsed = Double(windowMins) - minutesUntilReset
             t = max(0.001, min(0.999, minutesElapsed / Double(windowMins)))
         } else {
