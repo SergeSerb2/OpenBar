@@ -23,7 +23,8 @@ Related files:
 | Surface inventory (every surface → files, CodexBar identity markers) | [`inventory.md`](inventory.md) |
 | Design tokens (raw values, shared by app, widget, CLI) | `Sources/OpenBarCore/Design/OpenBarDesignTokens.swift` |
 | App accessors (SwiftUI `Color`/`Font`, dynamic `NSColor`) | `Sources/OpenBar/Design/OpenBarTheme.swift` |
-| Widget accessors | `Sources/OpenBarWidget/WidgetTheme.swift` |
+| Widget accessors (`WidgetTheme.Fonts`, `WidgetPalette`) | `Sources/OpenBarWidget/WidgetTheme.swift` |
+| Surface token extensions | `Sources/OpenBar/Design/OpenBarTheme+{Glyph,Charts,Menu,Switcher,Settings}.swift` ([note](#token-extensions)) |
 | Icon sources (concepts, final, glyph reference) | [`icon/`](icon/) |
 | Mockups (open in a browser) | [`mockups/index.html`](mockups/index.html) |
 | Render gallery (real views → PNG) | `Scripts/render_gallery.sh`, `Tests/OpenBarTests/RenderGallery/` |
@@ -51,8 +52,10 @@ Related files:
 ## 2. Color
 
 All values are sRGB hex. Tokens live in `OpenBarPalette` (core) and are read through `OpenBarTheme.Colors`
-(SwiftUI), `OpenBarTheme.NSColors` (AppKit, dynamic), or `WidgetTheme.Colors`. Each token has light, dark,
-and Increase Contrast variants; the dynamic `NSColor` resolves at draw time for the drawing appearance.
+(SwiftUI), `OpenBarTheme.NSColors` (AppKit, dynamic), or `WidgetPalette` (widgets, read from the
+`widgetPalette` environment value). Each token has light, dark, and Increase Contrast variants; the dynamic
+`NSColor` resolves at draw time for the drawing appearance, and `WidgetPalette` resolves for the view's own color
+scheme, contrast, and rendering mode.
 
 Text and SF Symbols use **system label colors** (`labelColor`, `secondaryLabelColor`,
 `tertiaryLabelColor`) everywhere. Do not introduce custom text grays.
@@ -142,6 +145,20 @@ lightness band, chroma floor, adjacent CVD ΔE ≥ 8, normal-vision ΔE ≥ 15).
 
 Light slots 3–5 are below 3:1 on white, so charts that use them always show a legend and direct labels or
 the hover detail (see §8).
+
+### Token extensions
+
+Surface agents added tokens in their own files as `extension`s instead of editing the core token file. They are
+live and part of the design system; the lead may fold them into `OpenBarDesignTokens.swift` or
+`OpenBarTheme.swift` later without changing values:
+
+| File | Adds |
+| --- | --- |
+| `Sources/OpenBar/Design/OpenBarTheme+Glyph.swift` | `OpenBarGlyphMetrics.staleRailAlpha` (0.7), `missingLaneAlpha` (0.45), `trackAlphaReducedTransparency` (0.34), `minimumFill` (1.5 pt) |
+| `Sources/OpenBar/Design/OpenBarTheme+Charts.swift` | `OpenBarTheme.Chart`: bar radius, mark gap, line and grid widths, axis and rule colors, the activity ramp (§8) |
+| `Sources/OpenBar/Design/OpenBarTheme+Menu.swift` | `OpenBarMenuStyle` card, lane, meter, and pace-tick geometry; menu fonts and pace tones for §9.2 |
+| `Sources/OpenBar/Design/OpenBarTheme+Switcher.swift` | `OpenBarTheme.Switcher`: rail inset and padding, strip split gap, title and numeral sizes (§9.2) |
+| `Sources/OpenBar/Design/OpenBarTheme+Settings.swift` | `OpenBarSettingsMetrics` and shared Settings pane and panel modifiers for §9.4 |
 
 ---
 
@@ -265,30 +282,36 @@ All glyphs are **monochrome template images** (`isTemplate = true`), drawn on th
 Graphics, cached per state, and redrawn only when their inputs change. No color in the menu bar except the
 existing quota-warning flash (now `critical`) and the existing high-contrast inactive-display treatment.
 
-**Meter bars** (`MenuBarIconStyle.bars`, label unchanged): the OpenBar glyph. 18 × 18 pt canvas
-(`OpenBarGlyphMetrics`):
+**Meter bars** (`MenuBarIconStyle.bars`, label unchanged): the OpenBar glyph (`MeterBarsGlyph`). 18 × 18 pt
+canvas (`OpenBarGlyphMetrics`):
 
 ```
 x: 1 ─────────────────────────────── 17
-   ███████████████ ▕ ░░░░░░░░░░░       primary (session)  y 3.5, h 5
-   ██████████ ▕ ░░░░░░░░░░░░░░░░       secondary (weekly) y 11,  h 3.5
-                 ↑ 1-pt split gap: fill and track are separate capsules
+   ███████████████░░░░░░░░░░░░░       primary (session)  y 3.5, h 5
+   ██████████░░░░░░░░░░░░░░░░░░       secondary (weekly) y 11,  h 3.5
+                 ↑ fill and track meet at a straight level edge (no gap)
 ```
 
-- Fill capsule from the leading edge, width = remaining × 16 pt; minimum width = rail height when
-  remaining > 0; no fill at 0. Then a 1-pt gap, then the track capsule at 28 % (45 % with Increase
-  Contrast) to the end; omit the track if it would be < 1 pt. No outline stroke. This split gap is
-  OpenBar's "open" motif (it echoes the gap in the app icon).
+- Each rail is one continuous capsule. The fill runs from the leading edge to a straight level edge at
+  remaining × 16 pt, snapped to the pixel grid; the track fills the rest of the capsule at 28 % (45 % with
+  Increase Contrast, 34 % with Reduce Transparency). Fill and track split the capsule at one pixel edge, so
+  their alphas never stack. Minimum fill is 1.5 pt when remaining > 0; no fill at 0. No outline stroke.
+- **Dropped: the 1-pt split gap.** The first version separated fill and track with a 1-pt gap. The design
+  council removed it from the glyph: at 18 pt a 1-pt gap read as a rendering seam, not as a motif.
+  `OpenBarGlyphMetrics.splitGap` remains in the token file, but the glyph does not use it. The menu meter
+  keeps its own 1.5-pt gap (`OpenBarMenuMetrics.meterSplitGap`, §9.2, `UsageProgressBar`).
 - "Show used" fills the used fraction instead (existing `UsageBarsFillOption`).
-- **States:** stale → whole glyph 50 %; missing secondary → secondary rail as track only at 45 %; one
-  meaningful quota → single rail 6 pt tall centered (existing `QuotaLayoutPolicy`); credits only → single
-  rail at primary height; minor issue / maintenance → 4-pt dot at the top-right corner (x 14–18, y 0–4)
-  with a 1-pt cleared halo; major / critical / unknown → exclamation (2 × 6 pt bar + 2 × 2 pt dot) at the
-  top-right with a cleared halo.
-- **Loading:** the existing `LoadingPattern` animations animate the two rails' fill; the `unbraid` morph
-  ends in the split-rail geometry.
+- **Marks:** at most one mark in the top-right corner, strongest wins, each clearing a 1-pt halo out of the
+  rails (geometry, not a mask): **dot** (4 pt) for low quota or a minor incident or maintenance; **ring**
+  (6 pt, 3-pt hole) for stale data; **exclamation** (2 × 6 pt bar + 2 × 2 pt dot) for critical or exhausted
+  quota or a major, critical, or unknown incident. Over a single centered rail the dot and ring drop 3 pt.
+- **States:** stale → the ring mark, and rails and track at **70 %** (`staleRailAlpha` 0.7; the original 50 %
+  nearly vanished on a light menu bar); missing secondary → secondary rail as an empty capsule at 45 %
+  (`missingLaneAlpha`); one meaningful quota → single rail 6 pt tall centered (existing `QuotaLayoutPolicy`);
+  credits only → single rail at primary height, centered.
+- **Loading:** the existing `LoadingPattern` animations animate the two rails' fill.
 - **Critters** (`MenuBarIconStyle.critters`): legacy, opt-in. Keep the existing drawing code unchanged so
-  the setting keeps its meaning. See open question 1 about the default.
+  the setting keeps its meaning. Meter bars is the default.
 
 **Icon & percent** (`MenuBarIconStyle.iconAndPercent`) and custom layouts (`MenuBarLayoutRenderer`):
 
@@ -297,8 +320,8 @@ x: 1 ─────────────────────────
   Percent `62%` · Pace `+11%` · Both `62% · +11%` · Reset time `↻ 3:56 PM` / `↻ 2h 14m`. The separator dot
   and the `↻` mark at 55 % opacity. **Pace is not colored** (replace the `systemGreen`/`systemRed` pace
   text with the sign alone).
-- `progressBar(window:)` token: one split rail (same geometry as the primary rail; widths 32 / 36 / 44 by
-  layout size), replacing the five-segment style. `usageBar` (character meter) unchanged.
+- `progressBar(window:)` token: one Meter bars rail (continuous capsule, level-edge fill, same alphas and stale
+  treatment as the glyph; widths 32 / 36 / 44 by layout size), replacing the five-segment style. `usageBar` (character meter) unchanged.
 - `tokensSparkline`: unchanged technique; bar ends 1 pt rounded; baseline alpha 22 %.
 - Stacked two-provider layout (`compactStacked`, merged `stacked`): existing 9-pt lines; logos 9 pt.
 - Small / regular / large sizes and gaps: existing values.
@@ -466,7 +489,8 @@ window background, too faint for guidance text; secondary measures 3.95:1 and 5.
 ### 9.5 Widgets
 
 WidgetKit tiles keep their sizes (small 155 × 155, medium 329 × 155, large 329 × 345), content margins,
-and `.containerBackground(.fill.tertiary, for: .widget)`. Read `WidgetTheme` instead of literals.
+and `.containerBackground(.fill.tertiary, for: .widget)`. Read `WidgetTheme.Fonts` and `WidgetPalette` instead
+of literals.
 
 - **Header** (`TileHeader`): provider mark (monogram plate, radius 5, provider color, existing contrast
   logic) · name (`cardTitle`) · freshness (`meta` secondary; stale = `clock` symbol + secondary, not
@@ -521,9 +545,9 @@ group, neutral shadow 0.2) → `Scripts/build_icon.sh Icon.icon Icon` → `Icon.
   replace `#0099FF`, `#38BDF8`, `#4FB6C3`, `#FF4055`.
 - Type: `-apple-system, "SF Pro Display", Inter, system-ui` headings 600 with −0.02em tracking (web only),
   body 16/1.55.
-- Hero: replace the CodexBar-style popover and two-meter glyph with an HTML/CSS (or SVG) rendering of the
-  §9.2 menu and the §9.1 glyph. Keep `hero-mockup.svg` laptop artwork if it carries no CodexBar marks;
-  otherwise redraw. Hero glow: Iris only (drop orange/teal).
+- Hero: an HTML/CSS rendering (`#mockup-stage` in `docs/index.html`) of the §9.2 menu, the §9.1 glyph, and a
+  medium widget replaced the CodexBar-style popover, two-meter glyph, and laptop artwork. The old
+  `hero-mockup.svg` and the feature and menu bar raster assets were removed. Hero glow: Iris only.
 - Feature illustrations: meters use the split motif with provider colors; status illustrations use §2.2.
 - Provider directory: logos unchanged; cards `cardFill` style, radius 12.
 - Keep every `data-i18n` key; no new strings unless all 23 locales are handled (`check-site-locales`).
@@ -753,7 +777,8 @@ and say so in the report.
   `WidgetExtension/` only if needed. Owns `Sources/OpenBarWidget/Resources/*.lproj` and
   `Scripts/widget-localization-keys.json` under the same no-new-strings rule.
 - Web: `docs/index.html`, `docs/site.css`, `docs/site.js` (theme only), `docs/site-utilities.css` (via
-  `Scripts/build-site-css.sh`), `docs/hero-mockup.svg`, `docs/images/menubar/*`, `docs/features/*`,
+  `Scripts/build-site-css.sh`), `docs/hero-mockup.svg`, `docs/images/menubar/*`, `docs/features/*` (all three
+  since removed),
   `docs/social.html`, `docs/social.png`, `docs/social-card.json`, `README.md` (badges, images), the
   website widget screenshots `docs/widgets/0*.png` (re-rendered from the gallery), `docs/openbar.png`
   (replace with a gallery composite or remove if unreferenced), `assets/icon.svg`,
