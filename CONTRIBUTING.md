@@ -17,9 +17,9 @@ Please read the [Code of Conduct](CODE_OF_CONDUCT.md) first. Report security pro
 
 ## Development setup
 
-You need macOS 14 or later and Xcode with Swift 6.2 or later. CI builds with Xcode 27; older toolchains are best
-effort. The project is a SwiftPM package; use the scripts in `Scripts/` and do not add dependencies or tools without
-asking first.
+You need Xcode 26 or later (Swift 6.2). CI builds with Xcode 27; older toolchains are best effort. The app itself
+runs on macOS 14 or later. The project is a SwiftPM package; use the scripts in `Scripts/` and do not add
+dependencies or tools without asking first.
 
 ```bash
 git clone https://github.com/SergeSerb2/OpenBar.git
@@ -53,7 +53,7 @@ Keychain access again after each rebuild. See [Development setup](docs/DEVELOPME
 - Before you open a pull request, run the formatters and the full lint and docs check once:
 
   ```bash
-  swiftformat Sources Tests
+  make format    # SwiftFormat and the JavaScript formatter, with the pinned tool versions
   make check     # SwiftFormat, SwiftLint --strict, JS/TS lint, docs links, site locales, repo size, and more
   ```
 
@@ -97,7 +97,7 @@ non-negotiable guardrails (identity silo, on-device parsing, bounded timeouts, c
 - Each provider has its own page, `docs/<provider>.md`. Describe the data sources, the order OpenBar tries them,
   the settings, and what the user must do to sign in. Link the provider's own documentation for any endpoint or
   limit you rely on.
-- Every page in `docs/` starts with front matter that has a `summary:` line and a `read_when:` list.
+- Every new page in `docs/` starts with front matter that has a `summary:` line and a `read_when:` list.
   `make docs-list` prints them.
 - Do not edit generated files by hand. After you add a provider, run:
 
@@ -106,6 +106,9 @@ non-negotiable guardrails (identity silo, on-device parsing, bounded timeouts, c
   node Scripts/regenerate-provider-docs.mjs  # README, docs/providers.md, site provider cards, logos
   node Scripts/generate-llms.mjs             # docs/llms.txt
   ```
+
+  The generators update the provider count in the README image text, the site, and `docs/providers.md`. Update the
+  count in the README's "Supported providers" sentence by hand.
 
 - Add the provider to `docs/providers.md` with its authentication and data-source summary.
 - Use synthetic data in screenshots. Redact names, emails, and organization IDs.

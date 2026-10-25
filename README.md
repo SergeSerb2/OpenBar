@@ -30,7 +30,7 @@ Based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
 
 - **Limits at a glance.** The menu bar icon shows your session and weekly quota as two meters. Open the menu for
   each provider's limits, reset countdowns, pace ("lasts until reset" or "runs out in 2h"), credits, and plan.
-- **109 providers.** Coding plans, API platforms, gateways, and local tools. Show one icon per provider, or merge
+- **100+ providers.** Coding plans, API platforms, gateways, and local tools. Show one icon per provider, or merge
   them into one icon with a switcher.
 - **Local cost tracking.** OpenBar reads your local Codex, Claude, and other agent logs to estimate tokens and spend.
   **Settings → Usage & Spend** shows daily trends by provider, model, project, and session.
@@ -49,7 +49,7 @@ Based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
 
 ## Why OpenBar
 
-**Lightweight.** OpenBar targets under 100 MB of memory in steady use and never more than 200 MB.
+**Lightweight.** The goal is about 100 MB of memory in steady use, and never more than 200 MB.
 
 - Cost scans run in a short-lived helper process. The app receives only the results, and macOS gets all scan memory
   back when the helper exits.
@@ -76,8 +76,8 @@ remain.
 3. Open OpenBar. Its icon appears in the menu bar.
 
 OpenBar needs macOS 14 or later and runs on Apple silicon and Intel Macs. Release builds are signed with a Developer
-ID and notarized by Apple. OpenBar updates itself with [Sparkle](https://sparkle-project.org): it checks for updates
-automatically, and **About → Check for Updates** checks now.
+ID and notarized by Apple. OpenBar updates itself with [Sparkle](https://sparkle-project.org): it checks for and
+downloads updates automatically. To check now, choose **Check for Updates…** in the menu or in **Settings → About**.
 
 **First run.** Open **Settings → Providers** and turn on the providers you use. Each provider reads its data from one
 or more sources: an existing CLI login, OAuth or a device sign-in, an API key, a browser session, or local files.
@@ -89,8 +89,10 @@ CodexBar without sharing state.
 ### Command-line tool
 
 The app bundles the `openbar` CLI. To put it on your `PATH`, choose **Settings → Advanced → Install CLI**. This links
-it as `openbar` in `/usr/local/bin` and `/opt/homebrew/bin`. From a clone of this repository you can run
-`./bin/install-openbar-cli.sh` instead. Each release also has standalone CLI archives for macOS and Linux.
+it as `openbar` in `/usr/local/bin` and `/opt/homebrew/bin`, where those folders exist and are writable. If it reports
+no write access, move OpenBar to `/Applications` and run `./bin/install-openbar-cli.sh` from a clone of this
+repository; it asks for an administrator password. Each release also has standalone CLI archives for macOS and
+Linux.
 
 ```bash
 openbar                                   # usage for every enabled provider
@@ -108,7 +110,7 @@ OpenBar supports **109 providers**. They include:
 
 - **Coding plans and assistants:** Codex, Claude, Cursor, Gemini, Copilot, Antigravity, Droid, Kiro, Windsurf, Zed,
   Amp, OpenCode, Devin, JetBrains AI, and more.
-- **API platforms and credits:** OpenAI, the Claude Admin API, OpenRouter, Mistral, DeepSeek, xAI, AWS Bedrock,
+- **API platforms and credits:** OpenAI, Claude Platform, OpenRouter, Mistral, DeepSeek, xAI, AWS Bedrock,
   Vertex AI, Fireworks, DeepInfra, and more.
 - **Gateways and self-hosted proxies:** LiteLLM, Bifrost, sub2api, LLM Proxy, ClawRouter, and Wayfinder.
 - **Regional plans:** z.ai, Kimi, MiniMax, Alibaba, Qwen Cloud, Doubao, StepFun, Xiaomi MiMo, and more.
@@ -118,7 +120,7 @@ Each provider has a setup guide with its sources, settings, and limits. Start at
 write a [plugin](docs/plugins.md) without changing the app.
 
 <details>
-<summary><strong>All 109 providers</strong></summary>
+<summary><strong>All providers</strong></summary>
 
 - [Codex](docs/codex.md) — OAuth API or local Codex CLI, plus optional OpenAI web dashboard extras.
 - [OpenAI](docs/openai.md) — Admin API key usage/cost graphs with legacy credit-balance fallback.
@@ -239,21 +241,25 @@ write a [plugin](docs/plugins.md) without changing the app.
 
 - **Credentials stay on your Mac.** API keys, pasted cookies, and token accounts are saved in the OpenBar config file
   (`~/.config/openbar/config.json`) with owner-only (`0600`) permissions. Some imported browser cookies and OAuth
-  tokens are cached in OpenBar's own Keychain items. OpenBar never stores your browser or account passwords.
+  tokens are cached in OpenBar's own Keychain items. OpenBar never stores browser passwords. The only account
+  password it can save is StepFun's, if you choose its username-and-password login.
 - **No telemetry.** OpenBar has no analytics or tracking. It connects to the providers you turn on, plus provider
   status pages, the update feed, [models.dev](https://models.dev) for model prices, and an exchange-rate service only
   when you choose a currency other than USD.
 - **No disk crawling.** OpenBar reads a small set of known locations — provider config files, local agent logs, and
   browser cookie stores — and only for the features you turn on.
-- **Browser cookies are opt-in.** Cookie import for a provider reuses your existing browser session. You can paste a
-  cookie header or use an API key instead.
-- **Keychain prompts are rare and explained.** Background refreshes do not ask for Keychain access, unless you opt in
-  for Claude. A manual refresh can show at most one browser prompt, and a denial pauses further prompts for six
-  hours. **Settings → Advanced → Disable Keychain access** turns off OpenBar's own Keychain use. See
+- **You control browser access.** OpenBar reads browser cookies only for providers you turn on, to reuse your
+  existing session. A provider's cookie source starts on Auto; set it to Manual (paste a cookie header) or Off, or
+  use an API key where the provider supports one.
+- **Keychain prompts are rare and explained.** OpenBar's own background refreshes do not ask for Keychain access,
+  unless you opt in for Claude. A manual refresh can show at most one browser prompt, and a denial pauses further
+  browser prompts for six hours. Provider CLIs that OpenBar starts, such as Claude Code, handle their own Keychain
+  access. **Settings → Advanced → Disable Keychain access** turns off OpenBar's own Keychain use. See
   [Keychain prompts](docs/keychain-prompts.md).
-- **macOS permissions.** Full Disk Access is optional and only needed for Safari cookies. Provider CLIs that OpenBar
-  starts can cause a Files & Folders prompt for the folder they read. OpenBar does not ask for Screen Recording or
-  Accessibility access.
+- **macOS permissions.** Full Disk Access is optional and only needed for Safari cookies. Reading a Chromium
+  browser's cookies, or a provider CLI that OpenBar starts, can cause a Files & Folders prompt. Focusing an agent
+  session's window can ask for Accessibility access, and opening a command in a terminal app can ask for Automation
+  access. OpenBar does not ask for Screen Recording access.
 
 Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md).
 
@@ -283,7 +289,7 @@ that variable is set.
 
 ## Build from source
 
-You need macOS 14 or later and Xcode with Swift 6.2 or later.
+Building needs Xcode 26 or later (Swift 6.2; CI uses Xcode 27). The app you build runs on macOS 14 or later.
 
 ```bash
 git clone https://github.com/SergeSerb2/OpenBar.git

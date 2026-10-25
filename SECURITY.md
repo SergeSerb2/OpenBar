@@ -34,17 +34,19 @@ accounts. Its main job, from a security point of view, is to keep those credenti
 
 **What OpenBar stores and where**
 
-- API keys, manual cookie headers, and token accounts are in the OpenBar config file
-  (`~/.config/openbar/config.json`, or `~/.openbar/config.json` on older installs). The file is written atomically
-  with `0600` permissions.
+- API keys, manual cookie headers, and token accounts are in the OpenBar config file, normally
+  `~/.config/openbar/config.json` (`OPENBAR_CONFIG` or `XDG_CONFIG_HOME` can move it). The file is written
+  atomically with `0600` permissions.
 - Some imported browser cookies and OAuth credentials are cached in OpenBar-owned macOS Keychain items.
-- OpenBar does not store browser or account passwords. Browser sessions are reused only when you turn on cookie
-  import for a provider.
+- OpenBar does not store browser passwords. The only account password it can save is StepFun's, if you choose its
+  username-and-password login. Browser sessions are read only for providers you turn on; a provider's cookie source
+  starts on Auto and can be set to Manual or Off.
 
 **Keychain boundary**
 
-- Background refreshes do not request Keychain interaction. The one exception is Claude's opt-in **Always allow
-  prompts** policy. Browser cookie import shows at most one macOS prompt per manual action, and a denial suppresses
+- OpenBar's own background refreshes do not request Keychain interaction. The one exception is Claude's opt-in
+  **Always allow prompts** policy. Some foreign Keychain items, such as Zed's, can still make macOS show a prompt on
+  the first read. Browser cookie import shows at most one macOS prompt per manual action, and a denial suppresses
   further browser prompts for six hours.
 - **Settings → Advanced → Disable Keychain access** blocks OpenBar's own Keychain reads and writes and browser
   cookie decryption. It cannot control provider CLIs that OpenBar launches, such as Claude Code, which own their
@@ -56,7 +58,8 @@ accounts. Its main job, from a security point of view, is to keep those credenti
   provider status), the update feed, model prices from `models.dev` for cost estimates, and exchange rates from
   `open.er-api.com` only when you choose a currency other than USD.
 - OpenBar has no analytics or telemetry.
-- Release builds are signed with a Developer ID and notarized. Sparkle verifies each update with OpenBar's EdDSA key.
+- Release builds are signed with a Developer ID and notarized. Sparkle verifies each update with OpenBar's EdDSA
+  key.
 
 **Local interfaces**
 
@@ -65,7 +68,8 @@ accounts. Its main job, from a security point of view, is to keep those credenti
   A non-loopback bind requires a bearer token and an explicit plain-HTTP acknowledgment. See [the CLI
   reference](docs/cli.md) and [the dashboard API](docs/dashboard-api.md).
 - User-installed plugins run in an embedded QuickJS runtime with a memory cap and a watchdog. OpenBar owns the
-  authentication header, and each network origin needs your typed approval. See [Plugins](docs/plugins.md).
+  authentication header, and you approve every network origin a plugin declares; loopback, `.local`, and IP origins
+  must be typed exactly. See [Plugins](docs/plugins.md).
 
 **Out of scope**
 

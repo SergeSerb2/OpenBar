@@ -67,7 +67,8 @@ memory use, and the fixes from a full bug and security audit (96 findings, 92 fi
   Codex account identity no longer appears in other providers.
 - Legacy credential migration never shows a Keychain prompt, and a saved Keychain-consent choice applies before
   startup migration.
-- StepFun session tokens move into secret storage.
+- Manual StepFun session tokens move to the config file's secret field, so `openbar config dump` and sync no longer
+  show them.
 
 **Hardening**
 
