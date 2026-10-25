@@ -1999,7 +1999,7 @@ struct ProviderArchitectureGatekeeperTests {
             expectedReferenceFingerprint: ["openrouter@0"],
             reason: "This exact shared renderer maps provider-owned presentation data into the generic UI model."),
         AllowedProviderConstruct(
-            path: "Sources/OpenBar/MenuCardView.swift",
+            path: "Sources/OpenBar/MenuCardView+CostLines.swift",
             anchor: "if self.provider != .codex || self.showsCodexHint,",
             expectedProviderIDs: ["codex"],
             expectedReferenceCount: 1,
