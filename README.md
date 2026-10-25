@@ -265,19 +265,20 @@ Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md
 
 ## Performance
 
-We ran the same scripted scenario against CodexBar's code and OpenBar on one Mac:
+We ran the same scripted scenario against CodexBar's code and OpenBar, back to back on one Mac (macOS 27.2,
+24 October 2026), with the same config and the same local Codex and Claude logs:
 
-<!-- PERF-NUMBERS: lead updates from final trials -->
-| Same scripted scenario | CodexBar 0.80.1 code | OpenBar |
+| Same scripted scenario | CodexBar 0.80.1 code | OpenBar 1.0 |
 |---|---:|---:|
-| Idle after startup | 165 MB | 65 MB |
-| Settled after use | 190 MB | 104 MB |
-| Peak | 383 MB | 156 MB |
+| Idle after startup | 233 MB | 89 MB |
+| Menu open | 323 MB | 81 MB |
+| Settled after use | 255 MB | 108 MB |
+| Peak | 504 MB | 128 MB |
 | Graphics memory after a chart or menu draws | ~97 MB | under 1 MB |
-| App bundle | 108 MB | 98 MB |
+| App bundle | 105.7 MiB | 96.2 MiB |
 
 Memory is the Activity Monitor footprint, median of 3 runs. In the scenario the menu is opened and its tabs cycled,
-Settings is opened and closed, a refresh is forced, and the app idles.
+Settings is opened and closed, a refresh is forced, and the app idles. Results vary with the size of your local logs.
 
 Cost scans run in the helper process, so their memory is not in the app's footprint and returns to macOS when each
 scan ends. The [idle footprint notes](docs/research/idle-footprint-2026-10-24.md) describe the method and the raw
