@@ -75,7 +75,9 @@ struct MenuCardHeightFingerprintTests {
             detailLeftText: "Estimated 2 session quotas left with a generously long localized pace explanation")
             .heightFingerprint(section: "card")
 
-        #expect(shortReset != widerTitle)
+        // The lane title truncates beside a fixed-width value instead of wrapping, so a wider title keeps the
+        // cached height.
+        #expect(shortReset == widerTitle)
         #expect(shortReset != longReset)
         #expect(shortMeta != longMeta)
     }
