@@ -156,8 +156,8 @@ struct ProviderArchitectureGatekeeperTests {
             Self.hash(descriptor.branding.burnDownWidgetColor, into: &burnDownFingerprint)
         }
 
-        // Chatbox extends the audited palette without changing existing provider colors.
-        #expect(widgetFingerprint == 1_520_460_381_527_728_538)
+        // Codex moved from CodexBar's teal to OpenAI green (#10A37F); other provider colors are unchanged.
+        #expect(widgetFingerprint == 14_989_101_639_365_713_624)
         #expect(burnDownFingerprint == 7_988_322_199_986_601_411)
     }
 
@@ -1999,7 +1999,7 @@ struct ProviderArchitectureGatekeeperTests {
             expectedReferenceFingerprint: ["openrouter@0"],
             reason: "This exact shared renderer maps provider-owned presentation data into the generic UI model."),
         AllowedProviderConstruct(
-            path: "Sources/OpenBar/MenuCardView.swift",
+            path: "Sources/OpenBar/MenuCardView+CostLines.swift",
             anchor: "if self.provider != .codex || self.showsCodexHint,",
             expectedProviderIDs: ["codex"],
             expectedReferenceCount: 1,
@@ -3557,8 +3557,15 @@ struct ProviderArchitectureGatekeeperTests {
             ],
             reason: "This exact shared provider integration dispatches a capability owned by the provider descriptor or adapter."),
         AllowedProviderConstruct(
+            path: "Sources/OpenBarCore/Sync/SyncModels.swift",
+            anchor: "result.region = firstPartyProvider == .stepfun ? nil : self.region",
+            expectedProviderIDs: ["stepfun"],
+            expectedReferenceCount: 1,
+            expectedReferenceFingerprint: ["stepfun@0"],
+            reason: "Legacy StepFun sync payloads carried a credential in the plaintext region field; never import it."),
+        AllowedProviderConstruct(
             path: "Sources/OpenBarCore/Providers/ProviderCredentialAdapter.swift",
-            anchor: "} else if provider == .stepfun, self.config?.sanitizedRegion != nil {",
+            anchor: "} else if provider == .stepfun,",
             expectedProviderIDs: ["stepfun"],
             expectedReferenceCount: 1,
             expectedReferenceFingerprint: ["stepfun@0"],

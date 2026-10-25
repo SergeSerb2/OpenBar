@@ -248,8 +248,9 @@ extension WindsurfCachedPlanInfo {
         unit: String) -> RateWindow?
     {
         guard let total = rawTotal, total > 0 else { return nil }
-        let inferredUsed = rawUsed ?? rawRemaining.map { max(0, total - $0) }
-        guard let used = inferredUsed else { return nil }
+        if let rawRemaining, rawRemaining < 0 || rawRemaining > total { return nil }
+        let inferredUsed = rawUsed ?? rawRemaining.map { total - $0 }
+        guard let used = inferredUsed, used >= 0 else { return nil }
         let clampedUsed = max(0, min(total, used))
         let usedPercent = max(0, min(100, Double(clampedUsed) / Double(total) * 100))
         return RateWindow(

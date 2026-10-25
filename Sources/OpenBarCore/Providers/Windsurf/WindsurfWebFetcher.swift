@@ -323,14 +323,7 @@ public enum WindsurfWebFetcher {
         }
 
         guard response.statusCode == 200 else {
-            let body = String(data: response.data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let snippet = if let body, !body.isEmpty {
-                ": \(body.prefix(200))"
-            } else {
-                ": <binary \(response.data.count) bytes>"
-            }
-            throw WindsurfWebFetcherError.apiCallFailed("HTTP \(response.statusCode)\(snippet)")
+            throw WindsurfWebFetcherError.apiCallFailed("HTTP \(response.statusCode)")
         }
 
         do {

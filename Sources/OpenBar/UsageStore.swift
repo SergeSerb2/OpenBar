@@ -230,6 +230,7 @@ final class UsageStore {
     @ObservationIgnored var lastOpenAIDashboardTargetIsolationKey: String?
     @ObservationIgnored var lastOpenAIDashboardAttemptAt: Date?
     @ObservationIgnored var lastOpenAIDashboardPageScrapeAt: Date?
+    @ObservationIgnored var lastOpenAISubscriptionBillingFallbackAt: Date?
     @ObservationIgnored var lastOpenAIDashboardCookieImportAttemptAt: Date?
     @ObservationIgnored var lastOpenAIDashboardCookieImportEmail: String?
     @ObservationIgnored var lastCodexAccountScopedRefreshGuard: CodexAccountScopedRefreshGuard?
@@ -588,7 +589,7 @@ final class UsageStore {
             guard instanceID.firstPartyProvider == nil else { return }
             self?.clearUserPluginHookState(instanceID)
         }
-        self.pruneUserPluginHookState()
+        self.pruneUserPluginHookStateAfterDiscovery()
         self.observeSettingsChanges()
         self.pathDebugInfo = PathDebugSnapshot(
             codexBinary: nil,
@@ -612,7 +613,11 @@ final class UsageStore {
         Task { @MainActor [weak self] in
             await self?.refreshHistoricalDatasetIfNeeded()
         }
-        Task { await self.refresh(enrichmentMode: .automatic) }
+        Task { [discovery = self.settings.initialUserPluginDiscovery] in
+            // Keep user plugins in the first refresh; discovery itself runs off the main actor.
+            await discovery?.value
+            await self.refresh(enrichmentMode: .automatic)
+        }
         self.startTimer()
     }
 
@@ -1302,9 +1307,9 @@ extension UsageStore {
                 lines.append("Cursor Status Summary:")
                 lines.append("membershipType=\(snapshot.membershipType ?? "nil")")
                 lines.append("accountEmail=\(snapshot.accountEmail ?? "nil")")
-                lines.append("planPercentUsed=\(snapshot.planPercentUsed)%")
-                lines.append("planUsedUSD=$\(snapshot.planUsedUSD)")
-                lines.append("planLimitUSD=$\(snapshot.planLimitUSD)")
+                lines.append("planPercentUsed=\(snapshot.planPercentUsed.map { "\($0)%" } ?? "unavailable")")
+                lines.append("planUsedUSD=\(snapshot.planUsedUSD.map { "$\($0)" } ?? "unavailable")")
+                lines.append("planLimitUSD=\(snapshot.planLimitUSD.map { "$\($0)" } ?? "unavailable")")
                 lines.append("onDemandUsedUSD=$\(snapshot.onDemandUsedUSD)")
                 lines.append("onDemandLimitUSD=\(snapshot.onDemandLimitUSD.map { "$\($0)" } ?? "nil")")
                 if let teamUsed = snapshot.teamOnDemandUsedUSD {

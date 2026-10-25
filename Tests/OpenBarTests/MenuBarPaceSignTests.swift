@@ -90,7 +90,9 @@ struct MenuBarPaceSignTests {
                 icon: nil,
                 options: self.options())
             #expect(output.attributedTitle.string == self.expected(delta: delta, reservePositive: reservePositive))
-            let expectedColor: NSColor = delta > 0 ? .systemRed : (delta < 0 ? .systemGreen : .controlTextColor)
+            let expectedColor: NSColor = delta > 0
+                ? MenuBarLayoutRenderer.paceDeficitColor
+                : (delta < 0 ? MenuBarLayoutRenderer.paceReserveColor : .controlTextColor)
             #expect(output.attributedTitle.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
                 == expectedColor)
             let conditionalOutput = renderer.render(
@@ -102,7 +104,7 @@ struct MenuBarPaceSignTests {
                 == (delta > 0 ? self.expected(delta: delta, reservePositive: reservePositive) : ""))
             if delta > 0 {
                 #expect(conditionalOutput.attributedTitle.attribute(
-                    .foregroundColor, at: 0, effectiveRange: nil) as? NSColor == .systemRed)
+                    .foregroundColor, at: 0, effectiveRange: nil) as? NSColor == MenuBarLayoutRenderer.paceDeficitColor)
             }
         }
     }

@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "使用状況のスナップショットを同期する";
 "Show accounts from other Macs" = "他の Mac のアカウントを表示する";
 "Requires a signed release build of OpenBar." = "OpenBar の署名付きリリース ビルドが必要です。";
+"iCloud Sync is not available in this build of OpenBar." = "このビルドの OpenBar では iCloud同期を利用できません。";
 "Sign in to iCloud in System Settings to enable sync." = "システム設定で iCloud にサインインして同期を有効にします。";
 "iCloud access is restricted on this Mac." = "この Mac では iCloud アクセスが制限されています。";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "同期が一時停止されています: 別の Mac が新しいバージョンの OpenBar を使用しています。更新して再開します。";
@@ -372,11 +373,9 @@
 "Store multiple OpenCode Cookie headers." = "複数の OpenCode Cookie ヘッダーを保存します。";
 "Store multiple OpenCode Go Cookie headers." = "複数の OpenCode Go Cookie ヘッダーを保存します。";
 "Stored in the OpenBar config file." = "OpenBar の設定ファイルに保存されます。";
-"Stored in ~/.openbar/config.json. " = "~/.openbar/config.json に保存されます。 ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "~/.openbar/config.json に保存されます。Synthetic ダッシュボードのキーを貼り付けてください。";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "~/.openbar/config.json に保存されます。Model Studio の Coding Plan API キーを貼り付けてください。";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "~/.openbar/config.json に保存されます。MiniMax API キーを貼り付けてください。";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "~/.openbar/config.json に保存されます。KILO_API_KEY を指定することもできます。または ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "OpenBar の設定ファイルに保存されます。Synthetic ダッシュボードのキーを貼り付けてください。";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "OpenBar の設定ファイルに保存されます。Model Studio の Coding Plan API キーを貼り付けてください。";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "OpenBar の設定ファイルに保存されます。MiniMax API キーを貼り付けてください。";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "ローカルの Codex 使用履歴（8 週間分）を保存して、ペース予測をパーソナライズします。";
 "Surprise me" = "サプライズ";
 "Switcher shows icons" = "切替バーにアイコンを表示";
@@ -850,7 +849,7 @@
 "cost_data_explanation" = "コストはプロバイダーから報告される場合と、トークン使用量を公開 API 価格で換算して見積もられる場合があります。見積もりはサブスクリプション料金ではありません。";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "AI Assistant 対応の JetBrains IDE が検出されませんでした。JetBrains IDE をインストールし、AI Assistant を有効にしてください。";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "OpenRouter API トークンが設定されていません。環境変数 OPENROUTER_API_KEY を設定するか、設定で構成してください。";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "z.ai API トークンが見つかりません。~/.openbar/config.json の apiKey または Z_AI_API_KEY を設定してください。";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "z.ai API トークンが見つかりません。~/.config/openbar/config.json（旧パス: ~/.openbar/config.json）の apiKey または Z_AI_API_KEY を設定してください。";
 "Missing DeepSeek API key." = "DeepSeek API キーがありません。";
 "%@ is unavailable in the current environment." = "%@ は現在の環境では利用できません。";
 "All Systems Operational" = "全システム正常稼働中";
@@ -1200,7 +1199,7 @@
 "Open Moonshot Console" = "Moonshot コンソールを開く";
 "Open Ollama API Keys" = "Ollama API キーを開く";
 "Open llmman" = "llmman を開く";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "~/.openbar/config.json に保存されます。llmman serve が API キーを要求する場合のみ必要です。";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "OpenBar の設定ファイルに保存されます。llmman serve が API キーを要求する場合のみ必要です。";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "llmman serve のアドレス。既定値は http://127.0.0.1:17434 です。";
 "Open StepFun Platform" = "StepFun プラットフォームを開く";
 "Open T3 Chat Settings" = "T3 Chat 設定を開く";
@@ -1252,21 +1251,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "ブラウザで cursor.com にサインインしてから、OpenBar で Cursor を更新してください。";
 "Simulated error text" = "シミュレートされたエラーテキスト";
 "StepFun platform account (phone number or email)." = "StepFun プラットフォームのアカウント(電話番号またはメールアドレス)。";
-"Stored in ~/.openbar/config.json." = "~/.openbar/config.json に保存されます。";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "~/.openbar/config.json に保存されます。AZURE_OPENAI_API_KEY もサポートされています。";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "~/.openbar/config.json に保存されます。公式の Kimi API には Moonshot / Kimi API を使用してください。";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "~/.openbar/config.json に保存されます。API キーは Volcengine Ark コンソールから取得してください。";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "~/.openbar/config.json に保存されます。キーは Ollama の設定から取得してください。";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "~/.openbar/config.json に保存されます。キーは console.deepgram.com から取得してください。";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "~/.openbar/config.json に保存されます。キーは elevenlabs.io/app/settings/api-keys から取得してください。";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "~/.openbar/config.json に保存されます。キーは openrouter.ai/settings/keys から取得し、そこでキーの支出上限を設定すると API キーのクォータ追跡が有効になります。";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "~/.openbar/config.json に保存されます。Warp で「Settings」>「Platform」>「API Keys」を開いて作成してください。";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "~/.openbar/config.json に保存されます。メトリクスには Groq Enterprise の Prometheus アクセスが必要です。";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "~/.openbar/config.json に保存されます。OPENAI_ADMIN_KEY が推奨されますが、OPENAI_API_KEY も引き続き使用できます。";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "~/.openbar/config.json に保存されます。Anthropic の Admin API キーが必要です。";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "~/.openbar/config.json に保存されます。/v1/quota-stats に使用されます。";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "~/.openbar/config.json に保存されます。CODEBUFF_API_KEY を指定するか、OpenBar に ~/.config/manicode/credentials.json(`codebuff login` で作成)を読み込ませることもできます。";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "~/.openbar/config.json に保存されます。KILO_API_KEY または ~/.local/share/kilo/auth.json(kilo.access)を指定することもできます。";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "OpenBar の設定ファイルに保存されます。AZURE_OPENAI_API_KEY もサポートされています。";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "OpenBar の設定ファイルに保存されます。キーは Ollama の設定から取得してください。";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "OpenBar の設定ファイルに保存されます。キーは console.deepgram.com から取得してください。";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "OpenBar の設定ファイルに保存されます。キーは elevenlabs.io/app/settings/api-keys から取得してください。";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "OpenBar の設定ファイルに保存されます。Warp で「Settings」>「Platform」>「API Keys」を開いて作成してください。";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "OpenBar の設定ファイルに保存されます。Anthropic の Admin API キーが必要です。";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "OpenBar の設定ファイルに保存されます。/v1/quota-stats に使用されます。";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "OpenBar の設定ファイルに保存されます。CODEBUFF_API_KEY を指定するか、OpenBar に ~/.config/manicode/credentials.json(`codebuff login` で作成)を読み込ませることもできます。";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "OpenBar の設定ファイルに保存されます。KILO_API_KEY または ~/.local/share/kilo/auth.json(kilo.access)を指定することもできます。";
 "T3 Chat cookie" = "T3 Chat Cookie";
 "Team mode" = "チームモード";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "そのアカウントは OpenBar で利用できなくなっています。アカウントリストを更新してからやり直してください。";
@@ -1988,9 +1981,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "`tcr` から使用状況を表示します。tcr がリクエストごとにアカウントを選ぶため、アカウントは切り替えません。資格情報は tcr によって管理されます。 OpenBar はそれらを決して読みません。";
 "Stay Awake" = "スリープを防ぐ";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "OpenBar 構成ファイルに保存されます。 /v1/usage から月次予算とルーティングされた使用量を読み取ります。";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "~/.openbar/config.json に保存されます。 OPENAI_ADMIN_KEY は組織で使用する場合に必要です。レガシー/ユーザーキーは、ベストエフォート型バランスのフォールバックのみを取得します。";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "~/.openbar/config.json に保存されます。 FACTORY_API_KEY または ~/.factory/.env を指定することもできます。";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "~/.openbar/config.json に保存されます。 AMP_API_KEY を設定することもできます。";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "OpenBar の設定ファイルに保存されます。組織の使用量には OPENAI_ADMIN_KEY が必要です。レガシー/ユーザーキーでは、可能な場合に残高のみを表示します。";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "OpenBar の設定ファイルに保存されます。FACTORY_API_KEY または ~/.factory/.env を指定することもできます。";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "OpenBar の設定ファイルに保存されます。AMP_API_KEY を設定することもできます。";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "アカウントを切り替え…";
 "Switch Claude Code account" = "Claude Code アカウントを切り替える";
@@ -2111,14 +2104,14 @@
 "Paste the Cookie request header from zed.dev." = "zed.dev から Cookie リクエスト ヘッダーを貼り付けます。";
 "Points" = "ポイント";
 "Poe usage history is unavailable." = "Poe の使用履歴は利用できません。";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "~/.openbar/config.json に保存されます。 poe.com/api/keys からキーを取得します。";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "OpenBar の設定ファイルに保存されます。poe.com/api/keys からキーを取得します。";
 "Billing" = "請求";
 "Invoice billing" = "請求書払い";
 "Prepaid" = "前払い";
 "Rate limit" = "レート制限";
 "Billing and rate-limit data from the v0 Platform API" = "v0 プラットフォーム API からの請求およびレート制限データ";
 "v0 cost history is not available via the Platform API." = "v0 のコスト履歴は、プラットフォーム API からは利用できません。";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "~/.config/openbar/config.json に保存されます。 v0 設定で作成するか、V0_API_KEY を設定します。";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "OpenBar の設定ファイルに保存されます。v0 設定で作成するか、V0_API_KEY を設定します。";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "v0 API キーを開きます";
 "Scope" = "範囲";
@@ -2160,7 +2153,7 @@
 "Monthly quota" = "月刊 クォータ";
 "Subscription usage from the Chutes API." = "Chutes API からのサブスクリプションの使用。";
 "Chutes cost history is not available from OpenBar." = "Chutes のコスト履歴は、OpenBar からは利用できません。";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "~/.openbar/config.json に保存されます。 Chutes API キーを貼り付けます。";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "OpenBar の設定ファイルに保存されます。Chutes API キーを貼り付けます。";
 "chutes key..." = "Chutes API キー...";
 "Spend" = "支出";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "Fireworks の支出は、料金概要 API から取得されます。コスト履歴は追跡されません。";
@@ -2201,7 +2194,7 @@
 "Shared pool" = "共有プール";
 "GitKraken cost history is not available." = "GitKraken のコスト履歴は利用できません。";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "xAI の毎日の支出には、管理 API キーとチーム ID が必要です。プリペイド残高は支出として扱われません。";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "~/.openbar/config.json に保存されます。 [設定] > [管理キー] の console.x.ai で作成します。推論 API キーは受け入れられません。";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "OpenBar の設定ファイルに保存されます。console.x.ai の [設定] > [管理キー] で作成してください。推論 API キーは使用できません。";
 "xai-..." = "xai-...";
 "Team ID" = "チームID";
 "Vercel access token" = "Vercel アクセストークン";
@@ -2210,7 +2203,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Vercel アクセストークンと併せて必要です。または VERCEL_TEAM_ID を設定してください。";
 "Required. Shown in the xAI Console URL and team settings." = "必須。 xAI コンソール URL およびチーム設定に表示されます。";
 "Sakana AI cost summary is not supported." = "Sakana AI コスト概要はサポートされていません。";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "~/.openbar/config.json に保存されます。 Sakana AI コンソールの Cookie リクエスト ヘッダーをコピーします。";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "OpenBar の設定ファイルに保存されます。Sakana AI コンソールの Cookie リクエスト ヘッダーをコピーします。";
 "Open Sakana AI Console" = "Sakana AI コンソールを開く";
 "SuperGrok tokens" = "SuperGrok トークン";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "SuperGrok ベアラーまたは grok.com cookie を貼り付けます。 トークン ファイルを開くと ~/.grok/auth.json が開きます。";
@@ -2327,7 +2320,7 @@
 "5-hour quota" = "5時間 クォータ";
 "Weekly quota" = "週刊 クォータ";
 "ZenMux cost history is not exposed by the Management API." = "ZenMux のコスト履歴は、管理 API によって公開されません。";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "~/.openbar/config.json に保存されます。標準の ZenMux 推論 API キーはサポートされていません。";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "OpenBar の設定ファイルに保存されます。標準の ZenMux 推論 API キーはサポートされていません。";
 "ZenMux management key…" = "ZenMux 管理キー…";
 "Monthly Plan" = "月額サブスクリプションプラン";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "/v1/usage からキー クォータ、サブスクリプション制限、使用量、ウォレット残高を読み取ります。";
@@ -2571,7 +2564,7 @@
 "Local Codex details; excluded from combined totals." = "ローカルの Codex 詳細。合計には含まれません。";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "OpenBar の設定ファイルに保存されます。COMMAND_CODE_API_KEY を設定することもできます。";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ トークン · %@ リクエスト";
 "15m" = "15分";

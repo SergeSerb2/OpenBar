@@ -20,6 +20,7 @@ assert plist['CFBundleShortVersionString'] == version['MARKETING_VERSION']
 assert plist['CFBundleVersion'] == version['BUILD_NUMBER']
 assert plist['LSMinimumSystemVersion'] == config['minimum_macos']
 assert plist['SUPublicEDKey'] == config['sparkle_public_key']
+assert plist['OpenBarTeamID'] == config['team_id']
 assert plist['SUFeedURL'] == f'https://raw.githubusercontent.com/{config["repository"]}/main/appcast.xml'
 main = app / 'Contents/MacOS' / config['app']
 required = set(config['architectures'])
@@ -39,7 +40,7 @@ for path in app.rglob('*'):
         minima = deployment_targets(load)
         assert minima, f'{path}: no deployment target for {arch}'
         assert all(tuple(map(int, m.split('.')[:2])) <= limit for m in minima), f'{path}: deployment target exceeds {limit}: {minima}'
-subprocess.run(['codesign', '--verify', '--deep', '--strict', '-R', f'=anchor apple generic and certificate leaf[subject.OU] = "Y5PE65HELJ" and identifier "{config["bundle_id"]}"', str(app)], check=True)
+subprocess.run(['codesign', '--verify', '--deep', '--strict', '-R', f'=anchor apple generic and certificate leaf[subject.OU] = "{config["team_id"]}" and identifier "{config["bundle_id"]}"', str(app)], check=True)
 subprocess.run(['spctl', '--assess', '--type', 'execute', '--verbose=2', str(app)], check=True)
 subprocess.run(['xcrun', 'stapler', 'validate', str(app)], check=True)
 # Verify the separately shipped dSYM belongs to this exact app executable.
@@ -55,11 +56,15 @@ if config['app'] == 'OpenBar':
     for arch in sorted(required):
         result = subprocess.run(['arch', '-' + arch, str(app / 'Contents/Helpers/OpenBarCLI')], env=env, text=True, capture_output=True, timeout=30)
         assert result.returncode == 0 and 'OPENBAR_RESOURCE_SMOKE_OK' in result.stdout, f'Bundled CLI resources failed for {arch}'
-    # The upstream packager owns the release capabilities; ensure they survived signing.
-    entitlements = plistlib.loads(subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL))
-    assert entitlements['com.apple.developer.icloud-container-identifiers'] == ['iCloud.com.serbinenko.openbar']
-    assert (app / 'Contents/embedded.provisionprofile').is_file()
-    assert (app / 'Contents/PlugIns/OpenBarWidget.appex').is_dir()
+    # iCloud Sync is deferred: ship only the Team-ID-prefixed app group, which needs no provisioning profile.
+    widget = app / 'Contents/PlugIns/OpenBarWidget.appex'
+    assert widget.is_dir()
+    assert not (app / 'Contents/embedded.provisionprofile').exists(), 'Unexpected provisioning profile'
+    for bundle in [app, widget]:
+        entitlements = plistlib.loads(subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(bundle)], stderr=subprocess.DEVNULL))
+        assert entitlements['com.apple.security.application-groups'] == [f'{config["team_id"]}.{config["bundle_id"]}'], f'{bundle.name}: app group'
+        assert not [key for key in entitlements if key.startswith('com.apple.developer.')], f'{bundle.name}: restricted entitlements need a provisioning profile'
+        assert entitlements.get('com.apple.security.app-sandbox', False) == (bundle == widget), f'{bundle.name}: sandbox'
 assert os.environ.get('CI') == 'true', 'Launch verification is only for a fresh CI runner'
 for arch in sorted(required):
     with tempfile.TemporaryDirectory() as home:

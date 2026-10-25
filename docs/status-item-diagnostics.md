@@ -63,7 +63,7 @@ done
   .build/control-center-diagnostic/OpenBar.app/Contents/Info.plist
 codesign --force --timestamp --options runtime \
   --entitlements .build/control-center-diagnostic/entitlements.plist \
-  --sign 'Developer ID Application: Peter Steinberger (Y5PE65HELJ)' \
+  --sign "$(python3 -c 'import json; print(json.load(open(".github/release.json"))["signing_identity"])')" \
   .build/control-center-diagnostic/OpenBar.app
 codesign --verify --deep --strict .build/control-center-diagnostic/OpenBar.app
 ```

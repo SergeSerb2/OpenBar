@@ -19,7 +19,7 @@ public enum PoeProviderDescriptor {
         apiKeyField: .init(
             id: "poe-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys.",
+            subtitle: "Stored in the OpenBar config file. Get your key from poe.com/api/keys.",
             placeholder: nil),
         showsAPIDetail: true,
         availability: .configuredKey)

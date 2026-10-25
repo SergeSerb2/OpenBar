@@ -1129,14 +1129,14 @@ public struct FactoryStatusProbe: Sendable {
         if httpResponse.statusCode == 403 {
             let body = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "<binary>"
-            let snippet = body.isEmpty ? "" : ": \(body.prefix(200))"
+            let snippet = body.contains("invalid_grant") ? ": invalid_grant" : ""
             throw FactoryStatusProbeError.networkError("HTTP 403 Forbidden\(snippet)")
         }
 
         guard httpResponse.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "<binary>"
-            let snippet = body.isEmpty ? "" : ": \(body.prefix(200))"
+            let snippet = body.contains("invalid_grant") ? ": invalid_grant" : ""
             throw FactoryStatusProbeError.networkError("HTTP \(httpResponse.statusCode)\(snippet)")
         }
 
@@ -1144,9 +1144,8 @@ public struct FactoryStatusProbe: Sendable {
             let decoder = JSONDecoder()
             return try decoder.decode(FactoryAuthResponse.self, from: data)
         } catch {
-            let rawJSON = String(data: data, encoding: .utf8) ?? "<binary>"
             throw FactoryStatusProbeError
-                .parseFailed("Auth decode failed: \(error.localizedDescription). Raw: \(rawJSON.prefix(200))")
+                .parseFailed("Auth decode failed: \(error.localizedDescription)")
         }
     }
 
@@ -1194,7 +1193,7 @@ public struct FactoryStatusProbe: Sendable {
         guard httpResponse.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "<binary>"
-            let snippet = body.isEmpty ? "" : ": \(body.prefix(200))"
+            let snippet = body.contains("invalid_grant") ? ": invalid_grant" : ""
             throw FactoryStatusProbeError.networkError("HTTP \(httpResponse.statusCode)\(snippet)")
         }
 
@@ -1202,9 +1201,8 @@ public struct FactoryStatusProbe: Sendable {
             let decoder = JSONDecoder()
             return try decoder.decode(FactoryUsageResponse.self, from: data)
         } catch {
-            let rawJSON = String(data: data, encoding: .utf8) ?? "<binary>"
             throw FactoryStatusProbeError
-                .parseFailed("Usage decode failed: \(error.localizedDescription). Raw: \(rawJSON.prefix(200))")
+                .parseFailed("Usage decode failed: \(error.localizedDescription)")
         }
     }
 
@@ -1304,7 +1302,7 @@ public struct FactoryStatusProbe: Sendable {
             }
             let body = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "<binary>"
-            let snippet = body.isEmpty ? "" : ": \(body.prefix(200))"
+            let snippet = body.contains("invalid_grant") ? ": invalid_grant" : ""
             throw FactoryStatusProbeError.networkError("WorkOS HTTP \(httpResponse.statusCode)\(snippet)")
         }
 
@@ -1374,7 +1372,7 @@ public struct FactoryStatusProbe: Sendable {
             }
             let bodyText = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "<binary>"
-            let snippet = bodyText.isEmpty ? "" : ": \(bodyText.prefix(200))"
+            let snippet = bodyText.contains("invalid_grant") ? ": invalid_grant" : ""
             throw FactoryStatusProbeError.networkError("WorkOS HTTP \(httpResponse.statusCode)\(snippet)")
         }
 

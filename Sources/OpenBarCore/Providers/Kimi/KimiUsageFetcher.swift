@@ -58,18 +58,13 @@ public struct KimiUsageFetcher: Sendable {
         let response = try await transport.response(for: request)
         let data = response.data
         guard response.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<binary data>"
-            Self.log.error("Kimi Code API returned \(response.statusCode): \(responseBody)")
+            Self.log.error("Kimi Code API returned \(response.statusCode)")
             throw self.codeAPIError(statusCode: response.statusCode)
         }
 
-        let snapshot = try self.parseCodeAPIUsage(from: data, now: now)
-        guard let webCredential else { return snapshot }
-        return try await self.enrichCodeAPIUsage(
-            snapshot,
-            webAuthToken: webCredential.token,
-            region: region,
-            transport: webCredential.transport(transport, region: region))
+        // Code responses do not identify an account that can be matched to the ambient web session.
+        // Keep these authenticated sources separate until both expose a stable account ID.
+        return try self.parseCodeAPIUsage(from: data, now: now)
     }
 
     static func fetchUsage(
@@ -152,8 +147,7 @@ public struct KimiUsageFetcher: Sendable {
         let response = try await transport.response(for: request)
         let data = response.data
         guard response.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? "<binary data>"
-            Self.log.error("Kimi API returned \(response.statusCode): \(responseBody)")
+            Self.log.error("Kimi API returned \(response.statusCode)")
 
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw KimiAPIError.invalidToken

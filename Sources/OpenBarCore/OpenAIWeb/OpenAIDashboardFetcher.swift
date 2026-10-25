@@ -741,7 +741,7 @@ public struct OpenAIDashboardFetcher {
         }
 
         return cookies
-            .filter { $0.domain.lowercased().contains("chatgpt.com") }
+            .filter { OpenAIDashboardBrowserCookieImporter.cookieDomain($0.domain, matches: "chatgpt.com") }
             .map { "\($0.name)=\($0.value)" }
             .joined(separator: "; ")
     }
@@ -1211,6 +1211,7 @@ extension OpenAIDashboardFetcher {
     public func fetchSubscriptionMetadata(
         accountEmail: String?,
         cacheScope: CookieHeaderCache.Scope? = nil,
+        allowBillingPageFallback: Bool = true,
         logger: ((String) -> Void)? = nil,
         timeout: TimeInterval = 8) async -> OpenAISubscriptionFetchResult
     {
@@ -1235,6 +1236,11 @@ extension OpenAIDashboardFetcher {
             logger: logLine)
         guard !Task.isCancelled, Date() < deadline else { return .unavailable }
         guard !apiResult.succeeded else { return apiResult }
+        // The fallback loads the usage page and then the billing page in a hidden WebView.
+        guard allowBillingPageFallback else {
+            logLine("subscription metadata billing fallback skipped: page loads are rate-limited")
+            return .unavailable
+        }
 
         do {
             let lease = try await self.makeWebView(

@@ -252,7 +252,7 @@ public enum OpenBarConfigValidator {
             provider: provider,
             field: "secretKey",
             code: "secret_key_unused",
-            message: "secretKey is set but only bedrock and doubao use secretKey."))
+            message: "secretKey is set but \(provider.rawValue) does not use secretKey."))
     }
 
     private static func providerSupportsWorkspaceID(_ provider: UsageProvider) -> Bool {

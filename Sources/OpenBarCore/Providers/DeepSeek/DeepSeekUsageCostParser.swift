@@ -352,7 +352,7 @@ enum DeepSeekUsageCostParser {
         let dailyAmounts = amountBizData.days ?? []
         let dailyCosts = costPayload.data?.bizData?.first?.days ?? []
 
-        return self.aggregate(input: AggregationInput(
+        return try self.aggregate(input: AggregationInput(
             totalAmounts: totalAmounts,
             totalCosts: totalCosts,
             dailyAmounts: dailyAmounts,
@@ -473,7 +473,7 @@ enum DeepSeekUsageCostParser {
         let calendar: Calendar
     }
 
-    private static func aggregate(input: AggregationInput) -> DeepSeekUsageSummary {
+    private static func aggregate(input: AggregationInput) throws -> DeepSeekUsageSummary {
         let ctx = AggregationContext(
             dailyAmounts: input.dailyAmounts,
             dailyCosts: input.dailyCosts,
@@ -481,7 +481,7 @@ enum DeepSeekUsageCostParser {
             calendar: input.calendar)
 
         // Today aggregation
-        let todayResult = self.aggregateDay(
+        let todayResult = try self.aggregateDay(
             dateString: ctx.todayString,
             amountMap: ctx.dailyAmountMap,
             costMap: ctx.dailyCostMap,
@@ -495,15 +495,15 @@ enum DeepSeekUsageCostParser {
             amountMap: ctx.dailyAmountMap,
             costMap: ctx.dailyCostMap,
             calendar: ctx.calendar)
-        let monthResult = self.aggregateMonth(ctx: dailyCtx)
+        let monthResult = try self.aggregateMonth(ctx: dailyCtx)
 
         // Model and category breakdown from totals
-        let (topModel, categoryBreakdown, modelCosts) = self.buildBreakdowns(
+        let (topModel, categoryBreakdown, modelCosts) = try self.buildBreakdowns(
             totalAmounts: input.totalAmounts,
             totalCosts: input.totalCosts)
 
         // Daily usage array
-        let dailyUsages = self.buildDailyUsages(ctx: dailyCtx)
+        let dailyUsages = try self.buildDailyUsages(ctx: dailyCtx)
 
         return DeepSeekUsageSummary(
             todayTokens: todayResult.tokens,
@@ -541,7 +541,7 @@ enum DeepSeekUsageCostParser {
         dateString: String,
         amountMap: [String: [String: [DeepSeekUsageItem]]],
         costMap: [String: [String: [DeepSeekCostItem]]],
-        calendar: Calendar) -> DayAggregationResult
+        calendar: Calendar) throws -> DayAggregationResult
     {
         var tokens = 0
         var cost: Double?
@@ -552,9 +552,9 @@ enum DeepSeekUsageCostParser {
                 for item in items {
                     guard let category = DeepSeekUsageCategory(rawValue: item.type ?? "") else { continue }
                     if category == .request {
-                        requests += self.parseTokenAmount(item.amount)
+                        requests = try ProviderUsageCounter.add(requests, self.parseTokenAmount(item.amount))
                     } else {
-                        tokens += self.parseTokenAmount(item.amount)
+                        tokens = try ProviderUsageCounter.add(tokens, self.parseTokenAmount(item.amount))
                     }
                 }
             }
@@ -579,7 +579,7 @@ enum DeepSeekUsageCostParser {
         return DayAggregationResult(tokens: tokens, cost: cost, requests: requests)
     }
 
-    private static func aggregateMonth(ctx: DailyAggregationContext) -> DayAggregationResult {
+    private static func aggregateMonth(ctx: DailyAggregationContext) throws -> DayAggregationResult {
         var tokens = 0
         var cost: Double?
         var requests = 0
@@ -595,9 +595,9 @@ enum DeepSeekUsageCostParser {
                     for item in items {
                         guard let category = DeepSeekUsageCategory(rawValue: item.type ?? "") else { continue }
                         if category == .request {
-                            requests += Self.parseTokenAmount(item.amount)
+                            requests = try ProviderUsageCounter.add(requests, Self.parseTokenAmount(item.amount))
                         } else {
-                            tokens += Self.parseTokenAmount(item.amount)
+                            tokens = try ProviderUsageCounter.add(tokens, Self.parseTokenAmount(item.amount))
                         }
                     }
                 }
@@ -625,7 +625,7 @@ enum DeepSeekUsageCostParser {
 
     private static func buildBreakdowns(
         totalAmounts: [DeepSeekModelUsage],
-        totalCosts: [DeepSeekCostModelUsage]) -> (String?, [DeepSeekCategoryBreakdown], [DeepSeekModelCost])
+        totalCosts: [DeepSeekCostModelUsage]) throws -> (String?, [DeepSeekCategoryBreakdown], [DeepSeekModelCost])
     {
         var modelTokens: [String: Int] = [:]
         var categoryTokens: [DeepSeekUsageCategory: Int] = [:]
@@ -639,8 +639,10 @@ enum DeepSeekUsageCostParser {
                 guard let category = DeepSeekUsageCategory(rawValue: item.type ?? "") else { continue }
                 if category != .request {
                     let amount = Self.parseTokenAmount(item.amount)
-                    total += amount
-                    categoryTokens[category, default: 0] += amount
+                    total = try ProviderUsageCounter.add(total, amount)
+                    categoryTokens[category, default: 0] = try ProviderUsageCounter.add(
+                        categoryTokens[category, default: 0],
+                        amount)
                 }
             }
             modelTokens[model] = total
@@ -710,7 +712,7 @@ enum DeepSeekUsageCostParser {
         }
     }
 
-    private static func buildDailyUsages(ctx: DailyAggregationContext) -> [DeepSeekDailyUsage] {
+    private static func buildDailyUsages(ctx: DailyAggregationContext) throws -> [DeepSeekDailyUsage] {
         var result: [DeepSeekDailyUsage] = []
 
         for date in ctx.allDates.sorted() {
@@ -728,9 +730,9 @@ enum DeepSeekUsageCostParser {
                     for item in items {
                         guard let category = DeepSeekUsageCategory(rawValue: item.type ?? "") else { continue }
                         if category == .request {
-                            dayRequests += Self.parseTokenAmount(item.amount)
+                            dayRequests = try ProviderUsageCounter.add(dayRequests, Self.parseTokenAmount(item.amount))
                         } else {
-                            dayTokens += Self.parseTokenAmount(item.amount)
+                            dayTokens = try ProviderUsageCounter.add(dayTokens, Self.parseTokenAmount(item.amount))
                         }
                     }
                 }
@@ -827,8 +829,10 @@ enum DeepSeekUsageCostParser {
                     if category == .request {
                         continue
                     }
-                    categoryTotals[category, default: 0] += value
-                    modelTokens[model, default: 0] += value
+                    categoryTotals[category, default: 0] = try ProviderUsageCounter.add(
+                        categoryTotals[category, default: 0],
+                        value)
+                    modelTokens[model, default: 0] = try ProviderUsageCounter.add(modelTokens[model, default: 0], value)
                 }
                 let existing = dayAmounts[date]?[model] ?? []
                 var merged = existing
@@ -872,15 +876,15 @@ enum DeepSeekUsageCostParser {
                     for item in items {
                         guard let category = DeepSeekUsageCategory(rawValue: item.type ?? "") else { continue }
                         if category == .request {
-                            requests += self.parseTokenAmount(item.amount)
+                            requests = try ProviderUsageCounter.add(requests, self.parseTokenAmount(item.amount))
                         } else {
-                            tokens += self.parseTokenAmount(item.amount)
+                            tokens = try ProviderUsageCounter.add(tokens, self.parseTokenAmount(item.amount))
                         }
                     }
                 }
             }
-            periodTokens += tokens
-            periodRequests += requests
+            periodTokens = try ProviderUsageCounter.add(periodTokens, tokens)
+            periodRequests = try ProviderUsageCounter.add(periodRequests, requests)
             daily.append(DeepSeekDailyUsage(
                 date: date,
                 totalTokens: tokens,

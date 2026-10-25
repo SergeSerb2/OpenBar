@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the release checker without network, signing, or Keychain access."""
 
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -8,10 +9,14 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parent.parent
+CONFIG = json.loads((ROOT / ".github/release.json").read_text())
+TEAM_ID = CONFIG["team_id"]
+PAYLOADS = [name.format(version="0.0.1") for name in CONFIG["assets"]]
+ASSETS = PAYLOADS + [name + ".sha256" for name in PAYLOADS] + ["appcast.xml", "RELEASE-NOTES.md", "SHA256SUMS"]
 
 
 class ReleaseAssetTests(unittest.TestCase):
-    def run_check(self, failure="", arches="arm64 x86_64"):
+    def run_check(self, failure="", arches="arm64 x86_64", assets=ASSETS):
         with tempfile.TemporaryDirectory(prefix="openbar-release-assets-") as directory:
             root = Path(directory)
             log = root / "calls"
@@ -24,6 +29,9 @@ printf ' <%s>' "$@" >> "$CHECK_LOG"
 printf '\\n' >> "$CHECK_LOG"
 [[ "$tool" != "$FAIL_TOOL" ]] || exit 42
 case "$tool" in
+  gh)
+    printf '%s\\n' $ASSET_NAMES
+    ;;
   curl)
     while [[ $# -gt 0 ]]; do
       if [[ "$1" == --output ]]; then touch "$2"; break; fi
@@ -40,14 +48,14 @@ case "$tool" in
   codesign)
     [[ "$*" == '--verify --deep --strict --all-architectures --verbose=2 '* ]] || exit 1
     [[ -d "${!#}" ]] || exit 1
-    if [[ "$FAIL_TOOL" == wrong-signer && "$*" == *'certificate leaf[subject.OU] = "Y5PE65HELJ"'* ]]; then
+    if [[ "$FAIL_TOOL" == wrong-signer && "$*" == *"certificate leaf[subject.OU] = \\"$TEAM_ID\\""* ]]; then
       exit 42
     fi
     ;;
 esac
 """)
             stub.chmod(0o755)
-            for name in ("mac-release", "curl", "ditto", "codesign"):
+            for name in ("gh", "curl", "ditto", "codesign"):
                 (root / name).symlink_to(stub)
             scratch = root / "scratch"
             scratch.mkdir()
@@ -57,12 +65,13 @@ esac
                 [str(ROOT / "Scripts/check-release-assets.sh"), "v0.0.1"],
                 env={
                     "PATH": f"{root}:/usr/bin:/bin",
-                    "MAC_RELEASE_TOOL": str(root / "mac-release"),
+                    "ASSET_NAMES": " ".join(assets),
                     "TMPDIR": str(scratch),
                     "CHECK_LOG": str(log),
                     "FAIL_TOOL": failure,
                     "ARCHES": arches,
                     "EXISTING_APP": str(existing_app),
+                    "TEAM_ID": TEAM_ID,
                 },
                 capture_output=True,
                 text=True,
@@ -74,12 +83,12 @@ esac
     def test_valid_universal_archive_is_verified(self):
         result, calls = self.run_check()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("mac-release <check-assets> <v0.0.1>", calls)
+        self.assertIn("gh <release> <view> <v0.0.1> <--repo> <SergeSerb2/OpenBar>", calls)
         self.assertIn("/v0.0.1/OpenBar-macos-universal-0.0.1.zip", calls)
         self.assertIn("ditto <-x> <-k> <--norsrc>", calls)
         self.assertIn("codesign <--verify> <--deep> <--strict> <--all-architectures>", calls)
         self.assertIn('<--test-requirement> <=anchor apple generic and identifier "com.serbinenko.openbar"', calls)
-        self.assertIn('certificate leaf[subject.OU] = "Y5PE65HELJ"', calls)
+        self.assertIn(f'certificate leaf[subject.OU] = "{TEAM_ID}"', calls)
         self.assertIn("certificate 1[field.1.2.840.113635.100.6.2.6] exists", calls)
         self.assertIn("certificate leaf[field.1.2.840.113635.100.6.1.13] exists", calls)
 
@@ -97,7 +106,7 @@ esac
         self.assertEqual(result.returncode, 42, calls)
 
     def test_failed_asset_inventory_stops_before_download(self):
-        result, calls = self.run_check("mac-release")
+        result, calls = self.run_check("gh")
         self.assertEqual(result.returncode, 42)
         self.assertNotIn("curl", calls)
 

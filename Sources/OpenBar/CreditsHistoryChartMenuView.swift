@@ -29,8 +29,9 @@ struct CreditsHistoryChartMenuView: View {
         VStack(alignment: .leading, spacing: 10) {
             if model.points.isEmpty {
                 Text(L("No credits history data."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: Self.chartHeight)
                     .accessibilityLabel(L("No credits history data available."))
             } else {
                 DailyBarChart(
@@ -50,7 +51,7 @@ struct CreditsHistoryChartMenuView: View {
                     onHover: { index in
                         self.selectedDayKey = index.map { model.selectableDayDates[$0].dayKey }
                     })
-                    .frame(height: 130)
+                    .frame(height: Self.chartHeight)
                     .accessibilityLabel(L("Credits history chart"))
                     .accessibilityValue(
                         model.points.isEmpty
@@ -60,17 +61,17 @@ struct CreditsHistoryChartMenuView: View {
                 let detail = self.detailLines(model: model)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(detail.primary)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(height: 16, alignment: .leading)
+                        .frame(minHeight: 16, alignment: .leading)
                     Text(detail.secondary ?? " ")
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(height: 16, alignment: .leading)
+                        .frame(minHeight: 16, alignment: .leading)
                         .opacity(detail.secondary == nil ? 0 : 1)
                 }
 
@@ -78,7 +79,7 @@ struct CreditsHistoryChartMenuView: View {
                     Text(String(
                         format: L("Total (30d): %@ credits"),
                         total.formatted(.number.precision(.fractionLength(0...2)))))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -99,7 +100,15 @@ struct CreditsHistoryChartMenuView: View {
         let totalCreditsUsed: Double?
     }
 
-    private static let barColor = Color(red: 73 / 255, green: 163 / 255, blue: 176 / 255)
+    private static let chartHeight: CGFloat = 130
+
+    /// Bars take the provider color, including the user's accent override. Read at render time so an
+    /// override applies on the next menu open.
+    private static var barColor: Color {
+        // Provider-specific by design: credits history comes only from Codex's OpenAI dashboard.
+        let color = ProviderAccentPalette.color(for: .codex)
+        return Color(red: color.red, green: color.green, blue: color.blue)
+    }
 
     private static func creditsAccessibilityValue(_ creditsUsed: Double) -> String {
         "\(L("Credits used")): \(creditsUsed.formatted(.number.precision(.fractionLength(0...2))))"

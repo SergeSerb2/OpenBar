@@ -1,18 +1,27 @@
 {
   "sources": {
-    "docs/icon.png": "54cf6ac4663c7b341a085493e787815949c5680e5cb58bda865f8a2c5aab24b1",
-    "docs/logos/atlascloud.svg": "4f0473521a417df2d7e0da049fa495b94337eb8433b3f4eb06a66068b3e90d37",
-    "docs/logos/bifrost.svg": "9d0e0c88583a956024f01f106e19b343505837c40a463f1197673ab29ecde489",
-    "docs/logos/gitkraken.svg": "20b52166e290620e572aca954b633ba5db8892f48fef65b01502fa4e6f47f9d7",
-    "docs/logos/helmcode.svg": "815993dc14457df021454bb59972c0cb9ff8651271f74b0cb8a5bf0f9fa191c3",
-    "docs/logos/typesafe.svg": "1136ada22c6e1b0a7f3e3d54802afb2d9e9e2338f9ef8757590f98c3617c02e4",
+    "docs/icon.png": "5410c631517925870f0e91b7f2950161c2a1505017949d275d2f6e88882c93d8",
+    "docs/logos/antigravity.svg": "652128cf55a28bb958563ee372d0bd00208d9e6fd446f523f77aafd811eef8ca",
+    "docs/logos/claude.svg": "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364",
+    "docs/logos/codex-dark.svg": "5c999792f6d26c9d14a197aa6e6c20f5af3def433473f7b66bd0d8c8a41cd8cf",
+    "docs/logos/copilot.svg": "c7f5cf29b87f084d391f991210e596856487072337b94277cf85d29e4dbccea9",
+    "docs/logos/cursor.svg": "7e9f7042fd8c60cbcf02f37e509e48dd193c27dca892693c37def274b16ddbc3",
+    "docs/logos/droid-dark.svg": "f2a16395f166104832b7fbf43b021c93cf5d0f14740ae9453c41df807d12e8cb",
+    "docs/logos/gemini.svg": "8ab0a9bafec11f7e69bcb9fc4ffd8f1bc927d1ddcbbb6ff36dee5ae8b5a9d602",
+    "docs/logos/jetbrains-ai.svg": "63889979e3e03fe1e04f70977132513723272bbfc2ca1e9de06d6f6987541d1f",
+    "docs/logos/kimi.svg": "1a84fc7d3054c3aa3e2e0d93749a55ac2888ac18344de269c622d57d2a2fc595",
+    "docs/logos/kiro-dark.svg": "573b22d098743f669364c82180432a82714588b6d25a6686869f2db99fd6e2e5",
+    "docs/logos/minimax.svg": "e514235f472e335f8bb0094ddcc2762b7e38e0dca66225893294457081cc6abf",
+    "docs/logos/mistral.svg": "5d6abe5c18446f7971139b2f472b1b1d8cf29db04af332091023d018800cfbd1",
+    "docs/logos/opencode.svg": "dce9897ac6b8985d81540557f3ca07e28077841e5dd93672d14f413eb01a2a5e",
+    "docs/logos/openrouter.svg": "c34ab396f6c4940a7bc2a4a5e3cc64c280cd2ea6c3301ec7659ff95fab4d373a",
     "docs/logos/v0.svg": "88555a2f0ea4f137efeccecf61233241a0ab42c1b05f4f37c8780bbe53c84631",
-    "docs/logos/vercel.svg": "8055b9c3701a1b634558a0fc7ac13e265cb37b7b0d2471204e5a7324f8f8d82b",
-    "docs/social.html": "4acf3af8c94eca82dd32cbe49f9a2c12fd0aa30d1ca19d2d406c8eb82641ed7e"
+    "docs/logos/zai-dark.svg": "586f658fe329a52e5f25e5f9b63e506721b96c2ed64cc5deb0b5087f27780598",
+    "docs/social.html": "daba593c14c90fa4b3bd926cef90f27e1a8a789753d48520fea15fc4a79ba2ea"
   },
   "image": {
     "path": "docs/social.png",
-    "sha256": "c67a9f96edb3250c5dd53a54c6d3d7af01164dfb9f3cb32e645a85d4f9fb0598",
+    "sha256": "7fb58633ec1b84183cd40a6692a3c3a4cc1883a70799a22c853576a3a9639ade",
     "width": 1200,
     "height": 630
   }

@@ -11,10 +11,8 @@ struct HooksPane: View {
                 Toggle(isOn: self.enabledBinding) {
                     SettingsRowLabel(L("hooks_enable_title"), subtitle: L("hooks_enable_subtitle"))
                 }
-                Label(L("hooks_trust_warning"), systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                SettingsStatusMessage(L("hooks_trust_warning"), tone: .warning)
+                    .font(OpenBarTheme.Fonts.meta)
             } header: {
                 Text(L("tab_hooks"))
             }
@@ -22,7 +20,7 @@ struct HooksPane: View {
             Section {
                 if self.settings.hookRules.isEmpty {
                     Text(L("hooks_empty"))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(self.settings.hookRules) { rule in
@@ -42,7 +40,7 @@ struct HooksPane: View {
                 Text(L("hooks_rules_header"))
             }
         }
-        .formStyle(.grouped)
+        .settingsPaneForm()
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -121,7 +119,7 @@ struct HookRuleRow: View {
                     Text(verbatim: "%")
                         .foregroundStyle(.secondary)
                 }
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
             }
 
             TextField(
@@ -136,7 +134,7 @@ struct HookRuleRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(L("hooks_arguments_placeholder"))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button {

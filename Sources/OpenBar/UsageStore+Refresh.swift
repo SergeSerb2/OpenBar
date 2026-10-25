@@ -747,6 +747,7 @@ extension UsageStore {
         await self.recordPlanUtilizationHistorySample(
             provider: provider,
             snapshot: backfilled,
+            account: currentTokenAccount,
             claudeOAuthPersistentRefHash: claudeOAuthPersistentRefHash,
             claudeOAuthHistoryOwnerIdentifier: isClaudeOAuthSample
                 ? result.claudeOAuthHistoryOwnerIdentifier
@@ -762,7 +763,8 @@ extension UsageStore {
             claudeOAuthActiveAccountObservation: context.claudeOAuthActiveAccountObservation,
             isClaudeOAuthSample: isClaudeOAuthSample,
             codexLimitResetOwnerKey: context.codexLimitResetOwnerKey,
-            sessionRestoredNotificationPending: publication.sessionRestored)
+            sessionRestoredNotificationPending: publication.sessionRestored,
+            refreshGeneration: context.generation)
         guard self.isCurrentProviderRefreshGeneration(provider, generation: context.generation) else { return }
         if let runtime = self.providerRuntimes[provider.instanceID] {
             let runtimeContext = ProviderRuntimeContext(

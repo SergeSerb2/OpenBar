@@ -44,6 +44,9 @@ struct UsageMenuCardView: View {
             var pacePercent: Double?
             /// True when detailLeftText/detailRightText came from a pace forecast.
             let detailIsPaceDerived: Bool
+            /// The pace forecast's verdict, when the lane has one: true lasts until reset, false runs
+            /// out first. Drives the pace line's status symbol; nil shows the text without a symbol.
+            var paceWillLastToReset: Bool?
             let paceOnTop: Bool
             let warningMarkerPercents: [Double]
             let workdayMarkerPercents: [Double]
@@ -65,6 +68,7 @@ struct UsageMenuCardView: View {
                 detailRightText: String?,
                 pacePercent: Double?,
                 detailIsPaceDerived: Bool = false,
+                paceWillLastToReset: Bool? = nil,
                 paceOnTop: Bool,
                 warningMarkerPercents: [Double] = [],
                 workdayMarkerPercents: [Double] = [],
@@ -84,6 +88,7 @@ struct UsageMenuCardView: View {
                 self.detailRightText = detailRightText
                 self.pacePercent = pacePercent
                 self.detailIsPaceDerived = detailIsPaceDerived
+                self.paceWillLastToReset = paceWillLastToReset
                 self.paceOnTop = paceOnTop
                 self.warningMarkerPercents = warningMarkerPercents
                 self.workdayMarkerPercents = workdayMarkerPercents
@@ -206,7 +211,6 @@ struct UsageMenuCardView: View {
     var layoutModel: Model?
     let width: CGFloat
     var planAction: (() -> Void)?
-    @Environment(\.menuItemHighlighted) private var isHighlighted
     @Environment(\.menuCardRefreshMonitor) private var refreshMonitor
 
     static func popupMetricTitle(provider: UsageProvider, metric: Model.Metric) -> String {
@@ -216,20 +220,58 @@ struct UsageMenuCardView: View {
         return metric.title
     }
 
+    /// One hosting view, several soft cards (spec §9.2, §11): the provider card first, then credits,
+    /// extra usage, and cost, each its own card separated by the 6-pt card gap.
     var body: some View {
         let liveModel = self.liveModel
-        VStack(alignment: .leading, spacing: 0) {
-            UsageMenuCardHeaderView(
-                model: self.layoutModel ?? self.model,
-                planAction: self.planAction)
-
-            if Self.hasDetails(for: liveModel) {
-                Divider()
-                    .padding(.top, UsageMenuCardLayout.headerContentSpacing)
-                    .padding(.bottom, Self.dividerBottomPadding(for: liveModel))
+        let layoutModel = self.layoutModel ?? self.model
+        VStack(alignment: .leading, spacing: OpenBarMenuStyle.cardGap) {
+            VStack(alignment: .leading, spacing: 0) {
+                UsageMenuCardHeaderView(model: layoutModel, planAction: self.planAction)
+                if Self.hasDetails(for: liveModel) {
+                    self.providerCardDetails(liveModel: liveModel, layoutModel: layoutModel)
+                        .padding(.top, Self.dividerBottomPadding(for: liveModel))
+                }
             }
+            .menuCardChrome()
 
-            if !liveModel.usesStackedDetailLayout {
+            if liveModel.usesStackedDetailLayout {
+                if let credits = liveModel.creditsText {
+                    VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneSpacing) {
+                        CreditsBarContent(
+                            creditsText: credits,
+                            showsProgress: liveModel.creditsShowProgress,
+                            progressPercent: liveModel.creditsProgressPercent,
+                            scaleText: liveModel.creditsScaleText,
+                            hintText: liveModel.creditsHintText,
+                            hintCopyText: liveModel.creditsHintCopyText,
+                            progressColor: liveModel.progressColor)
+                        if liveModel.creditsOnlyInlineUsageDashboard, let dashboard = liveModel.inlineUsageDashboard {
+                            InlineUsageDashboardContent(model: dashboard)
+                        }
+                    }
+                    .menuCardChrome()
+                }
+                if let providerCost = liveModel.providerCost {
+                    ProviderCostContent(section: providerCost, progressColor: liveModel.progressColor)
+                        .menuCardChrome()
+                }
+                if let tokenUsage = liveModel.tokenUsage {
+                    TokenUsageSectionContent(
+                        provider: liveModel.provider,
+                        tokenUsage: tokenUsage,
+                        showsCodexHint: liveModel.inlineUsageDashboard == nil)
+                        .menuCardChrome()
+                }
+            }
+        }
+        .frame(width: self.width, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func providerCardDetails(liveModel: Model, layoutModel: Model) -> some View {
+        if !liveModel.usesStackedDetailLayout {
+            VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneSpacing) {
                 if liveModel.showsChartSwitch, let throughput = liveModel.throughput,
                    let dashboard = liveModel.inlineUsageDashboard
                 {
@@ -248,78 +290,20 @@ struct UsageMenuCardView: View {
                     UsageNotesContent(notes: liveModel.usageNotes)
                 } else if let placeholder = liveModel.placeholder {
                     // Non-stacked placeholders are standalone detail rows; stacked usage placeholders are gated below.
-                    Text(placeholder)
-                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                        .font(.subheadline)
+                    MenuCardPlaceholderText(text: placeholder)
                 }
                 if !liveModel.providerDetails.isEmpty {
                     ProviderDetailSectionsContent(
                         sections: liveModel.providerDetails,
                         chartColor: liveModel.progressColor)
                 }
-            } else {
-                let hasUsage = liveModel.hasUsageContent
-                let hasCredits = liveModel.creditsText != nil
-                let hasProviderCost = liveModel.providerCost != nil
-                let hasCost = liveModel.tokenUsage != nil || hasProviderCost
-
-                VStack(alignment: .leading, spacing: 12) {
-                    if hasUsage, !liveModel.creditsOnlyInlineUsageDashboard {
-                        UsageMenuCardUsageContentView(
-                            model: liveModel,
-                            layoutModel: self.layoutModel ?? self.model,
-                            showBottomDivider: false)
-                    }
-                    if hasUsage, !liveModel.creditsOnlyInlineUsageDashboard, hasCredits || hasCost {
-                        Divider()
-                    }
-                    if let credits = liveModel.creditsText {
-                        CreditsBarContent(
-                            creditsText: credits,
-                            showsProgress: liveModel.creditsShowProgress,
-                            progressPercent: liveModel.creditsProgressPercent,
-                            scaleText: liveModel.creditsScaleText,
-                            hintText: liveModel.creditsHintText,
-                            hintCopyText: liveModel.creditsHintCopyText,
-                            progressColor: liveModel.progressColor)
-                    }
-                    if liveModel.creditsOnlyInlineUsageDashboard, let dashboard = liveModel.inlineUsageDashboard {
-                        InlineUsageDashboardContent(model: dashboard)
-                    }
-                    if hasCredits, hasCost {
-                        Divider()
-                    }
-                    if let providerCost = liveModel.providerCost {
-                        ProviderCostContent(
-                            section: providerCost,
-                            progressColor: liveModel.progressColor)
-                    }
-                    if hasProviderCost, liveModel.tokenUsage != nil {
-                        Divider()
-                    }
-                    if let tokenUsage = liveModel.tokenUsage {
-                        TokenUsageSectionContent(
-                            provider: liveModel.provider,
-                            tokenUsage: tokenUsage,
-                            showsCodexHint: liveModel.inlineUsageDashboard == nil,
-                            lineFont: .footnote)
-                    }
-                }
             }
+        } else if liveModel.hasUsageContent, !liveModel.creditsOnlyInlineUsageDashboard {
+            UsageMenuCardUsageContentView(
+                model: liveModel,
+                layoutModel: layoutModel,
+                showBottomDivider: false)
         }
-        .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-        .padding(
-            .top,
-            Self.hasDetails(for: liveModel)
-                ? UsageMenuCardLayout.sectionTopPadding
-                : UsageMenuCardLayout.headerOnlyVerticalPadding)
-        // AppKit's following separator row adds visual bottom space, so detail cards keep this inset tight.
-        .padding(
-            .bottom,
-            Self.hasDetails(for: liveModel)
-                ? UsageMenuCardLayout.sectionBottomPadding
-                : UsageMenuCardLayout.headerOnlyVerticalPadding)
-        .frame(width: self.width, alignment: .leading)
     }
 
     private var liveModel: Model {
@@ -327,10 +311,12 @@ struct UsageMenuCardView: View {
         return self.refreshMonitor?.model(for: self.model.provider, fallback: self.model) ?? self.model
     }
 
+    /// The provider card shows content below its header (lanes, notes, dashboards, placeholder).
     private static func hasDetails(for model: Model) -> Bool {
-        model.hasUsageContent || model.usesStackedDetailLayout
+        model.hasUsageContent && (!model.usesStackedDetailLayout || !model.creditsOnlyInlineUsageDashboard)
     }
 
+    /// Space between the card header and the first lane (or other detail content).
     static func dividerBottomPadding(for model: Model) -> CGFloat {
         if model.usesStackedDetailLayout, model.hasUsageContent {
             return UsageMenuCardLayout.postHeaderDividerContentSpacing
@@ -339,7 +325,25 @@ struct UsageMenuCardView: View {
     }
 }
 
-private struct UsageMenuCardHeaderView: View {
+/// Provider logo for card headers: the shipped template artwork at 16 pt in the text color.
+struct MenuCardProviderLogo: View {
+    let provider: UsageProvider
+
+    var body: some View {
+        if let image = ProviderBrandIcon.image(for: self.provider) {
+            Image(nsImage: image)
+                .renderingMode(.template)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: OpenBarMenuStyle.logoSize, height: OpenBarMenuStyle.logoSize)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Card header (spec §9.2): logo · name · plan · submenu chevron, then the account and
+/// "Updated …" line, an error block, or the last-known notice.
+struct UsageMenuCardHeaderView: View {
     let model: UsageMenuCardView.Model
     var planAction: (() -> Void)?
     @Environment(\.menuItemHighlighted) private var isHighlighted
@@ -347,93 +351,156 @@ private struct UsageMenuCardHeaderView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: UsageMenuCardLayout.headerLineSpacing) {
-            HStack(alignment: .firstTextBaseline, spacing: UsageMenuCardLayout.headerColumnSpacing) {
-                Text(self.model.providerName).font(.headline)
-                    .fontWeight(.semibold)
-                    .lineLimit(1).truncationMode(.tail).layoutPriority(1)
-                Spacer()
-                Text(self.model.email).font(.subheadline)
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                    .lineLimit(1).truncationMode(.middle)
-            }
+            self.titleRow
             let liveSubtitle = self.liveSubtitle
             let displayed = liveSubtitle.displayed(reservesStaleRow: self.model.lastKnownUsageText != nil)
             // Keep the geometry AppKit measured for this hosted row. A new error stays one line
             // until the next rebuild; a recovered error keeps its reserved height until then.
-            let usesErrorLayout = self.model.subtitleStyle == .error
-            let subtitleAlignment: VerticalAlignment = usesErrorLayout ? .top : .firstTextBaseline
-            HStack(alignment: subtitleAlignment, spacing: UsageMenuCardLayout.headerColumnSpacing) {
-                if usesErrorLayout {
-                    Text(MenuInlineCodeText.attributed(self.model.subtitleText))
-                        .font(.footnote)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.bottom, 4)
-                        .hidden()
-                        .overlay(alignment: .topLeading) {
-                            Text(MenuInlineCodeText.attributed(displayed.subtitle))
-                                .font(.footnote)
-                                .foregroundStyle(self.subtitleColor(for: liveSubtitle.style))
-                                .lineLimit(3)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .clipped()
-                        .layoutPriority(1)
-                } else {
-                    Text(MenuInlineCodeText.attributed(displayed.subtitle))
-                        .font(.footnote)
-                        .foregroundStyle(self.subtitleColor(for: liveSubtitle.style))
-                        .lineLimit(1)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .layoutPriority(1)
+            if self.model.subtitleStyle == .error {
+                if !self.model.email.isEmpty {
+                    self.metaText(self.model.email)
+                        .truncationMode(.middle)
                 }
-                Spacer()
-                if usesErrorLayout {
-                    let showsCopyButton = liveSubtitle.style == .error && !liveSubtitle.text.isEmpty
-                    CopyIconButton(
-                        copyText: liveSubtitle.text,
-                        isHighlighted: self.isHighlighted,
-                        isInteractive: showsCopyButton)
-                        // Center the padded icon on the first footnote line, independent of wrapping.
-                            .offset(y: -6)
-                            .opacity(showsCopyButton ? 1 : 0)
-                            .allowsHitTesting(showsCopyButton)
-                            .accessibilityHidden(!showsCopyButton)
-                }
-                if let plan = self.model.planText {
-                    Group {
-                        if let planAction {
-                            Button(action: planAction) {
-                                Text(plan)
-                            }
-                            .buttonStyle(.plain)
-                            .menuCardInteractiveControl()
-                            .accessibilityLabel(plan)
-                        } else {
-                            Text(plan)
-                        }
-                    }
-                    .font(.footnote)
-                    .fontWeight(self.model.planEmphasis.isEmphasized ? .semibold : nil)
-                    .foregroundStyle(self.model.planEmphasis.color(highlighted: self.isHighlighted))
-                    .lineLimit(1)
-                    .layoutPriority(2)
-                }
+                self.errorBlock(liveSubtitle: liveSubtitle, displayedText: displayed.subtitle)
+            } else {
+                self.subline(subtitle: displayed.subtitle, style: liveSubtitle.style)
             }
             // The reserved row keeps its measured height; a recovery hides it until the next rebuild.
             if let reservedStaleText = self.model.lastKnownUsageText {
-                Text(displayed.staleRow ?? reservedStaleText)
-                    .opacity(displayed.staleRow == nil ? 0 : 1)
-                    .font(.footnote)
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.tight) {
+                    MenuToneSymbol(
+                        systemName: OpenBarQuotaTone.stale.symbolName ?? "clock",
+                        color: MenuHighlightStyle.secondary(self.isHighlighted))
+                    // Up to two lines, measured from the reserved text so a live update keeps the height.
+                    Text(reservedStaleText)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .hidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .overlay(alignment: .topLeading) {
+                            Text(displayed.staleRow ?? reservedStaleText)
+                                .font(OpenBarTheme.Fonts.meta)
+                                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                                .lineLimit(2)
+                                .truncationMode(.tail)
+                        }
+                }
+                .opacity(displayed.staleRow == nil ? 0 : 1)
             }
         }
+    }
+
+    private var titleRow: some View {
+        HStack(alignment: .center, spacing: OpenBarMenuStyle.logoTitleSpacing) {
+            MenuCardProviderLogo(provider: self.model.provider)
+            Text(self.model.providerName)
+                .font(OpenBarTheme.Fonts.cardTitle)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .layoutPriority(1)
+            Spacer(minLength: OpenBarSpacing.regular)
+            if let plan = self.model.planText {
+                Group {
+                    if let planAction {
+                        Button(action: planAction) {
+                            Text(plan)
+                        }
+                        .buttonStyle(.plain)
+                        .menuCardInteractiveControl()
+                        .accessibilityLabel(plan)
+                    } else {
+                        Text(plan)
+                    }
+                }
+                .font(OpenBarTheme.Fonts.meta)
+                .fontWeight(self.model.planEmphasis.isEmphasized ? .semibold : nil)
+                .foregroundStyle(self.model.planEmphasis.color(highlighted: self.isHighlighted))
+                .lineLimit(1)
+                .layoutPriority(2)
+            }
+            MenuCardSubmenuChevron()
+        }
+    }
+
+    /// Account (middle-truncated) · "Updated …". The status text keeps its width; the account yields.
+    @ViewBuilder
+    private func subline(subtitle: String, style: UsageMenuCardView.Model.SubtitleStyle) -> some View {
+        let email = self.model.email
+        if email.isEmpty || subtitle.isEmpty {
+            let text = email.isEmpty ? subtitle : email
+            if !text.isEmpty {
+                Text(MenuInlineCodeText.attributed(text))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text(email)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(" · ")
+                    .fixedSize()
+                Text(MenuInlineCodeText.attributed(subtitle))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .layoutPriority(1)
+                Spacer(minLength: 0)
+            }
+            .font(OpenBarTheme.Fonts.meta)
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+        }
+    }
+
+    /// Error: critical octagon and up to three lines of text, copy button on the right.
+    private func errorBlock(liveSubtitle: MenuCardLiveSubtitle, displayedText: String) -> some View {
+        let isError = liveSubtitle.style == .error
+        let showsCopyButton = isError && !liveSubtitle.text.isEmpty
+        return HStack(alignment: .top, spacing: OpenBarSpacing.compact) {
+            MenuToneSymbol(
+                systemName: OpenBarQuotaTone.critical.symbolName ?? "exclamationmark.octagon.fill",
+                color: MenuHighlightStyle.error(self.isHighlighted))
+                .padding(.top, 1)
+                .opacity(isError ? 1 : 0)
+            Text(MenuInlineCodeText.attributed(self.model.subtitleText))
+                .font(OpenBarTheme.Fonts.meta)
+                .lineLimit(3)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .hidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .topLeading) {
+                    Text(MenuInlineCodeText.attributed(displayedText))
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(isError
+                            ? MenuHighlightStyle.primary(self.isHighlighted)
+                            : MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .clipped()
+                .layoutPriority(1)
+            CopyIconButton(
+                copyText: liveSubtitle.text,
+                isHighlighted: self.isHighlighted,
+                isInteractive: showsCopyButton)
+                // Center the padded icon on the first text line, independent of wrapping.
+                    .offset(y: -4)
+                    .opacity(showsCopyButton ? 1 : 0)
+                    .allowsHitTesting(showsCopyButton)
+                    .accessibilityHidden(!showsCopyButton)
+        }
+        .padding(.top, OpenBarSpacing.hairline)
+    }
+
+    private func metaText(_ text: String) -> some View {
+        Text(text)
+            .font(OpenBarTheme.Fonts.meta)
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+            .lineLimit(1)
     }
 
     private var liveSubtitle: MenuCardLiveSubtitle {
@@ -444,14 +511,6 @@ private struct UsageMenuCardHeaderView: View {
         guard self.model.usesLiveSubtitle else { return fallback }
         return self.refreshMonitor?.subtitle(for: self.model.provider, fallback: fallback) ?? fallback
     }
-
-    private func subtitleColor(for style: UsageMenuCardView.Model.SubtitleStyle) -> Color {
-        switch style {
-        case .info: MenuHighlightStyle.secondary(self.isHighlighted)
-        case .loading: MenuHighlightStyle.secondary(self.isHighlighted)
-        case .error: MenuHighlightStyle.error(self.isHighlighted)
-        }
-    }
 }
 
 private struct CopyIconButtonStyle: ButtonStyle {
@@ -461,11 +520,9 @@ private struct CopyIconButtonStyle: ButtonStyle {
         configuration.label
             .padding(4)
             .background {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                RoundedRectangle(cornerRadius: OpenBarRadius.chip, style: .continuous)
                     .fill(MenuHighlightStyle.secondary(self.isHighlighted).opacity(configuration.isPressed ? 0.18 : 0))
             }
-            .scaleEffect(configuration.isPressed ? 0.94 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -482,7 +539,7 @@ private struct CopyIconButton: View {
             self.handleCopy()
         } label: {
             Image(systemName: self.didCopy ? "checkmark" : "doc.on.doc")
-                .font(.caption2.weight(.semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 .frame(width: 18, height: 18)
         }
@@ -496,6 +553,7 @@ private struct CopyIconButton: View {
         self.resetTask?.cancel()
         MenuPasteboardCopy.perform(text, completion: {
             self.didCopy = true
+            // One-shot confirmation reset after a user click; not a repeating timer.
             self.resetTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(0.9))
                 self.didCopy = false
@@ -504,76 +562,15 @@ private struct CopyIconButton: View {
     }
 }
 
-/// Shared token-cost block (header, Today/window/metered/comparison lines, hint, error) used by
-/// both the inline card body and the standalone cost section; only the value-line font differs.
-private struct TokenUsageSectionContent: View {
-    let provider: UsageProvider
-    let tokenUsage: UsageMenuCardView.Model.TokenUsageSection
-    let showsCodexHint: Bool
-    let lineFont: Font
-    @Environment(\.menuItemHighlighted) private var isHighlighted
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Text(UsageMenuCardView.Model.tokenUsageHeader(provider: self.provider))
-                    .font(.body)
-                    .fontWeight(.medium)
-                if self.tokenUsage.isRefreshing {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .accessibilityLabel(L("Refreshing"))
-                }
-            }
-            Text(self.tokenUsage.sessionLine)
-                .font(self.lineFont)
-                .lineLimit(1)
-            Text(self.tokenUsage.monthLine)
-                .font(self.lineFont)
-                .lineLimit(1)
-            if let metered = self.tokenUsage.meteredLine, !metered.isEmpty {
-                Text(metered)
-                    .font(self.lineFont)
-                    .lineLimit(1)
-            }
-            ForEach(self.tokenUsage.comparisonLines, id: \.self) { line in
-                Text(line)
-                    .font(self.lineFont)
-                    .lineLimit(1)
-            }
-            if self.provider != .codex || self.showsCodexHint,
-               let hint = self.tokenUsage.hintLine,
-               !hint.isEmpty
-            {
-                Text(hint)
-                    .font(.footnote)
-                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let error = self.tokenUsage.errorLine, !error.isEmpty {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(MenuHighlightStyle.error(self.isHighlighted))
-                    .lineLimit(4)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .overlay {
-                        ClickToCopyOverlay(copyText: self.tokenUsage.errorCopyText ?? error)
-                    }
-            }
-        }
-    }
-}
-
 private struct UsageNotesContent: View {
     let notes: [String]
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OpenBarSpacing.tight) {
             ForEach(Array(self.notes.enumerated()), id: \.offset) { _, note in
                 Text(note)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -583,36 +580,71 @@ private struct UsageNotesContent: View {
     }
 }
 
+/// Empty or placeholder state: one secondary `meta` line ("No usage yet").
+private struct MenuCardPlaceholderText: View {
+    let text: String
+    @Environment(\.menuItemHighlighted) private var isHighlighted
+
+    var body: some View {
+        Text(self.text)
+            .font(OpenBarTheme.Fonts.meta)
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+    }
+}
+
+/// Header-only card (sectioned menus and Overview rows without usage).
 struct UsageMenuCardHeaderSectionView: View {
     let model: UsageMenuCardView.Model
     let showDivider: Bool
     let width: CGFloat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: UsageMenuCardLayout.headerContentSpacing) {
-            UsageMenuCardHeaderView(model: self.model, planAction: nil)
-
-            if self.showDivider {
-                Divider()
-            }
-        }
-        .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-        .padding(.top, UsageMenuCardLayout.headerOnlyVerticalPadding)
-        .padding(.bottom, self.headerBottomPadding)
-        .frame(width: self.width, alignment: .leading)
-    }
-
-    private var headerBottomPadding: CGFloat {
-        if self.model.subtitleStyle == .error {
-            return UsageMenuCardLayout.sectionBottomPadding
-        }
-        return self.showDivider
-            ? UsageMenuCardLayout.sectionBottomPadding
-            : UsageMenuCardLayout.headerOnlyVerticalPadding
+        UsageMenuCardHeaderView(model: self.model, planAction: nil)
+            .menuCardChrome()
+            .frame(width: self.width, alignment: .leading)
     }
 }
 
-private struct UsageMenuCardUsageContentView: View {
+/// Header and quota lanes in one card, with live values drawn over frozen layout geometry.
+struct UsageMenuCardHeaderAndUsageCard: View {
+    let model: UsageMenuCardView.Model
+    let layoutModel: UsageMenuCardView.Model
+    var showsSectionDividers = true
+    var compactMetrics = false
+    var footer: String?
+    @Environment(\.menuCardRefreshMonitor) private var refreshMonitor
+    @Environment(\.menuItemHighlighted) private var isHighlighted
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            UsageMenuCardHeaderView(model: self.layoutModel, planAction: nil)
+            if self.layoutModel.hasUsageContent {
+                UsageMenuCardUsageContentView(
+                    model: self.liveModel,
+                    layoutModel: self.layoutModel,
+                    showBottomDivider: false,
+                    showsSectionDividers: self.showsSectionDividers,
+                    compactMetrics: self.compactMetrics)
+                    .padding(.top, UsageMenuCardLayout.postHeaderDividerContentSpacing)
+            }
+            if let footer {
+                Text(footer)
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                    .lineLimit(1)
+                    .padding(.top, OpenBarSpacing.regular)
+            }
+        }
+        .menuCardChrome()
+    }
+
+    private var liveModel: UsageMenuCardView.Model {
+        guard self.model.usesLiveSubtitle else { return self.model }
+        return self.refreshMonitor?.model(for: self.model.provider, fallback: self.model) ?? self.model
+    }
+}
+
+struct UsageMenuCardUsageContentView: View {
     let model: UsageMenuCardView.Model
     let layoutModel: UsageMenuCardView.Model
     let showBottomDivider: Bool
@@ -636,9 +668,8 @@ private struct UsageMenuCardUsageContentView: View {
 
     private func groupHeader(_ title: String) -> some View {
         Text(L(title))
-            .font(.caption.weight(.semibold))
+            .font(OpenBarTheme.Fonts.laneTitle)
             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-            .textCase(.uppercase)
     }
 
     private func metricRows(_ metrics: [UsageMenuCardView.Model.Metric]) -> some View {
@@ -648,12 +679,13 @@ private struct UsageMenuCardUsageContentView: View {
                 layoutMetric: self.layoutModel.metrics.first { $0.id == metric.id } ?? metric,
                 title: UsageMenuCardView.popupMetricTitle(provider: self.model.provider, metric: metric),
                 progressColor: self.model.progressColor,
-                compact: self.compactMetrics)
+                compact: self.compactMetrics,
+                accessibilityProviderName: self.model.providerName)
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneSpacing) {
             if let split = self.doubaoSplitMetrics {
                 if !split.coding.isEmpty {
                     self.groupHeader("Coding Plan")
@@ -687,7 +719,10 @@ private struct UsageMenuCardUsageContentView: View {
                 if self.model.hasUsageContentAboveCloudCredits, self.showsSectionDividers {
                     Divider()
                 }
-                ProviderCostContent(section: cloudCredits, progressColor: self.model.progressColor)
+                ProviderCostContent(
+                    section: cloudCredits,
+                    progressColor: self.model.progressColor,
+                    showsSubmenuChevron: false)
             }
             if self.showBottomDivider {
                 Divider()
@@ -719,9 +754,7 @@ private struct UsageMenuCardUsageContentView: View {
         } else if let placeholder = self.model.placeholder, self.model.metrics.isEmpty,
                   self.model.limitResetCredits == nil, self.model.cloudCredits == nil
         {
-            Text(placeholder)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                .font(.subheadline)
+            MenuCardPlaceholderText(text: placeholder)
         }
         if !self.model.providerDetails.isEmpty {
             ProviderDetailSectionsContent(
@@ -731,6 +764,7 @@ private struct UsageMenuCardUsageContentView: View {
     }
 }
 
+/// Quota lanes as a standalone card.
 struct UsageMenuCardUsageSectionView: View {
     let model: UsageMenuCardView.Model
     let layoutModel: UsageMenuCardView.Model
@@ -742,16 +776,13 @@ struct UsageMenuCardUsageSectionView: View {
     @Environment(\.menuCardRefreshMonitor) private var refreshMonitor
 
     var body: some View {
-        let liveModel = self.liveModel
         UsageMenuCardUsageContentView(
-            model: liveModel,
+            model: self.liveModel,
             layoutModel: self.layoutModel,
             showBottomDivider: self.showBottomDivider,
             showsSectionDividers: self.showsSectionDividers,
             compactMetrics: self.compactMetrics)
-            .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-            .padding(.top, UsageMenuCardLayout.usageSectionTopPadding)
-            .padding(.bottom, self.bottomPadding)
+            .menuCardChrome()
             .frame(width: self.width, alignment: .leading)
     }
 
@@ -761,6 +792,7 @@ struct UsageMenuCardUsageSectionView: View {
     }
 }
 
+/// Credits as its own card (sectioned menus).
 struct UsageMenuCardCreditsSectionView: View {
     let model: UsageMenuCardView.Model
     let showBottomDivider: Bool
@@ -772,23 +804,16 @@ struct UsageMenuCardCreditsSectionView: View {
     var body: some View {
         let liveModel = self.liveModel
         if let credits = liveModel.creditsText {
-            VStack(alignment: .leading, spacing: 6) {
-                CreditsBarContent(
-                    creditsText: credits,
-                    showsProgress: liveModel.creditsShowProgress,
-                    progressPercent: liveModel.creditsProgressPercent,
-                    scaleText: liveModel.creditsScaleText,
-                    hintText: liveModel.creditsHintText,
-                    hintCopyText: liveModel.creditsHintCopyText,
-                    progressColor: liveModel.progressColor)
-                if self.showBottomDivider {
-                    Divider()
-                }
-            }
-            .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-            .padding(.top, self.topPadding)
-            .padding(.bottom, self.bottomPadding)
-            .frame(width: self.width, alignment: .leading)
+            CreditsBarContent(
+                creditsText: credits,
+                showsProgress: liveModel.creditsShowProgress,
+                progressPercent: liveModel.creditsProgressPercent,
+                scaleText: liveModel.creditsScaleText,
+                hintText: liveModel.creditsHintText,
+                hintCopyText: liveModel.creditsHintCopyText,
+                progressColor: liveModel.progressColor)
+                .menuCardChrome()
+                .frame(width: self.width, alignment: .leading)
         }
     }
 
@@ -808,10 +833,13 @@ private struct CreditsBarContent: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(L("Credits"))
-                .font(.body)
-                .fontWeight(.medium)
+        VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneInnerSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                Text(L("Credits"))
+                    .font(OpenBarTheme.Fonts.laneTitle)
+                Spacer(minLength: OpenBarSpacing.regular)
+                MenuCardSubmenuChevron()
+            }
             if self.showsProgress, let progressPercent {
                 UsageProgressBar(
                     percent: min(100, max(0, progressPercent)),
@@ -819,22 +847,22 @@ private struct CreditsBarContent: View {
                     accessibilityLabel: L("Credits remaining"))
                 HStack(alignment: .firstTextBaseline) {
                     Text(self.creditsText)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .lineLimit(1)
                     Spacer()
                     if let scaleText {
                         Text(scaleText)
-                            .font(.caption)
+                            .font(OpenBarTheme.Fonts.meta)
                             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     }
                 }
             } else {
                 Text(self.creditsText)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
             }
             if let hintText, !hintText.isEmpty {
                 Text(hintText)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     .lineLimit(4)
                     .fixedSize(horizontal: false, vertical: true)
@@ -846,6 +874,7 @@ private struct CreditsBarContent: View {
     }
 }
 
+/// Extra usage as its own card (sectioned menus).
 struct UsageMenuCardExtraUsageSectionView: View {
     let model: UsageMenuCardView.Model
     let topPadding: CGFloat
@@ -855,16 +884,12 @@ struct UsageMenuCardExtraUsageSectionView: View {
 
     var body: some View {
         let liveModel = self.liveModel
-        Group {
-            if let providerCost = liveModel.providerCost {
-                ProviderCostContent(
-                    section: providerCost,
-                    progressColor: liveModel.progressColor)
-                    .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-                    .padding(.top, self.topPadding)
-                    .padding(.bottom, self.bottomPadding)
-                    .frame(width: self.width, alignment: .leading)
-            }
+        if let providerCost = liveModel.providerCost {
+            ProviderCostContent(
+                section: providerCost,
+                progressColor: liveModel.progressColor)
+                .menuCardChrome()
+                .frame(width: self.width, alignment: .leading)
         }
     }
 
@@ -1272,6 +1297,7 @@ extension UsageMenuCardView.Model {
                 detailRightText: tertiaryPaceDetail?.rightLabel,
                 pacePercent: tertiaryPaceDetail?.pacePercent,
                 detailIsPaceDerived: tertiaryPaceDetail?.isPaceDerived ?? false,
+                paceWillLastToReset: tertiaryPaceDetail?.willLastToReset,
                 paceOnTop: tertiaryPaceDetail?.paceOnTop ?? true,
                 warningMarkerPercents: Self.warningMarkerPercents(
                     thresholds: input.quotaWarningThresholds[.weekly],
@@ -1365,6 +1391,7 @@ extension UsageMenuCardView.Model {
             detailRightText: presentation.detailRight,
             pacePercent: presentation.pacePercent,
             detailIsPaceDerived: presentation.detailIsPaceDerived,
+            paceWillLastToReset: presentation.paceWillLastToReset,
             paceOnTop: presentation.paceOnTop,
             warningMarkerPercents: Self.warningMarkerPercents(
                 thresholds: input.quotaWarningThresholds[
@@ -1487,6 +1514,7 @@ extension UsageMenuCardView.Model {
             detailRightText: paceDetail?.rightLabel,
             pacePercent: paceDetail?.pacePercent,
             detailIsPaceDerived: paceDetail?.isPaceDerived ?? false,
+            paceWillLastToReset: paceDetail?.willLastToReset,
             paceOnTop: paceDetail?.paceOnTop ?? true,
             warningMarkerPercents: Self.warningMarkerPercents(
                 thresholds: input.quotaWarningThresholds[.weekly],

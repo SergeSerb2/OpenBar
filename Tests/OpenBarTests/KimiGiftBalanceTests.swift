@@ -8,6 +8,11 @@ struct KimiGiftBalanceTests {
     func `gift balances survive monthly exhaustion through web and API enrichment`(api: Bool) async throws {
         let usage = try await Self.fetch(api: api, stats: Self.stats)
         let rows = usage.details.flatMap(\.rows)
+        if api {
+            #expect(rows.isEmpty)
+            #expect(usage.extraRateWindows?.isEmpty ?? true)
+            return
+        }
         let gift = try #require(rows.first { $0.label == "Invite to Earn Credit" })
         #expect(gift.value == "75% left")
         #expect(gift.progress?.used == 0.2524)

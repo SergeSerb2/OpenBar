@@ -52,7 +52,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseResponse(data: data, updatedAt: now)
@@ -90,7 +90,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseVibeUsage(data: data)
@@ -116,8 +116,7 @@ public enum MistralUsageFetcher {
         case 401, 403:
             throw MistralUsageError.invalidCredentials
         default:
-            let body = String(data: response.data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
         guard response.response.url?.scheme?.lowercased() == "https",
               response.response.url?.host?.lowercased() == self.baseURL.host,
@@ -159,7 +158,7 @@ public enum MistralUsageFetcher {
             throw MistralUsageError.invalidCredentials
         default:
             let body = String(data: data.prefix(200), encoding: .utf8) ?? ""
-            throw MistralUsageError.apiError("HTTP \(response.statusCode): \(body)")
+            throw MistralUsageError.apiError("HTTP \(response.statusCode)")
         }
 
         return try Self.parseCredits(data: data)
@@ -265,7 +264,7 @@ public enum MistralUsageFetcher {
                     modelCount += 1
                     try totalTokens.add(aggregate.tokens)
                 }
-                Self.accumulateFiniteCost(aggregate.cost, into: &totalCost)
+                try Self.accumulateFiniteCost(aggregate.cost, into: &totalCost)
                 try Self.addDailyEntries(
                     modelName: modelName,
                     data: modelData,
@@ -349,7 +348,7 @@ public enum MistralUsageFetcher {
             for entry in entries ?? [] {
                 let units = entry.valuePaid ?? entry.value ?? 0
                 if countsTokens { try tokens.add(entry.value ?? entry.valuePaid ?? 0, kind: kind) }
-                Self.accumulateFiniteCost(Self.cost(for: entry, units: units, prices: prices), into: &totalCost)
+                try Self.accumulateFiniteCost(Self.cost(for: entry, units: units, prices: prices), into: &totalCost)
             }
         }
         return (tokens, totalCost)
@@ -368,7 +367,7 @@ public enum MistralUsageFetcher {
         for (kind, entries) in lanes {
             for entry in entries ?? [] {
                 guard let day = dayKey(from: entry.timestamp) else { continue }
-                let cost = Self.cost(for: entry, units: entry.valuePaid ?? entry.value ?? 0, prices: prices)
+                let cost = try Self.cost(for: entry, units: entry.valuePaid ?? entry.value ?? 0, prices: prices)
                 var accumulator = daily[day] ?? DailyAccumulator(day: day)
                 try accumulator.add(
                     modelName: Self.displayModelName(modelName, entry: entry),
@@ -387,8 +386,11 @@ public enum MistralUsageFetcher {
         case output
     }
 
-    private static func cost(for entry: MistralUsageEntry, units: Int, prices: [PriceKey: Double]) -> Double {
-        guard let metric = entry.billingMetric, let group = entry.billingGroup else { return 0 }
+    private static func cost(for entry: MistralUsageEntry, units: Int, prices: [PriceKey: Double]) throws -> Double {
+        if units == 0 { return 0 }
+        guard let metric = entry.billingMetric, let group = entry.billingGroup else {
+            throw MistralUsageError.parseFailed("Missing tariff dimensions for billed usage")
+        }
         let key = PriceKey(
             eventType: entry.eventType,
             metric: metric,
@@ -401,14 +403,19 @@ public enum MistralUsageFetcher {
             group: group,
             apiZone: nil,
             serviceTier: nil)
-        let cost = Double(units) * (prices[key] ?? prices[zonelessKey] ?? 0)
-        return cost.isFinite ? cost : 0
+        guard let price = prices[key] ?? prices[zonelessKey] else {
+            throw MistralUsageError.parseFailed("Missing tariff for billed usage")
+        }
+        let cost = Double(units) * price
+        guard cost.isFinite else { throw MistralUsageError.parseFailed("Unrepresentable billed cost") }
+        return cost
     }
 
-    fileprivate static func accumulateFiniteCost(_ cost: Double, into total: inout Double) {
-        guard cost.isFinite else { return }
+    fileprivate static func accumulateFiniteCost(_ cost: Double, into total: inout Double) throws {
         let updatedTotal = total + cost
-        guard updatedTotal.isFinite else { return }
+        guard cost.isFinite, updatedTotal.isFinite else {
+            throw MistralUsageError.parseFailed("Unrepresentable billed cost total")
+        }
         total = updatedTotal
     }
 
@@ -475,9 +482,9 @@ private struct DailyAccumulator {
         cost: Double,
         countsTokens: Bool) throws
     {
-        MistralUsageFetcher.accumulateFiniteCost(cost, into: &self.cost)
+        try MistralUsageFetcher.accumulateFiniteCost(cost, into: &self.cost)
         var model = self.models[modelName] ?? ModelAccumulator(name: modelName)
-        MistralUsageFetcher.accumulateFiniteCost(cost, into: &model.cost)
+        try MistralUsageFetcher.accumulateFiniteCost(cost, into: &model.cost)
         if countsTokens {
             try self.tokens.add(units, kind: kind)
             try model.tokens.add(units, kind: kind)

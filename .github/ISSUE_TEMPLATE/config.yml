@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/SergeSerb2/OpenBar/security/advisories/new
+    about: Report security problems privately. Do not open a public issue.
+  - name: Documentation
+    url: https://github.com/SergeSerb2/OpenBar/tree/main/docs
+    about: Setup guides for every provider, the CLI, configuration, and Keychain prompts.

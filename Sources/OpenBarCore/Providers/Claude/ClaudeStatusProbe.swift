@@ -263,7 +263,7 @@ extension ClaudeStatusProbe {
         let usagePanelText = latestUsagePanel ?? clean
         let labelContext = LabelSearchContext(text: usagePanelText)
 
-        var sessionPct = self.extractPercent(labelSubstring: "Current session", context: labelContext)
+        let sessionPct = self.extractPercent(labelSubstring: "Current session", context: labelContext)
         let weeklyPct = self.extractPercent(labelSubstring: "Current week (all models)", context: labelContext)
         let opusLabels = [
             "Current week (Opus)",
@@ -272,20 +272,11 @@ extension ClaudeStatusProbe {
         ]
         let opusPct = self.extractPercent(labelSubstrings: opusLabels, context: labelContext)
 
-        // Fallback: order-based percent scraping when labels are present but the surrounding layout moved.
-        // Only apply the fallback when the corresponding label exists in the rendered panel; enterprise accounts
-        // may omit the weekly panel entirely, and we should treat that as "unavailable" rather than guessing.
+        // Enterprise accounts may omit weekly panels; retain only the windows whose labels were captured.
         let weeklyModels = Set(labelContext.lines.compactMap(self.weeklyModelName).map(self.normalizedForLabelSearch))
         let hasAllModelsWeeklyLabel = weeklyModels.contains(where: self.isAllModelsWeeklyModel)
         let opusModels = Set(opusLabels.compactMap(self.weeklyModelName).map(self.normalizedForLabelSearch))
         let hasOpusLabel = !weeklyModels.isDisjoint(with: opusModels)
-
-        if sessionPct == nil {
-            let ordered = self.allPercents(usagePanelText)
-            if sessionPct == nil, ordered.indices.contains(0) {
-                sessionPct = ordered[0]
-            }
-        }
 
         let identity = Self.extractIdentity(usageText: clean, statusText: statusClean)
 
@@ -858,7 +849,11 @@ extension ClaudeStatusProbe {
         allowFuzzy: Bool = false) -> Bool
     {
         guard let expectedModel = self.weeklyModelName(from: labelSubstring) else {
-            return normalizedLine.contains(normalizedLabel)
+            if normalizedLine.contains(normalizedLabel) { return true }
+            // Opt-in tolerance for a garbled session heading ("Curretsession"). The value scan still stops at
+            // the next quota heading, so a weekly percentage is never borrowed for the session lane.
+            return allowFuzzy && abs(normalizedLine.count - normalizedLabel.count) <= 2
+                && self.editDistance(normalizedLine, normalizedLabel) <= 2
         }
         guard let actualModel = self.weeklyModelName(from: line) else { return false }
         let expectedNormalized = self.normalizedForLabelSearch(expectedModel)

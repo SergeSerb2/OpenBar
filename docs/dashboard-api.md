@@ -54,7 +54,7 @@ The UI does not change the transport threat model: `openbar serve` is plain HTTP
 
 - `openbar dashboard` reads enabled providers from OpenBar config, emits them in stable order, and carries configured
   ordering through each row's `display.sortKey`.
-- Identity defaults to full account emails. Pass `--identity redacted` to hide email local parts. Provider failures stay
+- Identity defaults to full account emails. Pass `--identity redacted` to hide email local parts, including in provider error messages. Provider failures stay
   in their rows without discarding healthy rows.
 - `openbar serve` differs on one point: without `--identity` it follows the app's "Hide personal information" setting
   per request, so the web UI matches the menu UI. `openbar dashboard` always defaults to full identity.
@@ -215,7 +215,7 @@ Snapshot requests share the serve cache and coordination machinery used by `/usa
 - Responses are cached for `--refresh-interval` seconds, keyed by the loaded provider config, so toggling providers does not require a restart.
 - Dashboard response keys also include the resolved identity mode and usage-bar fill preference, preventing a cached
   response for the other mode from overriding current host metadata.
-- Concurrent cache misses coalesce into one fetch; `--request-timeout` bounds each request with `504 Gateway Timeout`.
+- Concurrent cache misses coalesce into one fetch; `--request-timeout` bounds response generation with `504 Gateway Timeout`. Socket reads and writes have separate deadlines: five seconds of request-head idle time, ten seconds for the whole head, and five seconds for a response write. A timeout closes the connection and releases its slot.
 - Slow builds keep running past the request deadline; the finished result is committed to the response cache and handed to any same-config request already waiting, so a 504 first load self-heals on retry (the built-in web UI retries automatically).
 - Authorization is checked before the cache, so unauthenticated requests can neither warm nor read it.
 
@@ -231,7 +231,7 @@ After a fresh usage or cost cache entry expires, `openbar serve` may answer imme
 
 ## Payload
 
-The snapshot is a stable display contract, not a raw dump of provider internals. Without `--all-accounts`, identity defaults to full account emails and plan labels. Pass `--identity redacted` to replace email local parts with `redacted` while keeping domains and plan labels. On `openbar serve` an absent `--identity` follows the app's "Hide personal information" setting instead of the full default.
+The snapshot is a stable display contract, not a raw dump of provider internals. Without `--all-accounts`, identity defaults to full account emails and plan labels. Pass `--identity redacted` to replace email local parts with `redacted` while keeping domains and plan labels. This also masks emails in provider and account-list error messages. On `openbar serve` an absent `--identity` follows the app's "Hide personal information" setting instead of the full default.
 
 ```json
 {
@@ -276,7 +276,7 @@ The snapshot is a stable display contract, not a raw dump of provider internals.
         "last30DaysUSD": 18.22
       },
       "display": {
-        "accentColor": "#49A3B0",
+        "accentColor": "#10A37F",
         "sortKey": 0,
         "priority": "normal"
       },

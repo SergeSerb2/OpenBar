@@ -1,6 +1,13 @@
 import Commander
 import Foundation
 import OpenBarCore
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(Musl)
+import Musl
+#endif
 
 struct ServeOptions: CommanderParsable {
     @Flag(name: .long("all-accounts"), help: "Include all local accounts in dashboard snapshots")
@@ -26,7 +33,7 @@ struct ServeOptions: CommanderParsable {
 
     @Option(
         name: .long("request-timeout"),
-        help: "Total per-request deadline in seconds; 0 disables (default: 30)")
+        help: "Response generation deadline in seconds; 0 disables (default: 30)")
     var requestTimeout: Double?
 
     @Option(
@@ -641,6 +648,8 @@ extension OpenBarCLI {
         let tokenResolution = Self.resolveDashboardToken(
             from: values,
             environment: ProcessInfo.processInfo.environment)
+        // Only the HTTP runtime needs the bearer; provider CLIs and workers must not inherit it.
+        unsetenv(Self.dashboardTokenEnvironmentVariable)
 
         guard let port else {
             Self.exit(

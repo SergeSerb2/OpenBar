@@ -1,3 +1,4 @@
+import OpenBarCore
 import SwiftUI
 
 /// Draggable chip used by the layout editor for both placed tokens and palette entries.
@@ -50,7 +51,7 @@ struct MenuBarLayoutEditorChip: View {
             systemImage: self.systemImage,
             isSelected: self.isSelected)
             .opacity(self.isDisabled ? 0.4 : 1)
-            .contentShape(Capsule(style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous))
             .draggable(self.dragItem)
             .onTapGesture(perform: self.handleActivate)
             .focusable(!self.isDisabled)
@@ -61,7 +62,7 @@ struct MenuBarLayoutEditorChip: View {
             }
             .allowsHitTesting(!self.isDisabled)
             .accessibilityElement()
-            .accessibilityAddTraits(.isButton)
+            .accessibilityAddTraits(self.isSelected ? [.isButton, .isSelected] : .isButton)
             .accessibilityLabel(self.accessibilityLabel)
             .accessibilityHint(self.accessibilityHint ?? "")
             .accessibilityAction { self.handleActivate() }

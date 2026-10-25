@@ -117,15 +117,15 @@ extension UsageMenuCardView.Model.Metric {
         return MenuCardHeightFingerprint.join([
             self.id,
             self.statusText == nil ? "status=0" : "status=1",
-            // The title shares horizontal space with a wrapping reset label. Track it only
-            // when that label exists so ordinary percentage ticks keep the fixed-row cache.
-            presentation.resetText == nil
-                ? "title=fixed"
-                : MenuCardHeightFingerprint.field("title", presentation.titleText),
-            // Reset and meta rows may wrap to a second line, so their text
-            // content (not just presence) can change the measured card height.
+            // The lane title row never wraps (title truncates beside a fixed-width value), so
+            // percentage ticks keep the cached height.
+            "title=fixed",
+            // Reset and pace share a detail row that reflows to two lines when they do not fit, and
+            // the estimate line wraps too, so their text content can change the measured height.
             MenuCardHeightFingerprint.field("reset", presentation.resetText),
             MenuCardHeightFingerprint.field("meta", presentation.metaText),
+            // A pace that runs out is set one weight heavier, which can move the reflow point.
+            "paceTone=\(self.paceWillLastToReset.map { $0 ? "lasts" : "runsOut" } ?? "none")",
             self.detailText == nil ? "detail=0" : "detail=1",
             MenuCardHeightFingerprint.field("dailyTarget", self.dailyTargetText),
             self.pacePercent == nil ? "pace=0" : "pace=1",

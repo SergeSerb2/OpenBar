@@ -88,50 +88,37 @@ struct MenuCardCompactAccountRowView: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        VStack(alignment: .leading, spacing: OpenBarSpacing.hairline) {
+            HStack(alignment: .center, spacing: OpenBarSpacing.regular) {
                 Text(self.model.label)
-                    .font(.subheadline)
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .foregroundStyle(MenuHighlightStyle.primary(self.isHighlighted))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if self.model.showsBestBadge {
                     Image(systemName: "star.fill")
-                        .font(.caption2)
-                        .foregroundStyle(self.isHighlighted
-                            ? MenuHighlightStyle.selectionText
-                            : Color(nsColor: .systemYellow))
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(MenuHighlightStyle.accent(self.isHighlighted))
                         .accessibilityLabel(L("Most usable account"))
                 }
-                Spacer(minLength: 12)
+                Spacer(minLength: OpenBarSpacing.section)
                 if self.model.hasError, self.model.headroomPercent == nil {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.footnote)
-                        .foregroundStyle(MenuHighlightStyle.error(self.isHighlighted))
-                        .accessibilityLabel(L("Account unavailable"))
+                    MenuToneSymbol(
+                        systemName: OpenBarQuotaTone.warning.symbolName ?? "exclamationmark.triangle.fill",
+                        color: self.isHighlighted ? MenuHighlightStyle.selectionText : OpenBarTheme.Colors.warning)
                 } else if let headroom = self.model.headroomPercent, let label = self.model.headroomLabel {
-                    Capsule()
-                        .fill(MenuHighlightStyle.progressTrack(self.isHighlighted))
+                    CompactHeadroomMeter(
+                        percent: min(100, max(0, headroom)),
+                        tint: self.progressColor)
                         .frame(width: Self.miniBarWidth, height: Self.miniBarHeight)
-                        .overlay(alignment: .leading) {
-                            Capsule()
-                                .fill(self.severityColor)
-                                .frame(width: Self.miniBarWidth * min(100, max(0, headroom)) / 100)
-                        }
                         .accessibilityHidden(true)
-                    Text(label)
-                        .font(.footnote.monospacedDigit())
-                        .foregroundStyle(self.percentColor)
-                        .lineLimit(1)
-                        .frame(minWidth: 34, alignment: .trailing)
+                    self.headroomValue(label)
                 }
             }
             ForEach(Array(self.model.detailLines.enumerated()), id: \.offset) { _, detail in
                 Text(detail)
-                    .font(.footnote)
-                    .foregroundStyle(self.model.severity == .critical
-                        ? MenuHighlightStyle.error(self.isHighlighted)
-                        : MenuHighlightStyle.secondary(self.isHighlighted))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -142,22 +129,42 @@ struct MenuCardCompactAccountRowView: View {
         .accessibilityLabel(self.model.accessibilityText)
     }
 
-    private var severityColor: Color {
-        guard !self.isHighlighted else { return MenuHighlightStyle.selectionText }
-        switch self.model.severity {
-        case .critical: return Color(nsColor: .systemRed)
-        case .warning: return Color(nsColor: .systemOrange)
-        case .healthy, .none: return self.progressColor
+    /// Headroom figure with the shared quota tone (warning ≤ 25 %, critical ≤ 10 % remaining).
+    private func headroomValue(_ label: String) -> some View {
+        let tone = self.model.headroomTone
+        let toneColor = tone.menuColor(highlighted: self.isHighlighted)
+        return HStack(alignment: .firstTextBaseline, spacing: 3) {
+            if let toneColor, let symbolName = tone.symbolName {
+                MenuToneSymbol(systemName: symbolName, color: toneColor)
+            }
+            Text(label)
+                .font(OpenBarTheme.Fonts.laneValue)
+                .foregroundStyle(toneColor ?? MenuHighlightStyle.primary(self.isHighlighted))
+                .lineLimit(1)
         }
+        .frame(minWidth: 40, alignment: .trailing)
     }
+}
 
-    private var percentColor: Color {
-        guard !self.isHighlighted else { return MenuHighlightStyle.selectionText }
-        switch self.model.severity {
-        case .critical: return Color(nsColor: .systemRed)
-        case .warning: return Color(nsColor: .systemOrange)
-        case .healthy, .none: return MenuHighlightStyle.normalSecondaryText
-        }
+extension MenuCardCompactAccountRowView.Model {
+    /// Color tone of the headroom figure. Folding and ordering keep `AccountMenuLayoutPlanner`'s own
+    /// severity; only the presentation uses the shared menu thresholds.
+    var headroomTone: OpenBarQuotaTone {
+        OpenBarQuotaTone.resolve(remainingPercent: self.headroomPercent, isStale: false)
+    }
+}
+
+/// The compact row's 56 × 4 mini meter: the lane meter's split motif at a smaller size.
+private struct CompactHeadroomMeter: View {
+    let percent: Double
+    let tint: Color
+
+    var body: some View {
+        UsageProgressBar(
+            percent: self.percent,
+            tint: self.tint,
+            accessibilityLabel: "",
+            height: MenuCardCompactAccountRowView.miniBarHeight)
     }
 }
 
@@ -173,17 +180,17 @@ struct MenuCardCollapsedAccountsRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle")
-                .font(.footnote)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+        HStack(spacing: OpenBarSpacing.regular) {
+            MenuToneSymbol(
+                systemName: "checkmark.circle.fill",
+                color: self.isHighlighted ? MenuHighlightStyle.selectionText : OpenBarTheme.Colors.ok)
             Text(self.title)
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-            Spacer(minLength: 12)
+            Spacer(minLength: OpenBarSpacing.section)
             Image(systemName: "chevron.down")
-                .font(.caption2)
-                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                .font(.system(size: OpenBarMenuStyle.chevronSize, weight: .semibold))
+                .foregroundStyle(MenuHighlightStyle.tertiary(self.isHighlighted))
         }
         .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
         .padding(.vertical, 5)

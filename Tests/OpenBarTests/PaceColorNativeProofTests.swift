@@ -224,7 +224,10 @@ final class PaceColorNativeProofTests: XCTestCase {
         if !templateExpected {
             XCTAssertTrue(button.attributedTitle.isEqual(to: rendered.attributedTitle))
         }
-        for (text, color) in [("-8%", NSColor.systemGreen), ("+11%", NSColor.systemRed)] {
+        for (text, color) in [
+            ("-8%", MenuBarLayoutRenderer.paceReserveColor),
+            ("+11%", MenuBarLayoutRenderer.paceDeficitColor),
+        ] {
             let range = (rendered.attributedTitle.string as NSString).range(of: text)
             guard range.location != NSNotFound, range.length > 0 else {
                 XCTFail("Missing synthetic pace text: \(text)")

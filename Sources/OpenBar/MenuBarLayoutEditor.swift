@@ -457,7 +457,7 @@ struct MenuBarLayoutEditor: View {
                 HStack(spacing: 5) {
                     Text(self.preset.label)
                     Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption2)
+                        .font(OpenBarTheme.Fonts.caption)
                 }
             }
             .menuStyle(.button)
@@ -489,7 +489,7 @@ struct MenuBarLayoutEditor: View {
                     }
                 }
             }
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.caption)
         }
     }
 
@@ -498,7 +498,7 @@ struct MenuBarLayoutEditor: View {
             MenuBarLayoutEditorPersistence.useAllProvidersLayout(for: provider, settings: self.settings)
             self.selectedPosition = nil
         }
-        .buttonStyle(.link)
+        .buttonStyle(.settingsLink)
         .accessibilityLabel(L(
             "menu_bar_layout_use_all_accessibility",
             L(self.store.metadata(for: provider).displayName)))
@@ -507,7 +507,7 @@ struct MenuBarLayoutEditor: View {
     private var preview: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(self.scope.previewLabel)
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
             MenuBarLayoutPreview(
                 layout: self.layout,
@@ -515,12 +515,9 @@ struct MenuBarLayoutEditor: View {
                 settings: self.settings,
                 store: self.store)
                 .frame(maxWidth: .infinity, minHeight: 30)
-                .background(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .fill(.background.opacity(0.75)))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(.separator.opacity(0.65), lineWidth: 1))
+                .background(SettingsFillBackground(shape: RoundedRectangle(
+                    cornerRadius: OpenBarRadius.control,
+                    style: .continuous)))
         }
     }
 
@@ -528,14 +525,14 @@ struct MenuBarLayoutEditor: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(L("menu_bar_layout_strip"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 if self.layout.lines.count == 2 {
                     Button(L("menu_bar_layout_remove_line_break")) {
                         self.write(MenuBarLayoutEditorMutations.removeLineBreak(from: self.layout))
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.settingsLink)
                 }
             }
 
@@ -581,7 +578,7 @@ struct MenuBarLayoutEditor: View {
                 }
                 if line.isEmpty {
                     Text(L("menu_bar_layout_empty_line"))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 8)
                 }
@@ -591,13 +588,11 @@ struct MenuBarLayoutEditor: View {
             .padding(.vertical, 5)
         }
         .frame(minHeight: 34)
-        .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Color.accentColor.opacity(0.04)))
+        // Drop target: a 1-pt dashed tertiary outline, no fill (docs/design §9.4).
         .overlay(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                .foregroundStyle(Color.secondary.opacity(0.35)))
+            RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                .foregroundStyle(.tertiary))
         .dropDestination(for: MenuBarLayoutDragItem.self) { items, _ in
             self.insert(
                 items.first,
@@ -616,14 +611,18 @@ struct MenuBarLayoutEditor: View {
                 ? L("menu_bar_layout_remove_selected")
                 : L("menu_bar_layout_drag_remove"))
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.caption)
         .foregroundStyle(canRemoveSelection ? Color.primary : Color.secondary)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 5)
-        .background(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(.secondary.opacity(canRemoveSelection ? 0.12 : 0.06)))
-        .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(SettingsFillBackground(shape: RoundedRectangle(
+            cornerRadius: OpenBarRadius.control,
+            style: .continuous)))
+        .overlay(
+            RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous)
+                .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                .foregroundStyle(.tertiary))
+        .contentShape(RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous))
         .onTapGesture {
             self.removeSelectedToken()
         }
@@ -646,7 +645,7 @@ struct MenuBarLayoutEditor: View {
     func palette(_ group: MenuBarLayoutPaletteGroup) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(group.title)
-                .font(.caption.weight(.semibold))
+                .font(OpenBarTheme.Fonts.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             MenuBarLayoutChipFlowLayout(spacing: 6) {
                 ForEach(group.tokens, id: \.self) { token in
@@ -688,7 +687,7 @@ struct MenuBarLayoutEditor: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(L("menu_bar_layout_group_conditionals"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .fontWeight(.semibold)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -706,7 +705,7 @@ struct MenuBarLayoutEditor: View {
 
             if self.settings.menuBarLayoutConditionals.isEmpty {
                 Text(L("menu_bar_layout_conditional_none"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.tertiary)
             } else {
                 MenuBarLayoutChipFlowLayout(spacing: 6) {
@@ -840,20 +839,19 @@ struct MenuBarLayoutChipLabel: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: self.systemImage)
-                .font(.caption.weight(.medium))
+                .font(OpenBarTheme.Fonts.caption.weight(.medium))
             Text(self.title)
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .lineLimit(1)
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, OpenBarSpacing.regular)
         .padding(.vertical, 5)
-        .foregroundStyle(self.isSelected ? Color.white : Color.primary)
-        .background(
-            Capsule(style: .continuous)
-                .fill(self.isSelected ? Color.accentColor : Color.secondary.opacity(0.12)))
-        .overlay(
-            Capsule(style: .continuous)
-                .stroke(self.isSelected ? Color.clear : Color.secondary.opacity(0.2), lineWidth: 1))
+        // The system's text color for accent-filled selections, so explicit light accents stay legible.
+        .foregroundStyle(self.isSelected ? Color(nsColor: .alternateSelectedControlTextColor) : Color.primary)
+        // Token chip: radius 7 on card fill; the selected chip takes the accent fill with a white label.
+        .background(SettingsFillBackground(
+            shape: RoundedRectangle(cornerRadius: OpenBarRadius.control, style: .continuous),
+            fill: self.isSelected ? OpenBarTheme.Colors.accentFill : OpenBarTheme.Colors.cardFill))
     }
 }
 
@@ -1289,7 +1287,9 @@ struct MenuBarLayoutDisplayOptions: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 18) {
+            // Wraps instead of forcing one line: long translations (Russian, German) would otherwise give the
+            // whole Settings form a minimum width wider than the detail column.
+            MenuBarLayoutChipFlowLayout(spacing: 14) {
                 HStack(spacing: 8) {
                     Text(L("menu_bar_layout_size"))
                         .lineLimit(1)
@@ -1340,8 +1340,6 @@ struct MenuBarLayoutDisplayOptions: View {
                     }
                     .labelsHidden()
                 }
-
-                Spacer()
             }
             Toggle(L("menu_bar_layout_monospaced_digits"), isOn: self.$monospacedDigits)
                 .toggleStyle(.checkbox)

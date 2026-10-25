@@ -148,14 +148,14 @@ tokens, including conditional layouts, and both live and sample layout previews.
 pace stays an en dash. The menu card's reserve/deficit wording and the numeric meaning of saved conditional rules
 do not change: positive pace thresholds still mean usage ahead of pace.
 
-Enable **Color Pace Indicator** under **Menu Bar → Icon** to show usage behind pace (reserve) in green and usage ahead
-of pace (risk of running out early) in red. The option defaults off, applies to all four pace tokens and the layout
+Enable **Color Pace Indicator** under **Menu Bar → Icon** to show usage behind pace (reserve) in OpenBar's `ok` tone
+(blue) and usage ahead of pace (risk of running out early) in its `warning` tone (amber). The option defaults off, applies to all four pace tokens and the layout
 preview, and keeps the signed percentages. Zero and unavailable pace stay neutral; stale pace colors are dimmed unless high-contrast rendering is active.
 It colors **Session pace**, **Weekly pace**, **Auto pace**, and **Spend pace** in the layout editor. Enabling it does not add tokens,
 rewrite stored layouts, or migrate legacy display modes. Existing installs stay monochrome until the option is enabled.
-These colors keep the same meaning with either pace sign: reserve is green and deficit is red.
+These colors keep the same meaning with either pace sign: reserve is blue and deficit is amber.
 
-Enable **Color by provider** under **Menu Bar → Icon** to tint each provider slot with its accent color, including custom accents. This single toggle defaults off and works with Critters, Meter bars, and Icon & percent, including stacked provider rows; it never changes the saved layout or the Brand/Monochrome artwork used in Usage & Spend. Pace tokens keep their independent green/red colors and VoiceOver keeps the same spoken labels.
+Enable **Color by provider** under **Menu Bar → Icon** to tint each provider slot with its accent color, including custom accents. This single toggle defaults off and works with Critters, Meter bars, and Icon & percent, including stacked provider rows; it never changes the saved layout or the Brand/Monochrome artwork used in Usage & Spend. Pace tokens keep their independent pace colors and VoiceOver keeps the same spoken labels.
 
 Provider color falls back to monochrome while a menu is open, data is stale, system Increase Contrast is enabled, or the inactive-display contrast option is enabled. Color returns immediately when the menu closes. Accents must meet a 2:1 contrast threshold against conservative reference backgrounds (25% sRGB gray in dark appearance, 85% in light appearance); this is not a WCAG text-conformance claim or wallpaper sampling. Unsupported or low-contrast accents use the system template rendering. The layout preview follows its own light/dark and accessibility environment.
 
@@ -184,7 +184,15 @@ model-generic token label while the rendered menu-bar prefix and accessibility l
 - 18×18 template image.
 - Bar windows are provider/style-specific primary and secondary windows.
 - Fill represents percent remaining by default; “Show usage as used” flips to percent used.
-- Renderer/critter icons dim when last refresh failed and can render incident indicators; brand display mode uses provider branding plus title text.
+- **Meter bars** draws two capsule rails with a straight fill edge, crisp on 1x and 2x displays. One mark in the
+  top-right corner carries state without color: a dot when a shown lane is at or below 25% remaining or the provider
+  reports a minor incident, a ring when the data is stale (the rails also step back to 70%), and an exclamation
+  when a shown lane is at or below 10% remaining, exhausted, or the provider reports a major incident. The stronger
+  mark wins. Marks judge remaining quota even with "Show usage as used". Increase Contrast and Reduce Transparency
+  raise the track opacity; the glyph redraws when either changes. Under Reduce Motion the loading animation holds
+  still.
+- Critter icons (legacy, opt-in) dim when last refresh failed and render incident indicators; brand display mode uses
+  provider branding plus title text.
 - Loading animation runs at a bounded frame rate and has a hard continuous-duration ceiling so provider hangs cannot keep
   the menu bar redrawing forever.
 - Ordinary, fresh monochrome token layouts use template images so AppKit supplies native highlighting and

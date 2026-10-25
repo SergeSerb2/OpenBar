@@ -18,10 +18,10 @@ Code subscription credentials.
 
 - Displays weekly request quota (from membership tier)
 - Shows current 5-hour rate limit usage
-- Shows promotional gift balances and expiry dates from web membership statistics, including Code API enrichment. Gift balances remain separate from recurring quota windows and monthly blocking limits. Server-provided gift names follow Chinese UI settings; other UI languages request English names.
-- Displays membership from the API/CLI usage response, with the active web subscription title as a fallback
+- Shows promotional gift balances and expiry dates from web membership statistics, for web-authenticated usage. Gift balances remain separate from recurring quota windows and monthly blocking limits. Server-provided gift names follow Chinese UI settings; other UI languages request English names.
+- Displays membership from the API/CLI usage response, for that authenticated source
 - Detects the installed Kimi CLI version, including standalone installs outside the GUI app PATH
-- Enriches Code API/CLI usage with the monthly membership pool when a web session is available
+- Keeps Code API/CLI quotas separate from web membership data because account ownership cannot be matched
 - Automatic menu-bar usage prioritizes an exhausted monthly Total usage pool over reset Code windows; explicit window selections remain authoritative
 - When a known monthly Total usage pool is exhausted, the menu card marks shorter Code windows as blocked by the monthly limit and omits their pace forecasts. Raw API percentages and explicit menu-bar selections remain available; unknown or expired monthly limits do not block the card.
 - API-key, Kimi Code CLI, automatic cookie, and manual cookie authentication methods
@@ -72,8 +72,7 @@ the same duration and reset time (within two seconds), the more-exhausted readin
 monthly pool is present or weekly counts are absent. Equal readings retain the ratio pool's precision
 and metadata; mismatched or unknown reset periods never borrow counts. Missing windows stay absent,
 and ratio percentages do not imply request counts. The monthly Total usage pool is available directly
-from the Code API in the menu and CLI output, without requiring browser authentication; optional web
-enrichment cannot replace it. Legacy rate-limit counts remain available when no 5-hour ratio is reported.
+from the Code API in the menu and CLI output, without requiring browser authentication; a web session cannot replace or supplement it. Legacy rate-limit counts remain available when no 5-hour ratio is reported.
 Numeric legacy fields outside the integer range decode safely; unusable request counts do not create quota windows.
 
 ### Method 2: Kimi Code CLI
@@ -113,7 +112,7 @@ Automatic mode prefers the current China Kimi Desktop access token from its prim
 Expired or invalid desktop JWTs are skipped; if the server rejects a desktop session, the Web source
 continues through browser profiles instead of stopping.
 Explicit manual tokens remain authoritative. API-key and CLI quota responses include the membership level, so displaying the tier does not require
-browser access. A web session can supply a subscription title when the usage response omits membership;
+browser access. For web-authenticated usage, the same web session can supply a subscription title when the usage response omits membership;
 a membership lookup failure does not fail the quota query. Quota statistics and the optional plan title
 load independently within a shared two-second enrichment budget; a slow title cannot discard completed
 monthly or Code 7-day statistics. Cancellation stops automatic retries before further browser reads.

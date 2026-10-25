@@ -288,7 +288,7 @@ struct MenuBarProviderColorTests {
             blue: codexAccent.blue,
             alpha: 1.0)
         #expect(percentColor == expectedCodexColor)
-        #expect(paceColor == .systemRed)
+        #expect(paceColor == MenuBarLayoutRenderer.paceDeficitColor)
     }
 
     @Test(arguments: [false, true])

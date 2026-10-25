@@ -162,8 +162,9 @@ struct DebugPane: View {
                                 .padding(8)
                         }
                         .frame(minHeight: 160, maxHeight: 220)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color(nsColor: .textBackgroundColor)))
 
                         if self.isLoadingLog {
                             ProgressView()
@@ -194,8 +195,9 @@ struct DebugPane: View {
                             .padding(8)
                     }
                     .frame(minHeight: 120, maxHeight: 220)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color(nsColor: .textBackgroundColor)))
                 }
 
                 if !self.settings.debugDisableKeychainAccess {
@@ -223,8 +225,9 @@ struct DebugPane: View {
                                 .padding(8)
                         }
                         .frame(minHeight: 120, maxHeight: 180)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color(nsColor: .textBackgroundColor)))
                     }
                 }
 
@@ -396,8 +399,9 @@ struct DebugPane: View {
                                 .padding(6)
                         }
                         .frame(minHeight: 60, maxHeight: 110)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color(nsColor: .textBackgroundColor)))
                     }
 
                     if let loginPATH = self.store.pathDebugInfo.loginShellPATH {
@@ -412,8 +416,9 @@ struct DebugPane: View {
                                     .padding(6)
                             }
                             .frame(minHeight: 60, maxHeight: 110)
-                            .background(Color(NSColor.textBackgroundColor))
-                            .cornerRadius(6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color(nsColor: .textBackgroundColor)))
                         }
                     }
                 }

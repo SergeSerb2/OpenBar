@@ -268,8 +268,7 @@ public enum VertexAIUsageFetcher {
             case 200:
                 break
             default:
-                let body = String(data: response.data, encoding: .utf8) ?? ""
-                throw VertexAIFetchError.invalidResponse("HTTP \(response.statusCode): \(body)")
+                throw VertexAIFetchError.invalidResponse("HTTP \(response.statusCode)")
             }
 
             let decoded = try JSONDecoder().decode(MonitoringTimeSeriesResponse.self, from: response.data)

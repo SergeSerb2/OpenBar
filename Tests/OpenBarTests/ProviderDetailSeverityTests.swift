@@ -77,8 +77,11 @@ struct ProviderDetailSeverityTests {
                 if r < 0.4, b > 0.6 { counts[3] += 1 }
             }
         }
-        // Each full bar covers thousands of pixels; a small status glyph alone cannot satisfy this.
-        #expect(counts.allSatisfy { $0 > 1000 }, "Expected green/orange/red/legacy blue bars: \(counts)")
+        // Each full bar covers thousands of pixels. Meters keep the provider tint for every severity (design spec
+        // §2.2); warning and critical tone only the value and its symbol, which cover far fewer pixels.
+        #expect(counts[3] > 4 * 4000, "Expected four provider-tinted bars: \(counts)")
+        #expect(counts[0] < 100, "Expected normal rows without a tone: \(counts)")
+        #expect([counts[1], counts[2]].allSatisfy { $0 > 100 && $0 < 1000 }, "Expected orange/red marks: \(counts)")
     }
 
     private static func fetch(engine: ProviderPluginEngineKind, rows: String) async throws -> UsageSnapshot {

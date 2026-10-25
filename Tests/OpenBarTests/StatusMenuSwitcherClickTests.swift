@@ -912,6 +912,7 @@ struct StatusMenuSwitcherClickTests {
 
         #expect(view._test_rowCount() == 4)
         #expect(view._test_rowHeight() == 39)
-        #expect(view.bounds.height == 168)
+        // Four 39-pt rows, three 4-pt gaps, and the rail's 2-pt padding above and below.
+        #expect(view.bounds.height == 172)
     }
 }

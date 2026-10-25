@@ -203,6 +203,8 @@ let package = Package(
                     // Opt into Swift 6 strict concurrency (approachable migration path).
                     .enableUpcomingFeature("StrictConcurrency"),
                     .define("ENABLE_SPARKLE"),
+                    // Keep the app shell small; scanner and provider work in OpenBarCore stays at -O.
+                    .unsafeFlags(["-Osize"], .when(configuration: .release)),
                 ]),
             .executableTarget(
                 name: "OpenBarWidget",

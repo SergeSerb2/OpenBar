@@ -34,6 +34,10 @@ pending. For the exact current-state parity contract, see
 When an Anthropic Admin API key is configured, Claude can also show organization-level spend/messages/tokens in the
 same inline dashboard pattern used by the OpenAI API provider.
 
+Local transcript accounting accepts normal JSON whitespace. Older row caches and report memos rebuild once to recover usage skipped by the compact-format prefilter.
+
+Large transcript records stream through a bounded accounting projection, so response text and tool payload size do not discard trailing usage. If accounting metadata exceeds the supported bound, the cost command reports incomplete history and saves no scan checkpoint. Reducing that metadata and refreshing retries the source. Older caches rebuild once to recover large-record usage.
+
 Incomplete proxy records with an explicit null `stop_reason`, positive input, zero output, and no cache counters are excluded from token and cost totals until a completed record arrives. Their day and model stay visible with an **Incomplete** marker and an excluded-request count. Known usage remains a partial subtotal; an incomplete-only period stays unavailable rather than becoming zero. Older caches are rebuilt once to apply this distinction. Missing `stop_reason` alone retains compatibility with older complete logs.
 
 Completed requests for models without a known price keep their token usage and report unpriced coverage. Usage & Spend retains the priced subtotal from the other requests and days as a lower bound; unknown prices do not become zero. Fully priced history keeps its usual estimated totals.
@@ -224,7 +228,8 @@ change the existing prompt policy or switch to another credential source.
 - Mapping:
   - `five_hour` → session window.
   - `seven_day` → weekly window; also becomes the primary fallback when `five_hour` is absent or has no utilization.
-  - `seven_day_sonnet` / `seven_day_opus` → model-specific weekly window.
+  - `seven_day_sonnet` / `seven_day_opus` → model-specific weekly window, with that object's own reset date.
+    Web never substitutes the all-model weekly reset for a model-specific reset.
   - `limits[].weekly_scoped` → model-specific weekly windows; generic `All models` scopes stay in the main weekly row.
     OAuth and Web share per-entry parsing: malformed siblings or optional fields do not hide valid model rows. Boolean and string percentages are ignored.
   - The menu localizes scoped titles as a model name plus weekly duration; canonical snapshot and CLI titles remain unchanged.
@@ -490,8 +495,9 @@ The accepted multi-account design in
   organization names, and email addresses stay hidden.
   Stacked shows one card per account (active account first, then numeric slot). With four or more
   accounts the stacked menu switches to a compact layout (`AccountMenuLayoutPlanner`): the active account keeps its full
-  card, inactive accounts become one-line rows sorted by remaining headroom (most constrained first, red/amber below
-  50%/10% left, a star on the healthiest activatable account), and healthy rows fold behind a "N more accounts ready"
+  card, inactive accounts become one-line rows sorted by remaining headroom (most constrained first; the figure turns
+  amber with a triangle at 25% left or less and red with an octagon at 10% or less; a star marks the healthiest
+  activatable account), and healthy rows fold behind a "N more accounts ready"
   summary row. Clicking a compact row expands that account's full card; clicking an inactive card collapses it again.
   This choice is remembered locally across menu opens and app restarts. The summary row reveals the hidden rows for
   the current menu session. `openbar cards` keeps the full per-account output. The same compact layout applies to

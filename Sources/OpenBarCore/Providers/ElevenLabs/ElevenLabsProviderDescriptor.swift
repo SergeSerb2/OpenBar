@@ -2,7 +2,8 @@ import Foundation
 
 public enum ElevenLabsProviderDescriptor {
     private static let missingCredentialMessage =
-        "Missing ElevenLabs API key. Set apiKey in ~/.openbar/config.json or ELEVENLABS_API_KEY."
+        "Missing ElevenLabs API key. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) " +
+        "or ELEVENLABS_API_KEY."
     public static let descriptor: ProviderDescriptor = Self.spec.makeDescriptor()
     public static let spec = PluginProviderSpec(
         id: .elevenlabs,
@@ -48,7 +49,7 @@ public enum ElevenLabsProviderDescriptor {
         apiKeyField: .init(
             id: "elevenlabs-api-key",
             title: "API key",
-            subtitle: "Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys.",
+            subtitle: "Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys.",
             placeholder: "xi-..."),
         showsAPIDetail: true,
         availability: .configuredKeyOrAccount)

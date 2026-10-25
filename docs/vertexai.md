@@ -67,3 +67,6 @@ The cache and report memo use the same [incremental project-shard storage as Cla
 - **No quota data**: Ensure Cloud Monitoring API access in the selected project.
 - **No cost data**: Check that `~/.claude/projects/` exists and contains `.jsonl` files from Claude Code usage with Vertex AI metadata.
 - **Auth issues**: Re-run `gcloud auth application-default login`.
+
+Project discovery follows `CLOUDSDK_ACTIVE_CONFIG_NAME`, then gcloud’s `active_config` marker, then the default
+configuration. Project environment variables remain fallbacks when the selected configuration has no project.

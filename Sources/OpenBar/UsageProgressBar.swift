@@ -1,6 +1,13 @@
 import SwiftUI
 
-/// Static progress fill with no implicit animations, used inside the menu card.
+/// Static quota meter used inside menu cards (spec §9.2 "Meter").
+///
+/// A provider-colored capsule fill, a 1.5-pt gap, then a capsule track. Quota-warning markers
+/// and workday ticks are 1-pt gaps cut into that geometry, and the pace marker is a rounded
+/// 2 × 10 pt tick with a cleared halo. Everything is a plain SwiftUI `Shape` with a computed
+/// path: no bitmaps, no `Canvas`, no blend modes, no compositing groups, no animation. The
+/// offscreen bench in docs/design/bench measured plain shapes ≈ 50 KiB cheaper per meter than
+/// the CGImage meter this replaces, with no GPU memory committed.
 struct UsageProgressBar: View {
     enum MarkerKind: Equatable {
         case quotaWarning
@@ -12,26 +19,6 @@ struct UsageProgressBar: View {
         let kind: MarkerKind
     }
 
-    private static let paceStripeCount = 3
-    private static let stripePunchOpacity = 0.9
-
-    private nonisolated static var warningMarkerPunchWidth: CGFloat {
-        5
-    }
-
-    private nonisolated static var warningMarkerStripeWidth: CGFloat {
-        1
-    }
-
-    private static func paceStripeWidth(for scale: CGFloat) -> CGFloat {
-        2
-    }
-
-    private static func paceStripeSpan(for scale: CGFloat) -> CGFloat {
-        let stripeCount = max(1, Self.paceStripeCount)
-        return Self.paceStripeWidth(for: scale) * CGFloat(stripeCount)
-    }
-
     let percent: Double
     let tint: Color
     let accessibilityLabel: String
@@ -40,8 +27,9 @@ struct UsageProgressBar: View {
     let warningMarkerPercents: [Double]
     let workdayMarkerPercents: [Double]
     let workdayTickAppearance: WorkdayTickAppearance
+    let height: CGFloat
     @Environment(\.menuItemHighlighted) private var isHighlighted
-    @Environment(\.self) private var environment
+    @Environment(\.displayScale) private var displayScale
 
     init(
         percent: Double,
@@ -51,7 +39,8 @@ struct UsageProgressBar: View {
         paceOnTop: Bool = true,
         warningMarkerPercents: [Double] = [],
         workdayMarkerPercents: [Double] = [],
-        workdayTickAppearance: WorkdayTickAppearance = .subtle)
+        workdayTickAppearance: WorkdayTickAppearance = .subtle,
+        height: CGFloat = OpenBarMenuStyle.meterHeight)
     {
         self.percent = percent
         self.tint = tint
@@ -61,6 +50,7 @@ struct UsageProgressBar: View {
         self.warningMarkerPercents = warningMarkerPercents
         self.workdayMarkerPercents = workdayMarkerPercents
         self.workdayTickAppearance = workdayTickAppearance
+        self.height = height
     }
 
     private var clamped: Double {
@@ -68,148 +58,61 @@ struct UsageProgressBar: View {
     }
 
     var body: some View {
-        // Rasterize the bar with Core Graphics on the CPU and show it as a plain image. SwiftUI `Canvas`
-        // (like Swift Charts and the .compositingGroup/.blendMode modifiers, issue #805) renders through
-        // RenderBox's Metal backend on macOS 26+, which commits ~100 MB of GPU memory the first time a
-        // menu draws one. A few kilobytes of bitmap per bar keep the menu off the GPU entirely.
-        GeometryReader { proxy in
-            let scale = max(self.environment.displayScale, 1)
-            if let image = self.renderedImage(size: proxy.size, scale: scale) {
-                Image(decorative: image, scale: scale)
+        let layout = MeterLayout(
+            fillPercent: Self.renderedFillPercent(self.clamped),
+            pacePercent: self.pacePercent.map { Self.clampedPercent($0) },
+            markers: Self.resolvedMarkers(
+                warningPercents: self.warningMarkerPercents,
+                workdayPercents: self.workdayMarkerPercents,
+                workdayAppearance: self.workdayTickAppearance),
+            workdayAppearance: self.workdayTickAppearance,
+            scale: max(self.displayScale, 1))
+        ZStack(alignment: .leading) {
+            MeterShape(layout: layout, part: .track)
+                .fill(MenuHighlightStyle.progressTrack(self.isHighlighted))
+            MeterShape(layout: layout, part: .fill)
+                .fill(MenuHighlightStyle.progressTint(self.isHighlighted, fallback: self.tint))
+            if layout.pacePercent != nil {
+                MeterShape(layout: layout, part: .paceTick)
+                    .fill(MenuHighlightStyle.primary(self.isHighlighted))
             }
         }
-        .frame(height: 6)
+        .frame(height: self.height)
         .accessibilityElement()
         .accessibilityLabel(self.accessibilityLabel)
         .accessibilityValue(self.markerAccessibilityValue)
     }
 
-    private func renderedImage(size: CGSize, scale: CGFloat) -> CGImage? {
-        let pixelWidth = Int((size.width * scale).rounded(.up))
-        let pixelHeight = Int((size.height * scale).rounded(.up))
-        guard pixelWidth > 0, pixelHeight > 0,
-              let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: nil,
-                  width: pixelWidth,
-                  height: pixelHeight,
-                  bitsPerComponent: 8,
-                  bytesPerRow: 0,
-                  space: colorSpace,
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        else { return nil }
-        // Flip to SwiftUI's top-left origin so the geometry below matches the view's coordinates.
-        context.translateBy(x: 0, y: CGFloat(pixelHeight))
-        context.scaleBy(x: scale, y: -scale)
-        self.draw(in: context, size: size, scale: scale)
-        return context.makeImage()
-    }
-
-    /// Draws track, fill, markers, and the pace tip. Punch-outs use `.destinationOut`, which erases
-    /// the pixels already drawn instead of needing a SwiftUI compositing group.
-    private func draw(in context: CGContext, size: CGSize, scale: CGFloat) {
-        let fill = { (path: Path, color: Color, blendMode: CGBlendMode) in
-            context.setBlendMode(blendMode)
-            context.setFillColor(color.resolve(in: self.environment).cgColor)
-            context.addPath(path.cgPath)
-            context.fillPath()
-        }
-        let fillPercent = Self.renderedFillPercent(self.clamped)
-        let fillWidth = size.width * fillPercent / 100
-        let paceWidth = size.width * Self.clampedPercent(self.pacePercent) / 100
-        let tipWidth = max(25, size.height * 6.5)
-        let stripeInset = 1 / scale
-        let tipOffset = paceWidth - tipWidth + (Self.paceStripeSpan(for: scale) / 2) + stripeInset
-        let showTip = self.pacePercent != nil && tipWidth > 0.5
-        let markers = Self.resolvedMarkers(
-            warningPercents: self.warningMarkerPercents,
-            workdayPercents: self.workdayMarkerPercents,
-            workdayAppearance: self.workdayTickAppearance)
-
-        let cornerRadius = size.height / 2
-        let cornerSize = CGSize(width: cornerRadius, height: cornerRadius)
-        let rect = CGRect(origin: .zero, size: size)
-        let punchColor = Color.white.opacity(Self.stripePunchOpacity)
-
-        context.clip(to: rect)
-
-        // Track
-        let trackPath = Path { p in p.addRoundedRect(in: rect, cornerSize: cornerSize) }
-        fill(trackPath, MenuHighlightStyle.progressTrack(self.isHighlighted), .normal)
-
-        // Fill
-        if fillWidth > 0 {
-            let fillRect = CGRect(x: 0, y: 0, width: min(fillWidth, size.width), height: size.height)
-            let fillPath = Path { p in p.addRoundedRect(in: fillRect, cornerSize: cornerSize) }
-            fill(fillPath, MenuHighlightStyle.progressTint(self.isHighlighted, fallback: self.tint), .normal)
-        }
-
-        for marker in markers {
-            let x = size.width * marker.percent / 100
-            switch marker.kind {
-            case .quotaWarning:
-                let markerRect = Self.warningMarkerRect(x: x, size: size, scale: scale)
-                let markerStripeRect = Self.warningMarkerStripeRect(markerRect, scale: scale)
-                let markerPunchPath = Path { p in
-                    p.addRect(Self.extendedMarkerRect(markerRect, size: size))
-                }
-                let markerStripePath = Path { p in
-                    p.addRect(Self.extendedMarkerRect(markerStripeRect, size: size))
-                }
-
-                // Match the pace stripe treatment: punch through the bar, then draw a slimmer neutral stripe.
-                fill(markerPunchPath, punchColor, .destinationOut)
-                fill(markerStripePath, Self.warningMarkerColor(isHighlighted: self.isHighlighted), .normal)
-            case .workdayBoundary:
-                let markerRect = Self.workdayMarkerRect(
-                    x: x,
-                    size: size,
-                    scale: scale,
-                    appearance: self.workdayTickAppearance)
-                fill(
-                    Path(markerRect),
-                    Self.workdayMarkerColor(isHighlighted: self.isHighlighted, appearance: self.workdayTickAppearance),
-                    .normal)
-            }
-        }
-
-        // Pace tip: punch-out + center stripe.
-        if showTip {
-            let isDeficit = self.paceOnTop == false
-            let useDeficitRed = isDeficit && self.isHighlighted == false
-            let stripeColor: Color = if self.isHighlighted {
-                .white
-            } else if useDeficitRed {
-                .red
-            } else {
-                .green
-            }
-
-            let tipSize = CGSize(width: tipWidth, height: size.height)
-            let stripes = Self.paceStripePaths(size: tipSize, scale: scale)
-            let shift = CGAffineTransform(translationX: tipOffset, y: 0)
-
-            // Punch out of the accumulated track+fill pixels.
-            fill(stripes.punched.applying(shift), punchColor, .destinationOut)
-            fill(stripes.center.applying(shift), stripeColor, .normal)
-        }
-    }
-
     private var markerAccessibilityValue: String {
-        var parts = [L("%d percent", Self.displayPercent(self.clamped))]
-        let markers = Self.resolvedMarkers(
+        let percent = L("%d percent", Self.displayPercent(self.clamped))
+        guard let markers = Self.markerAccessibilityText(
             warningPercents: self.warningMarkerPercents,
             workdayPercents: self.workdayMarkerPercents,
             workdayAppearance: self.workdayTickAppearance)
+        else { return percent }
+        return "\(percent). \(markers)"
+    }
+
+    /// Spoken marker summary ("Quota warnings: 50%, 80%. Work days: 20%, …"), or nil without markers.
+    static func markerAccessibilityText(
+        warningPercents: [Double],
+        workdayPercents: [Double],
+        workdayAppearance: WorkdayTickAppearance) -> String?
+    {
+        let markers = Self.resolvedMarkers(
+            warningPercents: warningPercents,
+            workdayPercents: workdayPercents,
+            workdayAppearance: workdayAppearance)
         let warnings = markers.filter { $0.kind == .quotaWarning }.map(Self.markerPercentText)
         let workdays = markers.filter { $0.kind == .workdayBoundary }.map(Self.markerPercentText)
+        var parts: [String] = []
         if !warnings.isEmpty {
             parts.append("\(L("quota_warnings_title")): \(warnings.joined(separator: ", "))")
         }
         if !workdays.isEmpty {
             parts.append("\(L("weekly_progress_work_days_title")): \(workdays.joined(separator: ", "))")
         }
-        return parts.joined(separator: ". ")
+        return parts.isEmpty ? nil : parts.joined(separator: ". ")
     }
 
     nonisolated static func resolvedMarkers(
@@ -250,148 +153,166 @@ struct UsageProgressBar: View {
         return clamped
     }
 
-    private static func paceStripePaths(size: CGSize, scale: CGFloat) -> (punched: Path, center: Path) {
-        let rect = CGRect(origin: .zero, size: size)
-        let extend = size.height * 2
-        let stripeTopY: CGFloat = -extend
-        let stripeBottomY: CGFloat = size.height + extend
-        let align: (CGFloat) -> CGFloat = { value in
-            (value * scale).rounded() / scale
-        }
-
-        let stripeWidth = Self.paceStripeWidth(for: scale)
-        let punchWidth = stripeWidth * 3
-        let stripeInset = 1 / scale
-        let stripeAnchorX = align(rect.maxX - stripeInset)
-        let stripeMinY = align(stripeTopY)
-        let stripeMaxY = align(stripeBottomY)
-        let anchorTopX = stripeAnchorX
-        var punchedStripe = Path()
-        var centerStripe = Path()
-        let availableWidth = (anchorTopX - punchWidth) - rect.minX
-        guard availableWidth >= 0 else { return (punchedStripe, centerStripe) }
-
-        let punchRightTopX = align(anchorTopX)
-        let punchLeftTopX = punchRightTopX - punchWidth
-        let punchRightBottomX = punchRightTopX
-        let punchLeftBottomX = punchLeftTopX
-        punchedStripe.addPath(Path { path in
-            path.move(to: CGPoint(x: punchLeftTopX, y: stripeMinY))
-            path.addLine(to: CGPoint(x: punchRightTopX, y: stripeMinY))
-            path.addLine(to: CGPoint(x: punchRightBottomX, y: stripeMaxY))
-            path.addLine(to: CGPoint(x: punchLeftBottomX, y: stripeMaxY))
-            path.closeSubpath()
-        })
-
-        let centerLeftTopX = align(punchLeftTopX + (punchWidth - stripeWidth) / 2)
-        let centerRightTopX = centerLeftTopX + stripeWidth
-        let centerRightBottomX = centerRightTopX
-        let centerLeftBottomX = centerLeftTopX
-        centerStripe.addPath(Path { path in
-            path.move(to: CGPoint(x: centerLeftTopX, y: stripeMinY))
-            path.addLine(to: CGPoint(x: centerRightTopX, y: stripeMinY))
-            path.addLine(to: CGPoint(x: centerRightBottomX, y: stripeMaxY))
-            path.addLine(to: CGPoint(x: centerLeftBottomX, y: stripeMaxY))
-            path.closeSubpath()
-        })
-
-        return (punchedStripe, centerStripe)
-    }
-
+    /// The gap a quota-warning marker cuts through the fill and track: 1 pt, full height.
     nonisolated static func warningMarkerRect(x: CGFloat, size: CGSize, scale rawScale: CGFloat) -> CGRect {
-        let scale = max(rawScale, 1)
-        let width = Self.warningMarkerPunchWidth
-        let align: (CGFloat) -> CGFloat = { value in
-            (value * scale).rounded() / scale
-        }
-
-        return CGRect(
-            x: align(x - width / 2),
-            y: 0,
-            width: width,
-            height: align(size.height))
+        self.markerGapRect(x: x, width: OpenBarMenuStyle.meterMarkerGap, size: size, scale: rawScale)
     }
 
-    nonisolated static func warningMarkerStripeRect(_ markerRect: CGRect, scale rawScale: CGFloat) -> CGRect {
-        let scale = max(rawScale, 1)
-        let width = min(markerRect.width, max(1 / scale, Self.warningMarkerStripeWidth))
-        let align: (CGFloat) -> CGFloat = { value in
-            (value * scale).rounded() / scale
-        }
-
-        return CGRect(
-            x: align(markerRect.midX - width / 2),
-            y: markerRect.minY,
-            width: width,
-            height: markerRect.height)
-    }
-
+    /// The gap a workday boundary cuts through the fill and track: 1 pt, or 2 pt with the
+    /// high-contrast tick appearance. Hidden ticks cut nothing.
     nonisolated static func workdayMarkerRect(
         x: CGFloat,
         size: CGSize,
         scale rawScale: CGFloat,
         appearance: WorkdayTickAppearance = .subtle) -> CGRect
     {
-        let scale = max(rawScale, 1)
-        let width: CGFloat
-        let height: CGFloat
         switch appearance {
         case .hidden:
-            return .zero
+            .zero
         case .subtle:
-            width = 1 / scale
-            height = max(1 / scale, size.height * 0.5)
+            self.markerGapRect(x: x, width: OpenBarMenuStyle.meterMarkerGap, size: size, scale: rawScale)
         case .highContrast:
-            width = max(1 / scale, 1.96)
-            height = size.height
+            self.markerGapRect(x: x, width: OpenBarMenuStyle.meterHighContrastMarkerGap, size: size, scale: rawScale)
         }
-        let align: (CGFloat) -> CGFloat = { value in
-            (value * scale).rounded() / scale
-        }
-        return CGRect(
-            x: align(x - width / 2),
-            y: align(size.height - height),
-            width: width,
-            height: align(height))
     }
 
-    private nonisolated static func extendedMarkerRect(_ rect: CGRect, size: CGSize) -> CGRect {
-        let extend = size.height * 2
-        return rect.insetBy(dx: 0, dy: -extend)
-    }
-
-    nonisolated static func warningMarkerColor(isHighlighted: Bool) -> Color {
-        isHighlighted ? .white.opacity(0.96) : .primary.opacity(0.68)
-    }
-
-    nonisolated static func workdayMarkerColor(
-        isHighlighted: Bool,
-        appearance: WorkdayTickAppearance = .subtle) -> Color
+    private nonisolated static func markerGapRect(
+        x: CGFloat,
+        width: CGFloat,
+        size: CGSize,
+        scale rawScale: CGFloat) -> CGRect
     {
-        switch appearance {
-        case .hidden:
-            .clear
-        case .subtle:
-            if isHighlighted {
-                .white.opacity(0.55)
-            } else {
-                .primary.opacity(0.30)
-            }
-        case .highContrast:
-            if isHighlighted {
-                .white.opacity(0.96)
-            } else {
-                .primary.opacity(0.85)
-            }
-        }
+        let scale = max(rawScale, 1)
+        let minX = Self.align(x - width / 2, scale: scale)
+        return CGRect(x: minX, y: 0, width: width, height: Self.align(size.height, scale: scale))
+    }
+
+    fileprivate nonisolated static func align(_ value: CGFloat, scale: CGFloat) -> CGFloat {
+        (value * scale).rounded() / scale
     }
 
     private nonisolated static func displayPercent(_ percent: Double) -> Int {
         Int(self.clampedPercent(percent).rounded())
     }
 
-    private nonisolated static func clampedPercent(_ value: Double?) -> Double {
-        guard let value else { return 0 }
+    fileprivate nonisolated static func clampedPercent(_ value: Double?) -> Double {
+        guard let value, value.isFinite else { return 0 }
         return min(100, max(0, value))
+    }
+}
+
+/// Resolved meter inputs. Geometry is computed from the frame the shape is given, so the meter
+/// needs no `GeometryReader`.
+private struct MeterLayout: Equatable {
+    let fillPercent: Double
+    let pacePercent: Double?
+    let markers: [UsageProgressBar.Marker]
+    let workdayAppearance: WorkdayTickAppearance
+    let scale: CGFloat
+
+    func fillRange(width: CGFloat, height: CGFloat) -> ClosedRange<CGFloat>? {
+        guard self.fillPercent > 0, width > 0 else { return nil }
+        // A sliver still reads as a dot: never narrower than the meter is tall.
+        let raw = max(height, width * self.fillPercent / 100)
+        let end = min(width, UsageProgressBar.align(raw, scale: self.scale))
+        return 0...end
+    }
+
+    func trackRange(width: CGFloat, height: CGFloat) -> ClosedRange<CGFloat>? {
+        let start: CGFloat = if let fill = self.fillRange(width: width, height: height) {
+            fill.upperBound + OpenBarMenuStyle.meterSplitGap
+        } else {
+            0
+        }
+        guard width - start >= 1 else { return nil }
+        return start...width
+    }
+
+    func paceTickX(width: CGFloat) -> CGFloat? {
+        guard let pacePercent else { return nil }
+        let half = OpenBarMenuStyle.paceTickWidth / 2 + OpenBarMenuStyle.paceTickHalo
+        let x = min(max(width * pacePercent / 100, half), max(half, width - half))
+        return UsageProgressBar.align(x, scale: self.scale)
+    }
+
+    /// Gaps cut through both the fill and the track.
+    func cuts(in rect: CGRect) -> Path {
+        var path = Path()
+        let size = rect.size
+        let extended = { (gap: CGRect) in
+            CGRect(x: gap.minX, y: rect.minY, width: gap.width, height: size.height).insetBy(dx: 0, dy: -size.height)
+        }
+        for marker in self.markers {
+            let x = rect.minX + size.width * marker.percent / 100
+            let gap = switch marker.kind {
+            case .quotaWarning:
+                UsageProgressBar.warningMarkerRect(x: x, size: size, scale: self.scale)
+            case .workdayBoundary:
+                UsageProgressBar.workdayMarkerRect(
+                    x: x,
+                    size: size,
+                    scale: self.scale,
+                    appearance: self.workdayAppearance)
+            }
+            if gap.width > 0 {
+                path.addRect(extended(gap))
+            }
+        }
+        if let tickX = self.paceTickX(width: size.width) {
+            let width = OpenBarMenuStyle.paceTickWidth + OpenBarMenuStyle.paceTickHalo * 2
+            path.addRect(extended(CGRect(
+                x: rect.minX + tickX - width / 2,
+                y: rect.minY,
+                width: width,
+                height: size.height)))
+        }
+        return path
+    }
+}
+
+private struct MeterShape: Shape {
+    enum Part {
+        case track
+        case fill
+        case paceTick
+    }
+
+    let layout: MeterLayout
+    let part: Part
+
+    func path(in rect: CGRect) -> Path {
+        let width = rect.width
+        let height = rect.height
+        switch self.part {
+        case .track:
+            guard let range = self.layout.trackRange(width: width, height: height) else { return Path() }
+            return Self.capsule(range, in: rect).subtractingIfNeeded(self.layout.cuts(in: rect))
+        case .fill:
+            guard let range = self.layout.fillRange(width: width, height: height) else { return Path() }
+            return Self.capsule(range, in: rect).subtractingIfNeeded(self.layout.cuts(in: rect))
+        case .paceTick:
+            guard let x = self.layout.paceTickX(width: width) else { return Path() }
+            let tick = CGRect(
+                x: rect.minX + x - OpenBarMenuStyle.paceTickWidth / 2,
+                y: rect.midY - OpenBarMenuStyle.paceTickHeight / 2,
+                width: OpenBarMenuStyle.paceTickWidth,
+                height: OpenBarMenuStyle.paceTickHeight)
+            return Path(roundedRect: tick, cornerRadius: OpenBarMenuStyle.paceTickWidth / 2)
+        }
+    }
+
+    private static func capsule(_ range: ClosedRange<CGFloat>, in rect: CGRect) -> Path {
+        let segment = CGRect(
+            x: rect.minX + range.lowerBound,
+            y: rect.minY,
+            width: range.upperBound - range.lowerBound,
+            height: rect.height)
+        return Path(roundedRect: segment, cornerRadius: min(segment.width, segment.height) / 2)
+    }
+}
+
+extension Path {
+    fileprivate func subtractingIfNeeded(_ cuts: Path) -> Path {
+        cuts.isEmpty ? self : self.subtracting(cuts)
     }
 }

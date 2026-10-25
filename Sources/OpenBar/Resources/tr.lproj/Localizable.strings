@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Kullanım anlık görüntülerini eşzamanla";
 "Show accounts from other Macs" = "Diğer Mac'lerdeki hesapları göster";
 "Requires a signed release build of OpenBar." = "OpenBar'ın imzalı bir sürüm derlemesi gerekir.";
+"iCloud Sync is not available in this build of OpenBar." = "iCloud eşzamanlama, OpenBar'ın bu derlemesinde kullanılamıyor.";
 "Sign in to iCloud in System Settings to enable sync." = "Eşzamanlamayı etkinleştirmek için Sistem Ayarları'nda iCloud'a giriş yapın.";
 "iCloud access is restricted on this Mac." = "Bu Mac'te iCloud erişimi kısıtlı.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Eşzamanlama duraklatıldı: başka bir Mac daha yeni bir OpenBar sürümü kullanıyor. Devam etmek için güncelleyin.";
@@ -357,11 +358,9 @@
 "Store multiple OpenCode Cookie headers." = "Birden fazla OpenCode çerez başlığı depolayın.";
 "Store multiple OpenCode Go Cookie headers." = "Birden fazla OpenCode Go çerez başlığı depolayın.";
 "Stored in the OpenBar config file." = "OpenBar yapılandırma dosyasında depolandı.";
-"Stored in ~/.openbar/config.json. " = "~/.openbar/config.json dosyasında depolandı. ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "~/.openbar/config.json dosyasında depolandı. Synthetic panelinden anahtarı yapıştırın.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "~/.openbar/config.json dosyasında depolandı. Model Studio'dan Kodlama Planı API anahtarınızı yapıştırın.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "~/.openbar/config.json dosyasında depolandı. MiniMax API anahtarınızı yapıştırın.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "~/.openbar/config.json dosyasında depolandı. Ayrıca KILO_API_KEY sağlayabilirsiniz veya ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "OpenBar yapılandırma dosyasında saklanır. Synthetic panelinden anahtarı yapıştırın.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "OpenBar yapılandırma dosyasında saklanır. Model Studio'daki Coding Plan API anahtarınızı yapıştırın.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "OpenBar yapılandırma dosyasında saklanır. MiniMax API anahtarınızı yapıştırın.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "Tempo tahminlerini kişiselleştirmek için yerel Codex kullanım geçmişini (8 hafta) depolar.";
 "Surprise me" = "Beni şaşırt";
 "Switcher shows icons" = "Seçicide simgeleri gösterir";
@@ -855,7 +854,7 @@
 "cost_data_explanation" = "Maliyetler sağlayıcı tarafından bildirilebilir veya herkese açık API fiyatlarıyla token kullanımından tahmin edilebilir. Tahminler abonelik ücreti değildir.";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "AI Asistan içeren JetBrains IDE algılanmadı. Bir JetBrains IDE kurun ve AI Asistan'ı etkinleştirin.";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "OpenRouter API tokenı yapılandırılmamış. OPENROUTER_API_KEY ortam değişkenini ayarlayın veya Ayarlar'dan yapılandırın.";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "z.ai API tokenı bulunamadı. ~/.openbar/config.json dosyasında apiKey ayarlayın veya Z_AI_API_KEY kullanın.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "z.ai API tokenı bulunamadı. ~/.config/openbar/config.json (eski konum: ~/.openbar/config.json) dosyasında apiKey ayarlayın veya Z_AI_API_KEY kullanın.";
 "Missing DeepSeek API key." = "DeepSeek API anahtarı eksik.";
 "%@ is unavailable in the current environment." = "%@ geçerli ortamda kullanılamıyor.";
 "All Systems Operational" = "Tüm sistemler çalışır durumda";
@@ -1215,7 +1214,7 @@
 "Open Moonshot Console" = "Moonshot konsolunu aç";
 "Open Ollama API Keys" = "Ollama API anahtarlarını aç";
 "Open llmman" = "llmman'ı aç";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "~/.openbar/config.json dosyasında saklanır. Yalnızca llmman serve API anahtarı gerektirdiğinde gereklidir.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "OpenBar yapılandırma dosyasında saklanır. Yalnızca llmman serve API anahtarı gerektirdiğinde gereklidir.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "llmman serve adresi. Varsayılan: http://127.0.0.1:17434.";
 "Open StepFun Platform" = "StepFun platformunu aç";
 "Open T3 Chat Settings" = "T3 Chat ayarlarını aç";
@@ -1266,21 +1265,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "Tarayıcınızda cursor.com'da oturum açın, ardından OpenBar'da Cursor'ı yenileyin.";
 "Simulated error text" = "Simüle edilmiş hata metni";
 "StepFun platform account (phone number or email)." = "StepFun platform hesabı (telefon numarası veya e-posta).";
-"Stored in ~/.openbar/config.json." = "~/.openbar/config.json dosyasında depolandı.";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "~/.openbar/config.json dosyasında depolandı. AZURE_OPENAI_API_KEY de desteklenir.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "~/.openbar/config.json dosyasında depolandı. Resmi Kimi API'si için Moonshot / Kimi API kullanın.";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "~/.openbar/config.json dosyasında depolandı. API anahtarınızı Volcengine Ark konsolundan alın.";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "~/.openbar/config.json dosyasında depolandı. Anahtarınızı Ollama ayarlarından alın.";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "~/.openbar/config.json dosyasında depolandı. Anahtarınızı console.deepgram.com'dan alın.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "~/.openbar/config.json dosyasında depolandı. Anahtarınızı elevenlabs.io/app/settings/api-keys adresinden alın.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "~/.openbar/config.json dosyasında depolandı. Anahtarınızı openrouter.ai/settings/keys adresinden alın ve API anahtarı kota izlemeyi etkinleştirmek için orada bir anahtar harcama limiti ayarlayın.";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "~/.openbar/config.json dosyasında depolandı. Warp'ta Ayarlar > Platform > API anahtarları'nı açın, ardından bir tane oluşturun.";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "~/.openbar/config.json dosyasında depolandı. Metrikler Groq Enterprise Prometheus erişimi gerektirir.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "~/.openbar/config.json dosyasında depolandı. OPENAI_ADMIN_KEY tercih edilir; OPENAI_API_KEY hâlâ çalışır.";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "~/.openbar/config.json dosyasında depolandı. Anthropic Yönetici API anahtarı gerektirir.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "~/.openbar/config.json dosyasında depolandı. /v1/quota-stats için kullanılır.";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "~/.openbar/config.json dosyasında depolandı. Ayrıca CODEBUFF_API_KEY sağlayabilir veya OpenBar'ın ~/.config/manicode/credentials.json dosyasını okumasına izin verebilirsiniz (`codebuff login` tarafından oluşturulur).";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "~/.openbar/config.json dosyasında depolandı. Ayrıca KILO_API_KEY veya ~/.local/share/kilo/auth.json (kilo.access) sağlayabilirsiniz.";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "OpenBar yapılandırma dosyasında saklanır. AZURE_OPENAI_API_KEY de desteklenir.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "OpenBar yapılandırma dosyasında saklanır. Anahtarınızı Ollama ayarlarından alın.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "OpenBar yapılandırma dosyasında saklanır. Anahtarınızı console.deepgram.com'dan alın.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "OpenBar yapılandırma dosyasında saklanır. Anahtarınızı elevenlabs.io/app/settings/api-keys adresinden alın.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "OpenBar yapılandırma dosyasında saklanır. Warp'ta Ayarlar > Platform > API anahtarları'nı açın, ardından bir tane oluşturun.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "OpenBar yapılandırma dosyasında saklanır. Anthropic Yönetici API anahtarı gerektirir.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "OpenBar yapılandırma dosyasında saklanır. /v1/quota-stats için kullanılır.";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "OpenBar yapılandırma dosyasında saklanır. Ayrıca CODEBUFF_API_KEY sağlayabilir veya OpenBar'ın ~/.config/manicode/credentials.json dosyasını okumasına izin verebilirsiniz (`codebuff login` tarafından oluşturulur).";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "OpenBar yapılandırma dosyasında saklanır. Ayrıca KILO_API_KEY veya ~/.local/share/kilo/auth.json (kilo.access) sağlayabilirsiniz.";
 "T3 Chat cookie" = "T3 Chat çerezi";
 "Team mode" = "Takım modu";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "Bu hesap artık OpenBar'da kullanılamıyor. Hesap listesini yenileyin ve tekrar deneyin.";
@@ -1991,9 +1984,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "Kullanımı `tcr` üzerinden gösterir; hesaplar arasında geçiş yapmaz, çünkü tcr her istek için hesabı kendisi seçer. Kimlik bilgileri tcr tarafından yönetilmeye devam eder; OpenBar bunları asla okumaz.";
 "Stay Awake" = "Uyanık Kal";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "OpenBar yapılandırma dosyasında saklanır. /v1/usage'den aylık bütçeyi ve yönlendirilmiş kullanımı okur.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "~/.openbar/config.json konumunda saklanır. OPENAI_ADMIN_KEY kurumsal kullanım için gereklidir; eski/kullanıcı anahtarları yalnızca en iyi çaba dengesine geri döner.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "~/.openbar/config.json konumunda saklanır. Ayrıca FACTORY_API_KEY veya ~/.factory/.env de sağlayabilirsiniz.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "~/.openbar/config.json konumunda saklanır. AMP_API_KEY'yi de ayarlayabilirsiniz.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "OpenBar yapılandırma dosyasında saklanır. Kuruluş kullanımı için OPENAI_ADMIN_KEY gerekir; eski/kullanıcı anahtarları yalnızca mümkün olduğunda bakiyeyi gösterir.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "OpenBar yapılandırma dosyasında saklanır. Ayrıca FACTORY_API_KEY veya ~/.factory/.env de sağlayabilirsiniz.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "OpenBar yapılandırma dosyasında saklanır. AMP_API_KEY'yi de ayarlayabilirsiniz.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "Hesap Değiştir…";
 "Switch Claude Code account" = "Claude Code hesabını değiştir";
@@ -2114,14 +2107,14 @@
 "Paste the Cookie request header from zed.dev." = "Cookie istek başlığını zed.dev'den yapıştırın.";
 "Points" = "Puanlar";
 "Poe usage history is unavailable." = "Poe kullanım geçmişi mevcut değil.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "~/.openbar/config.json konumunda saklanır. Anahtarınızı poe.com/api/keys adresinden alın.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "OpenBar yapılandırma dosyasında saklanır. Anahtarınızı poe.com/api/keys adresinden alın.";
 "Billing" = "Faturalandırma";
 "Invoice billing" = "Faturalı ödeme";
 "Prepaid" = "Ön ödemeli";
 "Rate limit" = "Oran sınırı";
 "Billing and rate-limit data from the v0 Platform API" = "v0 Platformu API'den faturalandırma ve ücret sınırı verileri";
 "v0 cost history is not available via the Platform API." = "v0 maliyet geçmişi, API Platformu aracılığıyla mevcut değildir.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "~/.config/openbar/config.json konumunda saklanır. v0 ayarlarında bir tane oluşturun veya V0_API_KEY'yi ayarlayın.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "OpenBar yapılandırma dosyasında saklanır. v0 ayarlarında bir tane oluşturun veya V0_API_KEY'yi ayarlayın.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "v0 API anahtarlarını açın";
 "Scope" = "Kapsam";
@@ -2163,7 +2156,7 @@
 "Monthly quota" = "Aylık Kota";
 "Subscription usage from the Chutes API." = "Chutes API'den abonelik kullanımı.";
 "Chutes cost history is not available from OpenBar." = "Chutes maliyet geçmişi OpenBar'de mevcut değildir.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "~/.openbar/config.json konumunda saklanır. Bir Chutes API anahtarını yapıştırın.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "OpenBar yapılandırma dosyasında saklanır. Bir Chutes API anahtarını yapıştırın.";
 "chutes key..." = "Chutes API anahtarı...";
 "Spend" = "Harcama";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "Fireworks harcaması, API faturalandırma özetinden gelir; maliyet geçmişi takip edilmez.";
@@ -2204,7 +2197,7 @@
 "Shared pool" = "Ortak kota";
 "GitKraken cost history is not available." = "GitKraken maliyet geçmişi mevcut değil.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "xAI günlük harcama, bir Yönetim API anahtarı ve ID ekibini gerektirir. Ön ödeme bakiyesi harcama olarak değerlendirilmez.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "~/.openbar/config.json konumunda saklanır. Ayarlar > Yönetim Anahtarları altında console.x.ai'de bir tane oluşturun; çıkarım API anahtarları kabul edilmez.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "OpenBar yapılandırma dosyasında saklanır. Ayarlar > Yönetim Anahtarları altında console.x.ai'de bir tane oluşturun; çıkarım API anahtarları kabul edilmez.";
 "xai-..." = "xai-...";
 "Team ID" = "Takım ID";
 "Vercel access token" = "Vercel erişim belirteci";
@@ -2213,7 +2206,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Vercel erişim belirteciyle birlikte gereklidir. Veya VERCEL_TEAM_ID ayarlayın.";
 "Required. Shown in the xAI Console URL and team settings." = "Gerekli. xAI Konsolu URL ve ekip ayarlarında gösterilir.";
 "Sakana AI cost summary is not supported." = "Sakana AI maliyet özeti desteklenmiyor.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "~/.openbar/config.json konumunda saklanır. Sakana AI konsolu Cookie istek başlığını kopyalayın.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "OpenBar yapılandırma dosyasında saklanır. Sakana AI konsolu Cookie istek başlığını kopyalayın.";
 "Open Sakana AI Console" = "Sakana AI Konsolunu açın";
 "SuperGrok tokens" = "SuperGrok token";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "Bir SuperGrok taşıyıcısını veya grok.com cookie'yi yapıştırın. token dosyasını açın ~/.grok/auth.json açılır.";
@@ -2330,7 +2323,7 @@
 "5-hour quota" = "5 saatlik Kota";
 "Weekly quota" = "Haftalık Kota";
 "ZenMux cost history is not exposed by the Management API." = "ZenMux maliyet geçmişi API Yönetimi tarafından açıklanmaz.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "~/.openbar/config.json konumunda saklanır. Standart ZenMux çıkarım API anahtarları desteklenmez.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "OpenBar yapılandırma dosyasında saklanır. Standart ZenMux çıkarım API anahtarları desteklenmez.";
 "ZenMux management key…" = "ZenMux yönetim anahtarı…";
 "Monthly Plan" = "Aylık abonelik planı";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "Kota anahtarını, abonelik limitlerini, kullanımı ve /v1/usage'den cüzdan bakiyesini okur.";
@@ -2574,7 +2567,7 @@
 "Local Codex details; excluded from combined totals." = "Yerel Codex ayrıntıları; birleşik toplamlara dahil edilmez.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "OpenBar yapılandırma dosyasında saklanır. COMMAND_CODE_API_KEY'yi de ayarlayabilirsiniz.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ token · %@ istek";
 "15m" = "15 dk";

@@ -1,4 +1,5 @@
 import Foundation
+import OpenBarCore
 import SwiftUI
 
 protocol CodexAmbientLoginRunning: Sendable {
@@ -129,7 +130,7 @@ struct CodexAccountsSectionView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(L("OpenBar follows"))
-                            .font(.subheadline.weight(.semibold))
+                            .font(OpenBarTheme.Fonts.laneTitle)
                             .frame(width: ProviderSettingsMetrics.pickerLabelWidth, alignment: .leading)
 
                         Picker("", selection: selection) {
@@ -145,7 +146,7 @@ struct CodexAccountsSectionView: View {
                     }
 
                     Text(L("Choose which Codex account OpenBar should follow."))
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
 
                     self.systemRow(selection: self.systemSelectionBinding)
@@ -159,11 +160,11 @@ struct CodexAccountsSectionView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(L("Account"))
-                            .font(.subheadline.weight(.semibold))
+                            .font(OpenBarTheme.Fonts.laneTitle)
                             .frame(width: ProviderSettingsMetrics.pickerLabelWidth, alignment: .leading)
 
                         Text(account.displayName)
-                            .font(.subheadline)
+                            .font(OpenBarTheme.Fonts.meta)
 
                         Spacer(minLength: 0)
                     }
@@ -174,7 +175,7 @@ struct CodexAccountsSectionView: View {
 
             if self.state.visibleAccounts.isEmpty {
                 Text(L("No Codex accounts detected yet."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
@@ -192,10 +193,15 @@ struct CodexAccountsSectionView: View {
             }
 
             if let notice = self.state.notice {
-                Text(notice.text)
-                    .font(.footnote)
-                    .foregroundStyle(notice.tone == .warning ? .red : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if notice.tone == .warning {
+                    SettingsStatusMessage(notice.text, tone: .warning)
+                        .font(OpenBarTheme.Fonts.meta)
+                } else {
+                    Text(notice.text)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Button(self.state.addAccountTitle) {
@@ -230,7 +236,7 @@ struct CodexAccountsSectionView: View {
     private func systemRow(selection: Binding<String>?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(L("System"))
-                .font(.subheadline.weight(.semibold))
+                .font(OpenBarTheme.Fonts.laneTitle)
                 .frame(width: ProviderSettingsMetrics.pickerLabelWidth, alignment: .leading)
 
             if let selection {
@@ -254,13 +260,13 @@ struct CodexAccountsSectionView: View {
                     }
                 } label: {
                     Text(self.state.systemDisplayName)
-                        .font(.subheadline)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                 }
                 .disabled(self.state.isSystemSelectionDisabled)
             } else {
                 Text(self.state.systemDisplayName)
-                    .font(.subheadline)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(self.state.systemVisibleAccount == nil ? .secondary : .primary)
             }
 
@@ -268,7 +274,7 @@ struct CodexAccountsSectionView: View {
         }
 
         Text(L("The default Codex account on this Mac."))
-            .font(.footnote)
+            .font(OpenBarTheme.Fonts.meta)
             .foregroundStyle(.secondary)
     }
 }
@@ -287,17 +293,16 @@ private struct CodexAccountsSectionRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(self.account.displayName)
-                        .font(.subheadline.weight(.semibold))
+                        .font(OpenBarTheme.Fonts.laneTitle)
                     if self.showsSystemBadge {
                         Text(L("(System)"))
-                            .font(.caption.weight(.semibold))
+                            .font(OpenBarTheme.Fonts.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
                 }
                 if let health = self.account.authenticationHealthLabel {
-                    Text(health)
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+                    SettingsStatusMessage(health, tone: .warning)
+                        .font(OpenBarTheme.Fonts.meta)
                 }
             }
 

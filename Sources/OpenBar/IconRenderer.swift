@@ -67,12 +67,12 @@ enum IconRenderer {
         let quotaLayoutPolicy: QuotaLayoutPolicy
     }
 
-    private final class IconCacheStore: @unchecked Sendable {
-        private var cache: [IconCacheKey: NSImage] = [:]
-        private var order: [IconCacheKey] = []
+    private final class IconCacheStore<Key: Hashable>: @unchecked Sendable {
+        private var cache: [Key: NSImage] = [:]
+        private var order: [Key] = []
         private let lock = NSLock()
 
-        func cachedIcon(for key: IconCacheKey) -> NSImage? {
+        func cachedIcon(for key: Key) -> NSImage? {
             self.lock.lock()
             defer { self.lock.unlock() }
             guard let image = self.cache[key] else { return nil }
@@ -83,7 +83,7 @@ enum IconRenderer {
             return image
         }
 
-        func storeIcon(_ image: NSImage, for key: IconCacheKey, limit: Int) {
+        func storeIcon(_ image: NSImage, for key: Key, limit: Int) {
             self.lock.lock()
             defer { self.lock.unlock() }
             self.cache[key] = image
@@ -96,7 +96,9 @@ enum IconRenderer {
         }
     }
 
-    private static let iconCacheStore = IconCacheStore()
+    private static let iconCacheStore = IconCacheStore<IconCacheKey>()
+    /// Meter bars glyphs, keyed by what they draw (`MeterBarsGlyph.Key`). Only one style is active at a time.
+    private static let meterBarsCacheStore = IconCacheStore<MeterBarsGlyph.Key>()
     private static let iconCacheLimit = 64
     private static let morphBucketCount = 200
     private static let morphCache = MorphCache(limit: 512)
@@ -150,9 +152,30 @@ enum IconRenderer {
         tilt: CGFloat = 0,
         statusIndicator: ProviderStatusIndicator = .none,
         hideCritters: Bool = false,
-        quotaLayoutPolicy: QuotaLayoutPolicy? = nil) -> NSImage
+        quotaLayoutPolicy: QuotaLayoutPolicy? = nil,
+        laneValues: MeterBarsGlyph.LaneValues = .unrated,
+        displayOptions: MeterBarsGlyph.DisplayOptions? = nil) -> NSImage
     {
         let quotaLayoutPolicy = quotaLayoutPolicy ?? .style(style)
+        if Self.decorations(style: style, hideCritters: hideCritters).isEmpty {
+            // Undecorated styles (every style with "Meter bars") draw OpenBar's glyph. Critters keep the
+            // legacy drawing below unchanged.
+            let key = MeterBarsGlyph.key(
+                primary: primaryRemaining,
+                weekly: weeklyRemaining,
+                creditsPercent: creditsRemaining.map { min(max($0, 0) / Self.creditsCap * 100, 100) },
+                stale: stale,
+                indicator: statusIndicator,
+                policy: quotaLayoutPolicy,
+                laneValues: laneValues,
+                display: displayOptions ?? .current)
+            if let cached = self.meterBarsCacheStore.cachedIcon(for: key) {
+                return cached
+            }
+            let image = MeterBarsGlyph.makeImage(key)
+            self.meterBarsCacheStore.storeIcon(image, for: key, limit: Self.iconCacheLimit)
+            return image
+        }
         let shouldCache = blink <= 0.0001 && wiggle <= 0.0001 && tilt <= 0.0001
         let render = {
             self.renderImage {
@@ -706,8 +729,6 @@ enum IconRenderer {
                     }
                 }
 
-                let providerPresentation = UsageProvider(rawValue: style.rawValue)
-                    .map { ProviderDescriptorRegistry.descriptor(for: $0).presentation }
                 let usesMissingSecondaryLayout = quotaLayoutPolicy.treatsExhaustedSecondaryAsMissing
                 let effectiveWeeklyRemaining: Double? = {
                     if usesMissingSecondaryLayout, let weeklyRemaining, weeklyRemaining <= 0 {
@@ -730,8 +751,7 @@ enum IconRenderer {
                 // Warp special case: when no bonus or bonus exhausted, show "top monthly, bottom dimmed"
                 let missingSecondary = usesMissingSecondaryLayout && !weeklyAvailable
 
-                // "Hide critters" renders plain meter bars: suppress all face/decoration twists.
-                let decorations = hideCritters ? ProviderIconDecorations() : providerPresentation?.iconDecorations ?? []
+                let decorations = Self.decorations(style: style, hideCritters: hideCritters)
                 let twistFace = decorations.contains(.face)
                 let twistNotches = decorations.contains(.notches)
                 let twistGemini = decorations.contains(.gemini)
@@ -904,6 +924,12 @@ enum IconRenderer {
         return image
     }
 
+    /// Critter decorations for a style. "Meter bars" (hide critters) suppresses every face and twist.
+    private static func decorations(style: IconStyle, hideCritters: Bool) -> ProviderIconDecorations {
+        guard !hideCritters, let provider = UsageProvider(rawValue: style.rawValue) else { return [] }
+        return ProviderDescriptorRegistry.descriptor(for: provider).presentation.iconDecorations
+    }
+
     private static func quantizedPercent(_ value: Double?) -> Int {
         guard let value else { return -1 }
         return Int((value * 10).rounded())
@@ -957,6 +983,13 @@ enum IconRenderer {
         let size = Self.baseSize
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let baseColor = NSColor.labelColor
+        // Meter bars end on OpenBar's rails (bottom-left origin): session rail centered at y 12, 5 pt tall;
+        // weekly rail at y 5.25, 3.5 pt tall; both 16 pt long. Critters keep their legacy end state.
+        let endsOnMeterBars = Self.decorations(style: style, hideCritters: hideCritters).isEmpty
+        let topEnd = endsOnMeterBars ? (y: 12.0, length: 16.0, thickness: 5.0) : (y: 9.0, length: 14.0, thickness: 3.0)
+        let bottomEnd = endsOnMeterBars
+            ? (y: 5.25, length: 16.0, thickness: 3.5)
+            : (y: 4.0, length: 12.0, thickness: 2.4)
 
         struct Segment {
             let startCenter: CGPoint
@@ -974,24 +1007,24 @@ enum IconRenderer {
             // Upper ribbon -> top bar
             .init(
                 startCenter: center.offset(dx: 0, dy: 2),
-                endCenter: CGPoint(x: center.x, y: 9.0),
+                endCenter: CGPoint(x: center.x, y: topEnd.y),
                 startAngle: -30,
                 endAngle: 0,
                 startLength: 16,
-                endLength: 14,
+                endLength: topEnd.length,
                 startThickness: 3.4,
-                endThickness: 3.0,
+                endThickness: topEnd.thickness,
                 fadeOut: false),
             // Lower ribbon -> bottom bar
             .init(
                 startCenter: center.offset(dx: 0, dy: -2),
-                endCenter: CGPoint(x: center.x, y: 4.0),
+                endCenter: CGPoint(x: center.x, y: bottomEnd.y),
                 startAngle: 210,
                 endAngle: 0,
                 startLength: 16,
-                endLength: 12,
+                endLength: bottomEnd.length,
                 startThickness: 3.4,
-                endThickness: 2.4,
+                endThickness: bottomEnd.thickness,
                 fadeOut: false),
             // Side ribbon fades away
             .init(

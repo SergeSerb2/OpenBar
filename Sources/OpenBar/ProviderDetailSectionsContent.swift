@@ -7,7 +7,7 @@ struct ProviderDetailSectionsContent: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: OpenBarSpacing.section) {
             ForEach(Array(self.sections.enumerated()), id: \.offset) { index, section in
                 if index > 0 {
                     Divider()
@@ -18,12 +18,12 @@ struct ProviderDetailSectionsContent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private static func progressColor(_ severity: ProviderDetailSection.Row.Severity?, fallback: Color) -> Color {
+    /// Status tone of a row (spec §2.2). Meters keep the provider color; the tone marks the value.
+    private static func tone(_ severity: ProviderDetailSection.Row.Severity?) -> OpenBarQuotaTone {
         switch severity {
-        case .normal: Color(nsColor: .systemGreen)
-        case .warning: Color(nsColor: .systemOrange)
-        case .critical: Color(nsColor: .systemRed)
-        case nil: fallback
+        case .warning: .warning
+        case .critical: .critical
+        case .normal, nil: .normal
         }
     }
 
@@ -31,9 +31,8 @@ struct ProviderDetailSectionsContent: View {
         VStack(alignment: .leading, spacing: 6) {
             if let title = section.title {
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                    .textCase(.uppercase)
                     .lineLimit(1)
             }
             ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
@@ -43,36 +42,36 @@ struct ProviderDetailSectionsContent: View {
                             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                         Spacer(minLength: 8)
                         VStack(alignment: .trailing, spacing: 1) {
-                            HStack(spacing: 4) {
-                                if let severity = row.severity, severity != .normal {
+                            HStack(spacing: OpenBarSpacing.tight) {
+                                let tone = Self.tone(row.severity)
+                                let toneColor = tone.menuColor(highlighted: self.isHighlighted)
+                                if let toneColor, let symbolName = tone.symbolName {
                                     Label(
-                                        severity == .critical ? L("quota_warning_critical") :
+                                        tone == .critical ? L("quota_warning_critical") :
                                             L("quota_warning_warning"),
-                                        systemImage: severity == .critical
-                                            ? "exclamationmark.octagon.fill" : "exclamationmark.triangle.fill")
+                                        systemImage: symbolName)
                                         .labelStyle(.iconOnly)
-                                        .foregroundStyle(self.isHighlighted
-                                            ? .white : Self.progressColor(severity, fallback: self.chartColor))
+                                        .foregroundStyle(toneColor)
                                 }
                                 Text(row.value)
-                                    .foregroundStyle(MenuHighlightStyle.primary(self.isHighlighted))
+                                    .foregroundStyle(toneColor ?? MenuHighlightStyle.primary(self.isHighlighted))
                                     .fontWeight(.medium)
                             }
                             if let secondaryValue = row.secondaryValue {
                                 Text(secondaryValue)
-                                    .font(.caption2)
+                                    .font(OpenBarTheme.Fonts.caption)
                                     .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                             }
                         }
                     }
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .lineLimit(1)
                     if let progress = row.progress {
                         // The ratio is provider data left unclamped by contract; only the bar's fill
                         // is clamped here, the "used / total" caption keeps the raw numbers.
                         UsageProgressBar(
                             percent: min(100, max(0, progress.usedPercent)),
-                            tint: Self.progressColor(row.severity, fallback: self.chartColor),
+                            tint: self.chartColor,
                             accessibilityLabel: row.label)
                     }
                 }

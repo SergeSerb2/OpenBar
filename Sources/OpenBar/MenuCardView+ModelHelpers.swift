@@ -33,19 +33,23 @@ extension UsageMenuCardView.Model {
         /// True only for text produced by a pace calculation. Defaults to false
         /// so provider-owned text sharing the detail slot is preserved.
         let isPaceDerived: Bool
+        /// The forecast's verdict for pace forecasts; nil for other detail text.
+        let willLastToReset: Bool?
 
         init(
             leftLabel: String,
             rightLabel: String?,
             pacePercent: Double?,
             paceOnTop: Bool,
-            isPaceDerived: Bool = false)
+            isPaceDerived: Bool = false,
+            willLastToReset: Bool? = nil)
         {
             self.leftLabel = leftLabel
             self.rightLabel = rightLabel
             self.pacePercent = pacePercent
             self.paceOnTop = paceOnTop
             self.isPaceDerived = isPaceDerived
+            self.willLastToReset = willLastToReset
         }
     }
 
@@ -58,6 +62,7 @@ extension UsageMenuCardView.Model {
         var pacePercent: Double?
         var paceOnTop = true
         var detailIsPaceDerived = false
+        var paceWillLastToReset: Bool?
     }
 
     static func applyPrimaryQuotaPresentation(
@@ -201,6 +206,7 @@ extension UsageMenuCardView.Model {
         presentation.pacePercent = paceDetail.pacePercent
         presentation.paceOnTop = paceDetail.paceOnTop
         presentation.detailIsPaceDerived = paceDetail.isPaceDerived
+        presentation.paceWillLastToReset = paceDetail.willLastToReset
     }
 
     private static func nonEmptyResetDescription(_ window: RateWindow) -> String? {
@@ -254,6 +260,7 @@ extension UsageMenuCardView.Model {
             blocked.detailLeftText = nil
             blocked.detailRightText = nil
             blocked.pacePercent = nil
+            blocked.paceWillLastToReset = nil
             blocked.sessionEquivalentDetail = nil
             return blocked
         }
@@ -270,6 +277,7 @@ extension UsageMenuCardView.Model {
                 result.detailRightText = nil
             }
             result.pacePercent = nil
+            result.paceWillLastToReset = nil
             result.sessionEquivalentDetail = nil
             return result
         }
@@ -819,7 +827,8 @@ extension UsageMenuCardView.Model {
         showUsed: Bool) -> PaceDetail?
     {
         guard let detail = UsagePaceText.sessionDetail(provider: provider, window: window, now: now) else { return nil }
-        return self.paceDetail(detail, window: window, showUsed: showUsed)
+        let pace = UsagePaceText.sessionPace(provider: provider, window: window, now: now)
+        return self.paceDetail(detail, window: window, showUsed: showUsed, willLastToReset: pace?.willLastToReset)
     }
 
     static func weeklyPaceDetail(
@@ -831,13 +840,14 @@ extension UsageMenuCardView.Model {
     {
         guard let pace, window.remainingPercent > 0 else { return nil }
         let detail = UsagePaceText.weeklyDetail(provider: provider, pace: pace, now: now)
-        return self.paceDetail(detail, window: window, showUsed: showUsed)
+        return self.paceDetail(detail, window: window, showUsed: showUsed, willLastToReset: pace.willLastToReset)
     }
 
     private static func paceDetail(
         _ detail: UsagePaceText.WeeklyDetail,
         window: RateWindow,
-        showUsed: Bool) -> PaceDetail?
+        showUsed: Bool,
+        willLastToReset: Bool?) -> PaceDetail?
     {
         guard detail.expectedUsedPercent.isFinite, window.usedPercent.isFinite else { return nil }
         let expectedPercent = showUsed ? detail.expectedUsedPercent : (100 - detail.expectedUsedPercent)
@@ -846,7 +856,8 @@ extension UsageMenuCardView.Model {
             rightLabel: detail.rightLabel,
             pacePercent: detail.stage == .onTrack ? nil : expectedPercent,
             paceOnTop: window.usedPercent <= detail.expectedUsedPercent,
-            isPaceDerived: true)
+            isPaceDerived: true,
+            willLastToReset: willLastToReset)
     }
 
     static func standardWeeklyPace(input: Input, window: RateWindow) -> UsagePace? {
@@ -1040,6 +1051,7 @@ extension UsageMenuCardView.Model {
                 detailRightText: usageKnown ? paceDetail?.rightLabel : nil,
                 pacePercent: usageKnown ? paceDetail?.pacePercent : nil,
                 detailIsPaceDerived: paceDetail?.isPaceDerived ?? false,
+                paceWillLastToReset: usageKnown ? paceDetail?.willLastToReset : nil,
                 paceOnTop: paceDetail?.paceOnTop ?? true,
                 sessionEquivalentDetail: usageKnown
                     ? Self.sessionEquivalentDetail(
@@ -1209,6 +1221,7 @@ extension UsageMenuCardView.Model {
             detailRightText: paceDetail?.rightLabel,
             pacePercent: paceDetail?.pacePercent,
             detailIsPaceDerived: paceDetail?.isPaceDerived ?? false,
+            paceWillLastToReset: paceDetail?.willLastToReset,
             paceOnTop: paceDetail?.paceOnTop ?? true)
     }
 

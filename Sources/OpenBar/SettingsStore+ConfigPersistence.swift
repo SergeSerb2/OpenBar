@@ -9,6 +9,8 @@ enum ConfigChangeOrigin: Equatable {
 
 extension SettingsStore {
     func startConfigFileWatcher() {
+        self.configPersistenceCoordinator.recordInitialConfig(
+            FileManager.default.fileExists(atPath: self.configStore.fileURL.path) ? self.config : nil)
         let watcher = ConfigFileWatcher(fileURL: self.configStore.fileURL) { [weak self] in
             Task { @MainActor [weak self] in
                 self?.reloadConfig(reason: "file-watch", origin: .localFile)
@@ -168,6 +170,20 @@ extension SettingsStore {
             origin: origin,
             reason: "sync-\(reason)",
             affectsBackgroundWork: resolvedBackgroundWorkChange)
+    }
+
+    /// Launch decodes the config before background plugin discovery finishes, so plugin entries are still opaque
+    /// records. Re-decode them in memory (no disk reload) to restore their saved order and settings.
+    func applyInitialUserPluginDiscovery() {
+        guard !self.configLoading, !UserProviderPluginRegistry.all.isEmpty,
+              let redecoded = try? OpenBarConfig.decode(from: self.config.encodedData())
+        else { return }
+        let normalized = redecoded.normalized()
+        self.configLoading = true
+        self.config = normalized
+        self.updateProviderState(config: normalized)
+        self.configLoading = false
+        self.bumpConfigRevision(origin: .externalSync, reason: "plugin-discovery", affectsBackgroundWork: false)
     }
 
     private static func orderIndependentConfigData(_ config: OpenBarConfig) -> Data? {
@@ -339,39 +355,60 @@ extension SettingsStore {
     {
         let data = try store.encodedData(for: config)
         var publicationLocked = false
-        defer { if publicationLocked { permit.endPublication() } }
-        try ConfigFileWatcher.withAppWrite(data, watcher: watcher) {
-            try store.saveEncodedData(data) {
-                try permit.beginPublication(validating: store)
+        var published = false
+        defer { if publicationLocked { permit.endPublication(data: published ? data : nil) } }
+        do {
+            try store.withTransaction { current, publish in
+                try permit.beginPublication()
                 publicationLocked = true
+                let rebased = try permit.rebase(config, onto: current ?? .makeDefault())
+                let rebasedData = try store.encodedData(for: rebased)
+                try ConfigFileWatcher.withAppWrite(rebasedData, watcher: watcher) {
+                    try publish(rebased)
+                }
             }
+        } catch {
+            if !publicationLocked, !(error is CancellationError) { permit.recordReadFailure() }
+            throw error
         }
+        published = true
     }
 }
 
-/// Reloads invalidate every older snapshot. Only the final publication and reload read share
-/// this lock; staging and fsync never hold it or need the main actor.
+/// Reloads invalidate every older snapshot. Writers acquire this lock after the file lock,
+/// and complete their transaction without needing the main actor.
 final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
     struct WritePermit: Sendable {
         fileprivate let coordinator: SettingsConfigPersistenceCoordinator
         fileprivate let generation: UInt64
 
-        func beginPublication(validating store: OpenBarConfigStore) throws {
+        /// The caller's transaction has already read the file under the file lock, and a failed read
+        /// never reaches this point, so publication only needs to check that no reload superseded it.
+        func beginPublication() throws {
             self.coordinator.lock.lock()
             guard !self.coordinator.readFailed, self.generation == self.coordinator.generation else {
                 self.coordinator.lock.unlock()
                 throw CancellationError()
             }
-            do {
-                _ = try store.load()
-            } catch {
-                self.coordinator.readFailed = true
-                self.coordinator.lock.unlock()
-                throw error
+        }
+
+        func rebase(_ edited: OpenBarConfig, onto current: OpenBarConfig) throws -> OpenBarConfig {
+            let original = try self.coordinator.observedConfigData.map(OpenBarConfig.decode(from:)) ?? current
+            return try current.applyingChanges(from: original, to: edited)
+        }
+
+        func recordReadFailure() {
+            self.coordinator.lock.withLock {
+                if self.generation == self.coordinator.generation { self.coordinator.readFailed = true }
             }
         }
 
-        func endPublication() {
+        func endPublication(data: Data?) {
+            if let data {
+                // Keep the app's edit baseline, rather than treating concurrent file edits as
+                // local changes to undo on its next debounced save.
+                self.coordinator.observedConfigData = data
+            }
             self.coordinator.lock.unlock()
         }
     }
@@ -379,15 +416,31 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
     private let lock = NSLock()
     private var generation: UInt64 = 0
     private var readFailed = false
+    private var observedConfigData: Data?
+
+    func recordInitialConfig(_ config: OpenBarConfig?) {
+        self.lock.withLock {
+            self.observedConfigData = try? config?.encodedData()
+        }
+    }
 
     func makeWritePermit() -> WritePermit {
         self.lock.withLock { WritePermit(coordinator: self, generation: self.generation) }
     }
 
     func load(_ store: OpenBarConfigStore, reload: Bool = false) throws -> OpenBarConfig? {
-        try self.lock.withLock {
+        // Writers hold the file lock before this lock, so publish any legacy migration before taking it.
+        do {
+            _ = try store.load()
+        } catch {
+            // A failed read still supersedes every queued writer, as a successful load does.
+            self.lock.withLock { self.generation &+= 1 }
+            throw error
+        }
+        return try self.lock.withLock {
             self.generation &+= 1
-            let config = try store.load()
+            let config = try store.loadWithoutMigrating()
+            self.observedConfigData = try config?.encodedData()
             if reload, config != nil { self.readFailed = false }
             return config
         }

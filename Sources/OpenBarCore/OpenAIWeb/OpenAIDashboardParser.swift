@@ -75,13 +75,22 @@ public enum OpenAIDashboardParser {
 
     public static func parseCreditsRemaining(bodyText: String) -> Double? {
         let cleaned = bodyText.replacingOccurrences(of: "\r", with: "\n")
+        // The balance sits on the label's line or the next one; a farther number belongs to something else.
         let patterns = [
-            #"credits\s*remaining[^0-9]*([0-9][0-9.,]*)"#,
-            #"remaining\s*credits[^0-9]*([0-9][0-9.,]*)"#,
-            #"credit\s*balance[^0-9]*([0-9][0-9.,]*)"#,
+            #"credits\s*remaining[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
+            #"remaining\s*credits[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
+            #"credit\s*balance[^0-9\n]*\n?[^0-9\n]*([0-9][0-9.,]*)"#,
         ]
         for pattern in patterns {
-            if let val = TextParsing.firstNumber(pattern: pattern, text: cleaned) { return val }
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+                  let match = regex.firstMatch(
+                      in: cleaned,
+                      options: [],
+                      range: NSRange(cleaned.startIndex..<cleaned.endIndex, in: cleaned)),
+                  let range = Range(match.range(at: 1), in: cleaned)
+            else { continue }
+            // The dashboard is loaded in en-US: commas group thousands and a dot is always the decimal point.
+            if let value = Double(cleaned[range].replacingOccurrences(of: ",", with: "")) { return value }
         }
         return nil
     }
@@ -358,6 +367,7 @@ public enum OpenAIDashboardParser {
     private static func parseResetDate(from line: String, now: Date) -> Date? {
         var raw = line.trimmingCharacters(in: .whitespacesAndNewlines)
         raw = raw.replacingOccurrences(of: #"(?i)^resets?:?\s*"#, with: "", options: .regularExpression)
+        raw = raw.replacingOccurrences(of: #"(?i)^at\s+"#, with: "", options: .regularExpression)
         raw = raw.replacingOccurrences(of: " at ", with: " ", options: .caseInsensitive)
         raw = raw.replacingOccurrences(of: " on ", with: " ", options: .caseInsensitive)
         raw = raw.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
@@ -417,10 +427,22 @@ public enum OpenAIDashboardParser {
             "yyyy-MM-dd h:mm a",
             "yyyy-MM-dd",
         ]
+        // "Resets at 9:00 PM" means the next 9:00 PM.
+        let timeOnlyFormats = ["h:mma", "h:mm a", "HH:mm"]
 
-        for format in formats {
+        for format in formats + timeOnlyFormats {
             formatter.dateFormat = format
-            if let date = formatter.date(from: candidate) {
+            if var date = formatter.date(from: candidate) {
+                if timeOnlyFormats.contains(format) {
+                    return date < now ? calendar.date(byAdding: .day, value: 1, to: date) : date
+                }
+                // Dates without a year take the current one; a reset well in the past belongs to next year.
+                if !format.contains("y"),
+                   now.timeIntervalSince(date) > 24 * 60 * 60,
+                   let nextYear = calendar.date(byAdding: .year, value: 1, to: date)
+                {
+                    date = nextYear
+                }
                 if usedRelativeDay, date < now {
                     if lower.contains("today"),
                        let bumped = calendar.date(byAdding: .day, value: 1, to: date)

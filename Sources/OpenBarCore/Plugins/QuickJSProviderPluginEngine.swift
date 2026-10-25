@@ -212,11 +212,6 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         let deadline: Date
     }
 
-    private struct CacheEntry {
-        let json: String
-        let expiresAt: Date
-    }
-
     // @unchecked Sendable is safe because every mutable engine field and QuickJS API call is confined
     // to this serial worker. requestInterrupt() is the watchdog's explicitly thread-safe escape hatch.
     private let worker: QuickJSSerialWorker
@@ -234,7 +229,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
     private var fetchUsage: JSValue?
     private var loadedManifest: ProviderPluginManifest?
     private var fetchState: FetchState?
-    private var cache: [String: CacheEntry] = [:]
+    private var cache = ProviderPluginRuntimeCache<String>()
 
     var manifest: ProviderPluginManifest {
         guard let loadedManifest = self.loadedManifest else {
@@ -253,6 +248,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         preludeSource: String,
         transport: any ProviderHTTPTransport,
         timeout: TimeInterval,
+        loadTimeout: TimeInterval? = nil,
         responseSizeLimit: Int,
         enforcesUserResponsePolicy: Bool,
         allowsDynamicID: Bool,
@@ -281,7 +277,11 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
                 timeout: timeout,
                 responseSizeLimit: responseSizeLimit,
                 enforcesUserResponsePolicy: enforcesUserResponsePolicy)
-            try engine.load(source: source, preludeSource: preludeSource, allowsDynamicID: allowsDynamicID)
+            try engine.load(
+                source: source,
+                preludeSource: preludeSource,
+                allowsDynamicID: allowsDynamicID,
+                timeout: loadTimeout ?? timeout)
             return engine
         }
     }
@@ -382,7 +382,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         }
     }
 
-    private func load(source: String, preludeSource: String, allowsDynamicID: Bool) throws {
+    private func load(source: String, preludeSource: String, allowsDynamicID: Bool, timeout: TimeInterval) throws {
         JS_UpdateStackTop(self.runtime)
         guard let watchdog = cqjs_watchdog_create(
             quickJSHostCallback,
@@ -392,7 +392,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
         }
         self.watchdog = watchdog
         cqjs_watchdog_install(watchdog, self.runtime, self.context)
-        cqjs_watchdog_arm(watchdog, UInt64(self.timeout * 1000))
+        cqjs_watchdog_arm(watchdog, UInt64(timeout * 1000))
         defer { cqjs_watchdog_disarm(watchdog) }
 
         let global = JS_GetGlobalObject(self.context)
@@ -755,11 +755,8 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
             else { return cqjs_undefined() }
             return try self.parseJSON(json)
         }
-        guard let entry = self.cache[key], entry.expiresAt > Date() else {
-            self.cache[key] = nil
-            return cqjs_undefined()
-        }
-        return try self.parseJSON(entry.json)
+        guard let json = self.cache.get(key) else { return cqjs_undefined() }
+        return try self.parseJSON(json)
     }
 
     private func hostCacheSet(_ arguments: UnsafeBufferPointer<JSValue>) throws {
@@ -772,7 +769,7 @@ final class QuickJSProviderPluginEngine: ProviderPluginEngine, @unchecked Sendab
             ProviderPluginMemoryCache.shared.set(namespace: self.manifest.id.rawValue, key: key, json: json, ttl: ttl)
             return
         }
-        self.cache[key] = CacheEntry(json: json, expiresAt: Date().addingTimeInterval(min(ttl, 86400)))
+        self.cache.set(key, value: json, valueBytes: json.utf8.count, ttl: ttl)
     }
 
     private func hostAddMonths(_ arguments: UnsafeBufferPointer<JSValue>) throws -> JSValue {

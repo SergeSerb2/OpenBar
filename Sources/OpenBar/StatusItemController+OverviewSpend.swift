@@ -95,44 +95,46 @@ struct OverviewSpendSummaryCardView: View {
     let summary: OverviewSpendSummary
     let days: Int
     let width: CGFloat
+    @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: OpenBarSpacing.compact) {
+            HStack(spacing: OpenBarSpacing.compact) {
                 Text(L("Usage & Spend"))
-                    .font(.headline.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneTitle)
+                    .foregroundStyle(MenuHighlightStyle.primary(self.isHighlighted))
                 Text("·")
                 Text(spendDashboardDayRangeText(self.days))
             }
-            .foregroundStyle(.secondary)
+            .font(OpenBarTheme.Fonts.meta)
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
 
+            // Dashboard total in the `hero` role (spec §3): SF Pro semibold, tabular.
             Text(self.summary.primarySpendText)
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .monospacedDigit()
+                .font(OpenBarTheme.Fonts.hero)
                 .lineLimit(2)
 
-            HStack(spacing: 8) {
+            HStack(spacing: OpenBarSpacing.regular) {
                 Text(self.summary.providerCoverageText)
                 if let tokenText = self.summary.tokenText {
                     Text("·")
                     Text(tokenText)
                 }
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
+            .font(OpenBarTheme.Fonts.meta)
+            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
             .lineLimit(1)
 
             Text("\(self.summary.historyCoverageText) · \(self.summary.provenanceText)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(OpenBarTheme.Fonts.caption)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 .lineLimit(2)
             Text(self.summary.pricingCoverageText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(OpenBarTheme.Fonts.caption)
+                .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 .lineLimit(2)
         }
-        .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-        .padding(.vertical, 10)
+        .menuCardChrome()
         .frame(width: self.width, alignment: .leading)
     }
 }
@@ -154,9 +156,7 @@ extension StatusItemController {
             keyEquivalent: "")
         item.target = self
         item.representedObject = "overviewShareStats"
-        if let image = NSImage(systemSymbolName: "square.and.arrow.up", accessibilityDescription: title) {
-            image.isTemplate = true
-            image.size = NSSize(width: 16, height: 16)
+        if let image = Self.menuRowSymbolImage("square.and.arrow.up", accessibilityDescription: title) {
             item.image = image
         }
         return item

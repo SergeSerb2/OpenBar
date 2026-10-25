@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="iris" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6D63F2"/>
+      <stop offset="1" stop-color="#3D32C6"/>
+    </linearGradient>
+    <radialGradient id="sheen" cx="0.5" cy="0" r="0.75">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="229" fill="url(#iris)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="229" fill="url(#sheen)"/>
+  <path d="M 760.6 551.4 A 262 262 0 1 1 472.6 263.4" fill="none" stroke="#FFFFFF" stroke-width="128" stroke-linecap="round"/>
+  <circle cx="685.3" cy="338.7" r="88" fill="#FFFFFF"/>
+</svg>

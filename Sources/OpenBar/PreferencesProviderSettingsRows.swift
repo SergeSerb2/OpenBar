@@ -11,10 +11,10 @@ struct ProviderSettingsToggleRowView: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L(self.toggle.title))
-                        .font(.subheadline.weight(.semibold))
+                        .font(OpenBarTheme.Fonts.laneTitle)
                         .foregroundStyle(isEnabled ? .primary : .tertiary)
                     Text(L(self.toggle.subtitle))
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(isEnabled ? .secondary : .tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -27,7 +27,7 @@ struct ProviderSettingsToggleRowView: View {
             if self.toggle.binding.wrappedValue {
                 if let status = self.toggle.statusText?(), !status.isEmpty {
                     Text(status)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
@@ -90,7 +90,7 @@ struct ProviderSettingsPickerRowView: View {
             HStack(spacing: 8) {
                 if let trailingText = self.picker.trailingText?(), !trailingText.isEmpty {
                     Text(trailingText)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -201,11 +201,11 @@ struct ProviderSettingsActionsRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(L(self.descriptor.title))
-                .font(.subheadline.weight(.semibold))
+                .font(OpenBarTheme.Fonts.laneTitle)
 
             if !self.descriptor.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text(L(self.descriptor.subtitle))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -250,7 +250,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
             let accounts = self.descriptor.accounts()
             if accounts.isEmpty {
                 Text(L("No token accounts yet."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(Array(accounts.enumerated()), id: \.element.id) { index, account in
@@ -264,10 +264,10 @@ struct ProviderSettingsTokenAccountsRowView: View {
                                         "checkmark.circle.fill" : "circle")
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundStyle(self.isActive(index: index, accountCount: accounts.count) ?
-                                            Color.accentColor : Color.secondary)
+                                            OpenBarTheme.Colors.accent : Color.secondary)
                                     Text(account.displayName)
                                         .font(
-                                            .footnote.weight(
+                                            OpenBarTheme.Fonts.meta.weight(
                                                 self.isActive(index: index, accountCount: accounts.count) ?
                                                     .semibold : .regular))
                                         .foregroundStyle(.primary)
@@ -331,14 +331,14 @@ struct ProviderSettingsTokenAccountsRowView: View {
                         }
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .frame(maxWidth: 160)
                         SecureField(text: self.$newToken, prompt: Text(L(self.descriptor.placeholder))) {
                             EmptyView()
                         }
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         Button(L("Add")) {
                             let label = self.newLabel.trimmingCharacters(in: .whitespacesAndNewlines)
                             let token = self.newToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -389,14 +389,14 @@ struct ProviderSettingsTokenAccountsRowView: View {
                         }
                         .labelsHidden()
                         .textFieldStyle(.roundedBorder)
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .help(
                             L("Optional organization ID for accounts linked to multiple Anthropic organizations."))
                     }
                     if self.descriptor.showsTeamModeControls {
                         Toggle(L("Team mode"), isOn: self.$newTeamMode)
                             .toggleStyle(.checkbox)
-                            .font(.footnote)
+                            .font(OpenBarTheme.Fonts.meta)
                         if self.newTeamMode {
                             HStack(spacing: 8) {
                                 TextField(text: self.$newOrgID, prompt: Text(L("Organization ID"))) {
@@ -404,13 +404,13 @@ struct ProviderSettingsTokenAccountsRowView: View {
                                 }
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
-                                .font(.footnote)
+                                .font(OpenBarTheme.Fonts.meta)
                                 TextField(text: self.$newProjectID, prompt: Text(L("Project ID"))) {
                                     EmptyView()
                                 }
                                 .labelsHidden()
                                 .textFieldStyle(.roundedBorder)
-                                .font(.footnote)
+                                .font(OpenBarTheme.Fonts.meta)
                             }
                         }
                     }
@@ -421,12 +421,12 @@ struct ProviderSettingsTokenAccountsRowView: View {
                 Button(L("Open token file")) {
                     self.descriptor.openConfigFile()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.settingsLink)
                 .controlSize(.small)
                 Button(L("Reload")) {
                     self.descriptor.reloadFromDisk()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.settingsLink)
                 .controlSize(.small)
 
                 Spacer(minLength: 0)
@@ -457,7 +457,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
             TextField(L("Label"), text: self.$editLabel)
             SecureField(L(self.descriptor.placeholder), text: self.$editToken)
             Text(L("Leave blank to keep the saved credential."))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
             HStack {
                 Button(L("Save")) {
@@ -489,7 +489,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Toggle(L("Team mode"), isOn: self.teamModeDraftBinding(account: account))
                 .toggleStyle(.checkbox)
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
             if draft.teamMode {
                 HStack(spacing: 8) {
                     TextField(
@@ -500,7 +500,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
                     }
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     TextField(
                         text: self.projectIDDraftBinding(account: account),
                         prompt: Text(L("Project ID")))
@@ -509,7 +509,7 @@ struct ProviderSettingsTokenAccountsRowView: View {
                     }
                     .labelsHidden()
                     .textFieldStyle(.roundedBorder)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                 }
             }
             Button(L("apply")) {
@@ -617,7 +617,7 @@ extension View {
         case .bordered:
             self.buttonStyle(.bordered)
         case .link:
-            self.buttonStyle(.link)
+            self.buttonStyle(.settingsLink)
         }
     }
 }
@@ -633,7 +633,7 @@ struct ProviderSettingsOrganizationsRowView: View {
             let entries = self.descriptor.entries()
             if entries.allSatisfy(\.isLocked) {
                 Text(L("No organizations loaded. Click Refresh after setting your API key."))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(entries) { entry in
@@ -648,7 +648,7 @@ struct ProviderSettingsOrganizationsRowView: View {
                                    !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                 {
                                     Text(entry.localizesSubtitle ? L(subtitle) : subtitle)
-                                        .font(.caption)
+                                        .font(OpenBarTheme.Fonts.caption)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -672,9 +672,8 @@ struct ProviderSettingsOrganizationsRowView: View {
                 .controlSize(.small)
                 .disabled(!self.descriptor.canRefresh() || self.isRefreshing)
                 if let errorMessage = self.errorMessage, !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    SettingsStatusMessage(errorMessage, tone: .critical)
+                        .font(OpenBarTheme.Fonts.meta)
                 }
             }
         } header: {

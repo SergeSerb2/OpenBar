@@ -40,6 +40,9 @@ struct SettingsMenuPicker<Value: Hashable, Label: View, OptionLabel: View>: View
             }
             .menuStyle(.button)
             .buttonStyle(.borderless)
+            // A borderless button draws its label in the tint; the Settings root tint is the accent, but a value
+            // reads as plain text here, as in a native popup.
+            .tint(.primary)
             .fixedSize()
         } label: {
             self.label()

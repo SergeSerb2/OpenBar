@@ -23,7 +23,9 @@ App settings writes are coalesced. Normal quit finishes any pending configuratio
 - `~/.openbar/config.json` for existing legacy installs when no XDG config exists.
 - The directory is created if missing.
 - Writes on macOS and Linux create a `0600` file inside a private `0700` staging directory beside the destination before writing any bytes, then sync and atomically replace the destination. Failed writes preserve the previous file and remove staging.
+- Config normalization preserves the schema version. `config validate` reports unsupported versions, and config edits reject them instead of rewriting them as the current schema.
 - Current app and CLI writers coordinate through a persistent, empty `config.json.lock` beside the config. CLI token refresh compares the saved credential and publishes its replacement under this lock, skipping the update if another writer holds it. Older versions and external editors do not participate in this advisory lock.
+- Interactive config changes hold that lock from loading the latest file through atomic publication. Debounced app saves merge their changed fields into the latest file, preserving unrelated edits and accounts added by another writer.
 
 A missing, zero-byte, or JSON-whitespace-only file (spaces, tabs, carriage returns, and line feeds) means no
 configuration. Reads use defaults without creating or rewriting the file; the next settings save writes valid JSON.
@@ -285,6 +287,7 @@ See the [generated provider ID list](provider-ids.md), sourced from `UsageProvid
 The order of `providers` controls display/order in the app and CLI. Reorder the array to change ordering.
 
 ## iCloud sync
+In a build without the CloudKit entitlement, such as OpenBar 1.0, Settings → iCloud Sync shows only "iCloud Sync is not available in this build of OpenBar." and no sync controls.
 The three sync sub-options are disabled while the main sync switch is off, iCloud is unavailable, or a newer app version is required. Their saved choices are retained when sync is turned off and restored when it is enabled again.
 
 Opt-in (Settings → iCloud Sync, off by default; requires a signed release build and an iCloud account). When enabled, OpenBar syncs across the user's Macs via CloudKit (private database, container `iCloud.com.serbinenko.openbar`):

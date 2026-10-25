@@ -1,3 +1,4 @@
+import OpenBarCore
 import SwiftUI
 
 struct ProviderErrorDisplay {
@@ -14,10 +15,16 @@ struct ProviderErrorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(self.title)
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                // Critical tone: octagon symbol + color, words in the label color (docs/design §2.2, §9.2).
+                Label {
+                    Text(self.title)
+                        .font(OpenBarTheme.Fonts.meta.weight(.semibold))
+                } icon: {
+                    Image(systemName: OpenBarQuotaTone.critical.symbolName ?? "exclamationmark.octagon.fill")
+                        .foregroundStyle(OpenBarTheme.Colors.critical)
+                        .accessibilityHidden(true)
+                }
                 Spacer()
                 Button {
                     self.onCopy()
@@ -30,20 +37,19 @@ struct ProviderErrorView: View {
             }
 
             Text(self.display.preview)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(OpenBarTheme.Fonts.meta)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
             if self.display.preview != self.display.full {
                 Button(self.isExpanded ? L("Hide details") : L("Show details")) { self.isExpanded.toggle() }
-                    .buttonStyle(.link)
-                    .font(.footnote)
+                    .buttonStyle(.settingsLink)
+                    .font(OpenBarTheme.Fonts.meta)
             }
 
             if self.isExpanded {
                 Text(self.display.full)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }

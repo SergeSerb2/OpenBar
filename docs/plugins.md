@@ -16,6 +16,11 @@ Plugins are local files only. OpenBar has no plugin catalog, does not download p
 resolve imports. A plugin cannot use Node, browser globals, subprocesses, local files, databases, OAuth, WebViews, or
 arbitrary native APIs. The maximum source size is 1 MiB.
 
+OpenBar loads plugin files in the background at launch and when the Plugins pane opens, reloads, or installs a file,
+so a slow file never freezes the menu bar. A file's top-level code (normally just the `defineProvider` call) must
+finish within 2 seconds; otherwise that file is listed as timed out. JavaScriptCore cannot interrupt a script, so on
+the JavaScriptCore rollback engine a top level that never returns keeps one background thread busy until OpenBar quits.
+
 App refreshes are scoped to the installed plugin runtime and its fetch settings. Disabling, removing, reloading, or
 reconfiguring a plugin prevents an older refresh from publishing usage or errors. A replacement refresh waits for retired
 work to finish and reads the current configuration when its fetch starts. Display-only preferences do not invalidate usage.
@@ -163,9 +168,9 @@ defineProvider({
 - `auth` (optional): one of the forms below. The named secret must be a declared `secure` setting.
 - `settings`: up to 32 setting definitions. Keys contain 1–64 ASCII letters, digits, or underscores and start with a
   letter. Each entry has `key`, `title`, optional `subtitle`, and `type: "plain" | "secure"` (default `secure`).
-- `capabilities` (optional): `"browser-cookies"`, `"http-status"`, and `"persistent-storage"`. With `"http-status"`, the plugin observes
-  non-2xx responses itself instead of the host failing the request.
-- `cookieDomains`: required with `browser-cookies`; a non-empty list of normalized DNS host names.
+- `capabilities` (optional): up to 16 entries from `"browser-cookies"`, `"http-status"`, and `"persistent-storage"`.
+  With `"http-status"`, the plugin observes non-2xx responses itself instead of the host failing the request.
+- `cookieDomains`: required with `browser-cookies`; a non-empty list of up to 32 normalized DNS host names.
 - `fetchUsage(ctx)`: function returning a snapshot or fetch result envelope, or a promise for one.
 
 Authentication forms:
@@ -180,8 +185,16 @@ auth: { type: "authorization-scheme", scheme: "Token", secret: "API_KEY" }
 The host owns the authentication header; plugin request options cannot override it. Authenticated public origins must be
 HTTPS; authenticated private-network HTTP requires `https-or-private-network-http` plus typed approval. Secure settings
 can be overridden for CLI use with
-`OPENBAR_PLUGIN_<PLUGIN_ID>_<SETTING_KEY>`, uppercased with non-alphanumeric characters replaced by underscores. For
-example, `acme-usage` and `API_KEY` use `OPENBAR_PLUGIN_ACME_USAGE_API_KEY`.
+`OPENBAR_PLUGIN_<PLUGIN_ID>__<SETTING_KEY>` (two underscores between the ID and the key), uppercased with
+non-alphanumeric characters replaced by underscores. For example, `acme-usage` and `API_KEY` use
+`OPENBAR_PLUGIN_ACME_USAGE__API_KEY`. The double underscore keeps each variable bound to one plugin: with a single
+underscore, `acme` + `PROD_TOKEN` and `acme-prod` + `TOKEN` would both read `OPENBAR_PLUGIN_ACME_PROD_TOKEN`.
+Plugin IDs that contain `--` have no environment override.
+
+Migration: the older single-underscore form, `OPENBAR_PLUGIN_<PLUGIN_ID>_<SETTING_KEY>`, still works only when the
+plugin ID has no hyphen and the setting key has no underscore (for example `OPENBAR_PLUGIN_ACME_TOKEN`), because only
+then can it name no other plugin. Rename any other variable to the double-underscore form. If both are set, the
+double-underscore form wins.
 
 ### Bundled cookie header echo
 
@@ -282,7 +295,9 @@ so portable third-party plugins must use the host helpers below instead of ECMA-
 - `ctx.html.matchFirst(html, regexSource, flags?)` returns the first capture/full match or `null`.
 - `ctx.log(...values)` writes to the instance-scoped plugin log. Known secrets and cookie values are redacted.
 - `ctx.cache.get(key)` and `ctx.cache.set(key, value, ttlSeconds)` provide a per-runtime memory cache. TTL is capped at
-  24 hours.
+  24 hours. The cache holds at most 128 entries with keys up to 128 bytes and values up to 16 KiB of JSON. A larger
+  value is not stored and clears that key; a new key is not stored while the cache is full. Expired entries are
+  dropped on each write.
 - `ctx.storage.get(key)`, `set(key, value)`, and `remove(key)` provide persistent, non-secret string state with the
   `persistent-storage` capability. Missing keys return `null`; empty string values are valid. Keys must contain
   1–128 UTF-8 bytes, each value at most 16 KiB, and each plugin at most 64 entries and 64 KiB of combined key/value

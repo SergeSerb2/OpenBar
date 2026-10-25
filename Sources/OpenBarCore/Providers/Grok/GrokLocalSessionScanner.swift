@@ -19,7 +19,7 @@ public struct GrokLocalDailyBucket: Sendable, Equatable {
 /// Used as a local fallback view when the JSON-RPC billing call is unavailable.
 public struct GrokLocalSessionSummary: Sendable {
     public let sessionCount: Int
-    public let totalTokens: Int
+    public let totalTokens: Int?
     public let lastSessionAt: Date?
     public let primaryModel: String?
     public let models: [String]
@@ -28,7 +28,7 @@ public struct GrokLocalSessionSummary: Sendable {
 
     public init(
         sessionCount: Int,
-        totalTokens: Int,
+        totalTokens: Int?,
         lastSessionAt: Date?,
         primaryModel: String?,
         models: [String],
@@ -96,6 +96,7 @@ public enum GrokLocalSessionScanner {
         let lookbackEnd = calendar.date(byAdding: .day, value: 1, to: today) ?? now
         var sessionCount = 0
         var totalTokens = 0
+        var tokensUnavailable = false
         var lastSessionAt: Date?
         var modelCounts: [String: Int] = [:]
         var dailyTokens: [String: Int] = [:]
@@ -119,8 +120,13 @@ public enum GrokLocalSessionScanner {
             sessionCount += 1
             let beforeCompaction = (json["totalTokensBeforeCompaction"] as? Int) ?? 0
             let contextUsed = (json["contextTokensUsed"] as? Int) ?? 0
-            let sessionTokens = beforeCompaction + contextUsed
-            totalTokens += sessionTokens
+            guard let sessionTokens = ProviderUsageCounter.sum([beforeCompaction, contextUsed]),
+                  let combined = ProviderUsageCounter.sum([totalTokens, sessionTokens])
+            else {
+                tokensUnavailable = true
+                continue
+            }
+            totalTokens = combined
 
             if mtime > (lastSessionAt ?? Date.distantPast) {
                 lastSessionAt = mtime
@@ -153,7 +159,7 @@ public enum GrokLocalSessionScanner {
         }
 
         let sortedModels = modelCounts.sorted { $0.value > $1.value }.map(\.key)
-        let daily = dailyTokens.keys.sorted().map { day in
+        let daily = (tokensUnavailable ? [] : dailyTokens.keys.sorted()).map { day in
             let models = (dailyModels[day] ?? [:]).sorted { $0.value > $1.value }.map(\.key)
             return GrokLocalDailyBucket(
                 date: day,
@@ -163,7 +169,7 @@ public enum GrokLocalSessionScanner {
         }
         return GrokLocalSessionSummary(
             sessionCount: sessionCount,
-            totalTokens: totalTokens,
+            totalTokens: tokensUnavailable ? nil : totalTokens,
             lastSessionAt: lastSessionAt,
             primaryModel: sortedModels.first,
             models: sortedModels,

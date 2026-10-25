@@ -24,6 +24,7 @@ public enum ZedStatusProbeError: LocalizedError, Sendable, Equatable {
     case keychainUnavailable
     case invalidServerURL(String)
     case untrustedServerConfiguration
+    case invalidSettings
 
     public var errorDescription: String? {
         switch self {
@@ -37,6 +38,8 @@ public enum ZedStatusProbeError: LocalizedError, Sendable, Equatable {
             "Zed server URL is invalid: \(value)"
         case .untrustedServerConfiguration:
             "Zed custom servers must use HTTPS and store credentials under the same server URL."
+        case .invalidSettings:
+            "Could not read Zed settings. Fix settings.json before refreshing Zed usage."
         }
     }
 }
@@ -46,10 +49,18 @@ public enum ZedStatusProbeError: LocalizedError, Sendable, Equatable {
 public struct ZedClientSettings: Sendable, Equatable {
     public let credentialsURL: String?
     public let serverURL: String?
+    let isValid: Bool
+
+    private init() {
+        self.credentialsURL = nil
+        self.serverURL = nil
+        self.isValid = false
+    }
 
     public init(credentialsURL: String?, serverURL: String?) {
         self.credentialsURL = credentialsURL
         self.serverURL = serverURL
+        self.isValid = true
     }
 
     public var keychainServiceURL: String {
@@ -97,7 +108,14 @@ public struct ZedClientSettings: Sendable, Equatable {
     }
 
     public static func load(from url: URL = ZedStatusProbe.defaultSettingsURL) -> ZedClientSettings? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            let failure = error as NSError
+            if failure.domain == NSCocoaErrorDomain, failure.code == NSFileReadNoSuchFileError { return nil }
+            return ZedClientSettings()
+        }
         struct Payload: Decodable {
             let credentialsURL: String?
             let serverURL: String?
@@ -107,7 +125,9 @@ public struct ZedClientSettings: Sendable, Equatable {
                 case serverURL = "server_url"
             }
         }
-        guard let payload = try? JSONDecoder().decode(Payload.self, from: data) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.allowsJSON5 = true
+        guard let payload = try? decoder.decode(Payload.self, from: data) else { return ZedClientSettings() }
         return ZedClientSettings(
             credentialsURL: payload.credentialsURL,
             serverURL: payload.serverURL)
@@ -222,6 +242,7 @@ public struct ZedStatusProbe: Sendable {
 
     public func fetch() async throws -> UsageSnapshot {
         let settings = self.settingsLoader()
+        if let settings, !settings.isValid { throw ZedStatusProbeError.invalidSettings }
         let serviceURL = settings?.keychainServiceURL ?? Self.defaultKeychainServiceURL
         let cloudAPIURL: URL
         if let settings {

@@ -86,7 +86,7 @@ struct OpenBarSwitcherWidgetView: View {
         let size = WidgetTileSize(family: self.family)
         Group {
             if let providerEntry {
-                UsageTile(entry: providerEntry, size: size) {
+                UsageTile(entry: providerEntry, size: size, headerSpansColumns: true) {
                     ProviderPagerHeader(
                         providers: self.entry.availableProviders,
                         selected: self.entry.provider,
@@ -112,7 +112,8 @@ struct OpenBarSwitcherWidgetView: View {
     }
 }
 
-private struct CompactMetricView: View {
+struct CompactMetricView: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let entry: WidgetSnapshot.ProviderEntry
     let metric: CompactMetric
 
@@ -128,7 +129,8 @@ private struct CompactMetricView: View {
                 caption: WidgetFormat.tokenRowTitle(
                     display.label,
                     summary: self.metric == .credits ? nil : self.entry.tokenUsage,
-                    entryUpdatedAt: self.entry.updatedAt),
+                    entryUpdatedAt: self.entry.updatedAt,
+                    now: self.fixedNow),
                 detail: (display.detail ?? CompactMetricFormatter.unavailableDetail(
                     value: display.value,
                     entry: self.entry))
@@ -247,10 +249,10 @@ struct ProviderPagerHeader: View {
     var body: some View {
         let pager = ProviderPager.make(providers: self.providers, selected: self.selected)
         VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 7) {
+            HStack(spacing: 6) {
                 ProviderMark(provider: self.selected, isSelected: true, size: self.size.markSize)
                 Text(ProviderTitle.text(for: self.selected, size: self.size))
-                    .font(.subheadline.weight(.semibold))
+                    .font(WidgetTheme.Fonts.cardTitle)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
                     .layoutPriority(2)
@@ -265,7 +267,8 @@ struct ProviderPagerHeader: View {
                 }
             }
             if self.size == .small {
-                FreshnessLabel(updatedAt: self.updatedAt)
+                FreshnessLabel(updatedAt: self.updatedAt, font: WidgetTheme.Fonts.caption)
+                    .padding(.leading, self.size.markSize + 6)
             }
         }
     }
@@ -280,7 +283,7 @@ private struct ProviderPagerControls: View {
             if self.size != .small {
                 ProviderPageButton(provider: self.pager.previous, symbol: "chevron.left", size: self.size)
                 Text(self.pager.positionText)
-                    .font(.caption2.weight(.medium))
+                    .font(WidgetTheme.Fonts.caption.weight(.medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -322,7 +325,7 @@ private struct ProviderPageButton: View {
             .foregroundStyle(.secondary)
             .frame(width: side, height: side)
             .background(
-                RoundedRectangle(cornerRadius: side * 0.3, style: .continuous)
+                RoundedRectangle(cornerRadius: OpenBarRadius.chip, style: .continuous)
                     .fill(Color.primary.opacity(0.07)))
     }
 }
@@ -550,7 +553,8 @@ enum WidgetUsageDisplay {
     }
 }
 
-private struct HistoryView: View {
+struct HistoryView: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let entry: WidgetSnapshot.ProviderEntry
     let isLarge: Bool
 
@@ -560,19 +564,21 @@ private struct HistoryView: View {
                 provider: self.entry.provider,
                 updatedAt: self.entry.updatedAt,
                 size: self.isLarge ? .large : .medium)
+            // Medium has about 50 pt for the chart: the day range would leave the bars no room.
             UsageHistoryChart(
                 points: self.entry.dailyUsage,
                 color: WidgetColors.color(for: self.entry.provider),
-                currencyCode: self.entry.tokenUsage?.currencyCode)
-                .frame(minHeight: self.isLarge ? 110 : 58, maxHeight: .infinity)
+                currencyCode: self.entry.tokenUsage?.currencyCode,
+                showsRange: self.isLarge)
+                .frame(maxHeight: .infinity)
             if let token = entry.tokenUsage {
-                VStack(alignment: .leading, spacing: 4) {
-                    WidgetSeparator().padding(.bottom, 2)
+                VStack(alignment: .leading, spacing: 3) {
                     MetricLine(
                         title: WidgetFormat.tokenRowTitle(
                             token.sessionLabel,
                             summary: token,
-                            entryUpdatedAt: self.entry.updatedAt),
+                            entryUpdatedAt: self.entry.updatedAt,
+                            now: self.fixedNow),
                         value: WidgetFormat.costAndTokens(
                             cost: token.sessionCostUSD,
                             tokens: token.sessionTokens,
@@ -582,7 +588,8 @@ private struct HistoryView: View {
                         title: WidgetFormat.tokenRowTitle(
                             token.last30DaysLabel,
                             summary: token,
-                            entryUpdatedAt: self.entry.updatedAt),
+                            entryUpdatedAt: self.entry.updatedAt,
+                            now: self.fixedNow),
                         value: WidgetFormat.costAndTokens(
                             cost: token.last30DaysCostUSD,
                             tokens: token.last30DaysTokens,
@@ -594,12 +601,19 @@ private struct HistoryView: View {
     }
 }
 
-/// Daily cost or token history. The chart now labels its peak and its date range, and the most
-/// recent day is drawn at full strength so "where am I today" is answerable at a glance.
+/// Daily cost or token history (docs/design/README.md, 8). One batched path per series: older days
+/// at 55 %, the latest day at full strength, and days with no usage as track-colored stubs. Labels
+/// use text colors, never the series color.
 struct UsageHistoryChart: View {
     let points: [WidgetSnapshot.DailyUsagePoint]
     let color: Color
     let currencyCode: String?
+    /// Start and end day labels under the baseline. Off where the tile has no room for them.
+    var showsRange: Bool = true
+    /// Fixed bar height. Nil lets the bars take whatever height the tile leaves.
+    var barHeight: CGFloat?
+
+    @Environment(\.widgetPalette) private var palette
 
     var body: some View {
         let isCostMode = UsageHistoryChartMode.isCostMode(self.points)
@@ -607,10 +621,11 @@ struct UsageHistoryChart: View {
             isCostMode ? (point.costUSD ?? 0) : Double(point.totalTokens ?? 0)
         }
         let scale = UsageChartScale(values: values)
+        let fractions = values.map { scale.fraction(for: $0) }
+        let fill = self.palette.meterFill(provider: self.color)
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(UsageHistoryChartCopy.title(dayCount: self.points.count))
-                    .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -620,40 +635,84 @@ struct UsageHistoryChart: View {
                     currencyCode: self.currencyCode)
                 {
                     Text(peak)
-                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                         .lineLimit(1)
                         .allowsTightening(true)
                 }
             }
-            GeometryReader { geometry in
-                HStack(alignment: .bottom, spacing: 3) {
-                    ForEach(values.indices, id: \.self) { index in
-                        let fraction = scale.fraction(for: values[index])
-                        RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                            .fill(self.color.opacity(index == values.indices.last ? 1 : 0.55))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: max(fraction > 0 ? 2 : 0, CGFloat(fraction) * geometry.size.height))
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .font(WidgetTheme.Fonts.caption)
+            ZStack {
+                HistoryBarsShape(fractions: fractions, series: .earlier)
+                    .fill(fill.opacity(0.55))
+                HistoryBarsShape(fractions: fractions, series: .latest)
+                    .fill(fill)
+                HistoryBarsShape(fractions: fractions, series: .empty)
+                    .fill(self.palette.meterTrack)
             }
-            .frame(maxHeight: .infinity)
+            .frame(minHeight: self.barHeight ?? 12, maxHeight: self.barHeight ?? .infinity)
+            .flipsForRightToLeftLayoutDirection(true)
+            .accessibilityHidden(true)
             Rectangle()
-                .fill(Color.primary.opacity(WidgetLayout.separatorOpacity))
+                .fill(Color.primary.opacity(0.25))
                 .frame(height: 1)
-            if let range = UsageHistoryChartCopy.range(points: self.points) {
+            if self.showsRange, let range = UsageHistoryChartCopy.range(points: self.points) {
                 HStack(spacing: 4) {
                     Text(range.start)
                     Spacer(minLength: 4)
                     Text(range.end)
                 }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(WidgetTheme.Fonts.caption)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
             }
         }
+    }
+}
+
+/// One series of daily bars as a single path: 2-pt rounded data ends, square baseline ends, and a
+/// 2-pt gap between bars.
+struct HistoryBarsShape: Shape {
+    enum Series {
+        /// Every day with usage except the latest.
+        case earlier
+        /// The latest day, when it has usage.
+        case latest
+        /// Days without usage, drawn as 2-pt stubs so a gap reads as "nothing", not "missing".
+        case empty
+    }
+
+    let fractions: [Double]
+    let series: Series
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let count = self.fractions.count
+        guard count > 0, rect.width > 0 else { return path }
+        let gap: CGFloat = count > 1 ? 2 : 0
+        let width = max(1, (rect.width - gap * CGFloat(count - 1)) / CGFloat(count))
+        for (index, fraction) in self.fractions.enumerated() {
+            let isEmpty = fraction <= 0
+            let isLatest = index == count - 1
+            let included = switch self.series {
+            case .earlier: !isEmpty && !isLatest
+            case .latest: !isEmpty && isLatest
+            case .empty: isEmpty
+            }
+            guard included else { continue }
+            let height = isEmpty ? 2 : max(2, CGFloat(fraction) * rect.height)
+            let bar = CGRect(
+                x: rect.minX + CGFloat(index) * (width + gap),
+                y: rect.maxY - height,
+                width: width,
+                height: height)
+            let radius = min(OpenBarRadius.chartBar, width / 2, height / 2)
+            path.addPath(Path(
+                roundedRect: bar,
+                cornerRadii: RectangleCornerRadii(topLeading: radius, topTrailing: radius),
+                style: .continuous))
+        }
+        return path
     }
 }
 
@@ -693,7 +752,7 @@ enum UsageHistoryChartMode {
 enum WidgetColors {
     static func color(for instanceID: ProviderInstanceID) -> Color {
         guard let provider = instanceID.firstPartyProvider else { return .secondary }
-        // The widget cannot read ~/.openbar/config.json, so it resolves the user override from the
+        // The widget cannot read the OpenBar config file, so it resolves the user override from the
         // copy the app mirrors into the App Group.
         let color = ProviderAccentColors.sharedOverride(for: instanceID)
             ?? ProviderDescriptorRegistry.descriptor(for: provider).branding.widgetColor
@@ -798,11 +857,12 @@ enum WidgetFormat {
     static func tokenRowTitle(
         _ base: String,
         summary: WidgetSnapshot.TokenUsageSummary?,
-        entryUpdatedAt: Date) -> Text
+        entryUpdatedAt: Date,
+        now: Date? = nil) -> Text
     {
         guard let summary, summary.isStale(comparedTo: entryUpdatedAt), let updatedAt = summary.updatedAt else {
             return Text(W(base))
         }
-        return Text("\(W(base)) · \(WidgetDateText.offset(updatedAt))")
+        return Text("\(W(base)) · \(WidgetDateText.offset(updatedAt, now: now))")
     }
 }

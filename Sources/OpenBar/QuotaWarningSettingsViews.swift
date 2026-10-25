@@ -30,20 +30,20 @@ struct GlobalQuotaWarningSettingsView: View {
                 QuotaWarningWindowThresholdRows(settings: self.settings)
 
                 Text(L("quota_warning_global_threshold_subtitle"))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Toggle(isOn: self.$settings.quotaWarningSoundEnabled) {
                 Text(L("quota_warning_sound"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
             }
             .toggleStyle(.checkbox)
 
             Toggle(isOn: self.$settings.quotaWarningOnScreenAlertEnabled) {
                 Text(L("quota_warning_onscreen_alert"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
             }
             .toggleStyle(.checkbox)
         }
@@ -97,7 +97,7 @@ struct ProviderQuotaWarningSettingsView: View {
     private func windowRow(_ window: QuotaWarningWindow) -> some View {
         GridRow(alignment: .firstTextBaseline) {
             Text(window.localizedCapitalizedDisplayName)
-                .font(.subheadline.weight(.semibold))
+                .font(OpenBarTheme.Fonts.laneTitle)
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(minHeight: Self.windowRowMinHeight, alignment: .center)
                 .gridColumnAlignment(.leading)
@@ -149,7 +149,7 @@ struct ProviderQuotaWarningSettingsView: View {
             Text(String(format: L("quota_warning_inherited"), Self.thresholdText(
                 self.settings.quotaWarningThresholds(window),
                 enabled: self.settings.quotaWarningWindowEnabled(window))))
-                .font(.subheadline)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
         }
     }
@@ -307,7 +307,7 @@ private struct QuotaWarningThresholdField: View {
 
             if !self.subtitle.isEmpty {
                 Text(self.subtitle)
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

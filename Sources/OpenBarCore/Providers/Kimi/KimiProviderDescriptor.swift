@@ -205,8 +205,8 @@ struct KimiAPIFetchStrategy: ProviderFetchStrategy {
     }
 
     private func enrichmentCredential(_ context: ProviderFetchContext) -> KimiWebCredential? {
-        guard let settings = context.settings?.kimi, settings.cookieSource != .off else { return nil }
-        return self.resolveWebCredential(context)
+        // No stable account ID links Code credentials to a manual, Desktop, or browser session.
+        nil
     }
 }
 
@@ -270,8 +270,8 @@ struct KimiCLICredentialFetchStrategy: ProviderFetchStrategy {
     }
 
     private func enrichmentCredential(_ context: ProviderFetchContext) -> KimiWebCredential? {
-        guard let settings = context.settings?.kimi, settings.cookieSource != .off else { return nil }
-        return self.resolveWebCredential(context)
+        // No stable account ID links Code credentials to a manual, Desktop, or browser session.
+        nil
     }
 }
 

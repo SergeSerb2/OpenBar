@@ -604,6 +604,7 @@ final class CloudSyncEngine: CKSyncEngineDelegate {
     }
 
     func queueSnapshots(_ snapshots: [AccountSnapshotSyncPayload]) async {
+        self.snapshotConsentDidChange()
         guard self.enabled, self.engine != nil else { return }
         let options = (
             enabled: self.settings.iCloudSyncSnapshotsEnabled,
@@ -872,6 +873,7 @@ final class CloudSyncEngine: CKSyncEngineDelegate {
         _ context: CKSyncEngine.SendChangesContext,
         syncEngine: CKSyncEngine) async -> CKSyncEngine.RecordZoneChangeBatch?
     {
+        self.snapshotConsentDidChange()
         let changes = syncEngine.state.pendingRecordZoneChanges.filter(context.options.scope.contains)
         return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { [weak self] recordID in
             guard let self else { return nil }
@@ -880,7 +882,8 @@ final class CloudSyncEngine: CKSyncEngineDelegate {
     }
 
     func recordForPendingSave(_ recordID: CKRecord.ID, syncEngine: CKSyncEngine? = nil) -> CKRecord? {
-        CloudSyncBatchRecordProvider.record(for: recordID, desiredRecords: self.desiredRecords) { change in
+        self.snapshotConsentDidChange()
+        return CloudSyncBatchRecordProvider.record(for: recordID, desiredRecords: self.desiredRecords) { change in
             syncEngine?.state.remove(pendingRecordZoneChanges: [change])
         }
     }
@@ -1422,7 +1425,24 @@ extension CloudSyncEngine {
             skippedTerminalReplacementHashes: &self.skippedTerminalReplacementHashes)
     }
 
+    func snapshotConsentDidChange() {
+        guard !self.settings.iCloudSyncSnapshotsEnabled else { return }
+        self.snapshotPushTask?.cancel()
+        self.snapshotPushTask = nil
+        self.pendingSnapshots = []
+        let recordIDs = self.desiredRecords.compactMap { id, record in
+            record.recordType == SyncRecordType.accountSnapshot.rawValue ? id : nil
+        }
+        for recordID in recordIDs {
+            self.desiredRecords.removeValue(forKey: recordID)
+            self.pendingSaveHashes.removeValue(forKey: recordID.recordName)
+        }
+        self.engine?.state.remove(pendingRecordZoneChanges: recordIDs.map { .saveRecord($0) })
+    }
+
     private func pushPendingSnapshots() {
+        self.snapshotConsentDidChange()
+        guard self.enabled, self.settings.iCloudSyncSnapshotsEnabled else { return }
         guard let engine = self.engine else { return }
         guard !self.pendingSnapshots.isEmpty || !self.persistenceEnvelope.pendingSnapshotDeletes.isEmpty else {
             return

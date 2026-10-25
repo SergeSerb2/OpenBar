@@ -350,9 +350,6 @@ extension OpenCodeUsageFetcher {
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw OpenCodeUsageError.invalidCredentials
             }
-            if let message = OpenCodeWebParsing.extractServerErrorMessage(from: bodyText) {
-                throw OpenCodeUsageError.apiError("HTTP \(response.statusCode): \(message)")
-            }
             throw OpenCodeUsageError.apiError("HTTP \(response.statusCode)")
         }
 

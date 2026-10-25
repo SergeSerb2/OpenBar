@@ -79,6 +79,10 @@ check_release_assets() {
   python3 "${ROOT_DIR}/Scripts/test_check_release_assets.py"
 }
 
+check_release_identity() {
+  python3 "${ROOT_DIR}/.github/scripts/release.py" identity
+}
+
 check_sparkle_signing_paths() {
   "${ROOT_DIR}/Scripts/test_sparkle_signing_paths.sh"
 }
@@ -105,10 +109,6 @@ check_ci_build_cache() {
   python3 "${ROOT_DIR}/Scripts/test_ci_prune_swiftpm_cache.py"
 }
 
-check_homebrew_tap_wait() {
-  "${ROOT_DIR}/Scripts/test_wait_for_homebrew_tap_update.sh"
-}
-
 check_repository_size() {
   "${ROOT_DIR}/Scripts/check_repository_size.sh"
   "${ROOT_DIR}/Scripts/test_repository_size.sh"
@@ -117,7 +117,7 @@ check_repository_size() {
 check_shell_scripts() {
   local count=0
   local script
-  for script in "${ROOT_DIR}"/Scripts/*.sh "${ROOT_DIR}"/Scripts/mac-release; do
+  for script in "${ROOT_DIR}"/Scripts/*.sh; do
     [[ -f "$script" ]] || continue
     bash -n "$script"
     count=$((count + 1))
@@ -162,6 +162,7 @@ run_portable_checks() {
   check_release_dsym_paths
   check_release_checksum
   check_release_assets
+  check_release_identity
   check_sparkle_signing_paths
   check_swift_static_sdk_installer
   check_mimo_usage_script
@@ -170,7 +171,6 @@ run_portable_checks() {
   python3 "${ROOT_DIR}/Scripts/test_linux_cli_linkage.py"
   python3 "${ROOT_DIR}/Scripts/test_linux_cli_codex_cost_smoke.py"
   check_ci_build_cache
-  check_homebrew_tap_wait
   check_repository_size
   check_shell_scripts
   check_documentation_links

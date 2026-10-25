@@ -183,7 +183,7 @@ struct GeneralPane: View {
             } footer: {
                 HStack(alignment: .firstTextBaseline) {
                     Text(String(format: L("version_format"), AppVersion.displayString))
-                        .font(.footnote)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Button(L("quit_app")) { NSApp.terminate(nil) }
@@ -192,9 +192,7 @@ struct GeneralPane: View {
                 .padding(.top, 8)
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .background(FocusResigningBackground())
     }
 }

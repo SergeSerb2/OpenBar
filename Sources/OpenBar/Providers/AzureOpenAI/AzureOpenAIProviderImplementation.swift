@@ -58,7 +58,7 @@ struct AzureOpenAIProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "azure-openai-api-key",
                 title: "API key",
-                subtitle: "Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported.",
+                subtitle: "Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported.",
                 kind: .secure,
                 placeholder: "Azure OpenAI key",
                 binding: context.binding(\.azureOpenAIAPIKey),

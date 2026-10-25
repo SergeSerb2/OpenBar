@@ -102,12 +102,22 @@ defineProvider({
           (cost.currencyCode != null && typeof cost.currencyCode !== "string")
         )
           parse("invalid rated cost");
-        if (cost.units == null || !cost.units.trim() || cost.nanos == null || !cost.currencyCode?.trim()) continue;
-        const units = Number(cost.units);
-        if (!Number.isFinite(units)) continue;
+        if (!cost.currencyCode?.trim()) continue;
+        const unitsText = cost.units == null ? "0" : cost.units;
+        if (!/^-?\d+$/.test(unitsText)) parse("invalid Money units");
+        const units = Number(unitsText);
+        const nanos = cost.nanos == null ? 0 : cost.nanos;
         const code = cost.currencyCode.trim();
+        if (
+          !Number.isSafeInteger(units) ||
+          Math.abs(nanos) > 999999999 ||
+          (units > 0 && nanos < 0) ||
+          (units < 0 && nanos > 0) ||
+          !/^[A-Z]{3}$/.test(code)
+        )
+          parse("invalid Money value");
         if (currency === null) currency = code;
-        if (code === currency) total += units + cost.nanos / 1e9;
+        if (code === currency) total += units + nanos / 1e9;
       }
       if (!Number.isFinite(total)) parse("nonfinite spend");
       return currency === null ? { empty: true } : { cost: { used: total, currency, period: "Last 30 days" } };

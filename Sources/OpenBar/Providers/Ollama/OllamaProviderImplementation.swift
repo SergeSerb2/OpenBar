@@ -108,7 +108,7 @@ struct OllamaProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "ollama-api-key",
                 title: "API key",
-                subtitle: "Stored in ~/.openbar/config.json. Get your key from Ollama settings.",
+                subtitle: "Stored in the OpenBar config file. Get your key from Ollama settings.",
                 kind: .secure,
                 placeholder: "ollama-...",
                 binding: context.binding(\.ollamaAPIToken),

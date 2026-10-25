@@ -92,7 +92,7 @@ struct MiniMaxProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "minimax-api-token",
                 title: "API token",
-                subtitle: "Stored in ~/.openbar/config.json. Paste your MiniMax API key.",
+                subtitle: "Stored in the OpenBar config file. Paste your MiniMax API key.",
                 kind: .secure,
                 placeholder: "Paste API token…",
                 binding: context.binding(\.minimaxAPIToken),

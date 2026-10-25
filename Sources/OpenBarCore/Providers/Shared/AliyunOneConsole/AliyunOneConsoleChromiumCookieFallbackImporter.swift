@@ -80,6 +80,7 @@ enum AliyunOneConsoleChromiumCookieFallbackImporter {
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("aliyun-oneconsole-chromium-cookies-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let copiedDB = tempDir.appendingPathComponent("Cookies")
         try FileManager.default.copyItem(at: sourceDB, to: copiedDB)
@@ -90,8 +91,6 @@ enum AliyunOneConsoleChromiumCookieFallbackImporter {
                 try? FileManager.default.copyItem(at: src, to: dst)
             }
         }
-        defer { try? FileManager.default.removeItem(at: tempDir) }
-
         return try self.readCookies(fromDB: copiedDB.path, domains: domains, keys: keys, label: label)
     }
 

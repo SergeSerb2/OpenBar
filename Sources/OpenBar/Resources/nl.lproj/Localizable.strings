@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Synchroniseer gebruiksmomentopnamen";
 "Show accounts from other Macs" = "Toon accounts van andere Macs";
 "Requires a signed release build of OpenBar." = "Vereist een ondertekende releasebuild van OpenBar.";
+"iCloud Sync is not available in this build of OpenBar." = "iCloud-synchronisatie is niet beschikbaar in deze build van OpenBar.";
 "Sign in to iCloud in System Settings to enable sync." = "Log in bij iCloud in Systeeminstellingen om synchronisatie in te schakelen.";
 "iCloud access is restricted on this Mac." = "iCloud-toegang is beperkt op deze Mac.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Synchronisatie is gepauzeerd: een andere Mac gebruikt een nieuwere versie van OpenBar. Update om te hervatten.";
@@ -372,11 +373,9 @@
 "Store multiple OpenCode Cookie headers." = "Bewaar meerdere OpenCode Cookie-headers.";
 "Store multiple OpenCode Go Cookie headers." = "Bewaar meerdere OpenCode Go Cookie-headers.";
 "Stored in the OpenBar config file." = "Opgeslagen in het OpenBar-configuratiebestand.";
-"Stored in ~/.openbar/config.json. " = "Opgeslagen in ~/.openbar/config.json.";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "Opgeslagen in ~/.openbar/config.json. Plak de sleutel uit het synthetische dashboard.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "Opgeslagen in ~/.openbar/config.json. Plak de API-sleutel van uw codeerplan uit Model Studio.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "Opgeslagen in ~/.openbar/config.json. Plak uw MiniMax API-sleutel.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "Opgeslagen in ~/.openbar/config.json. U kunt ook KILO_API_KEY of";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "Opgeslagen in het OpenBar-configuratiebestand. Plak de sleutel uit het Synthetic-dashboard.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "Opgeslagen in het OpenBar-configuratiebestand. Plak de API-sleutel van uw codeerplan uit Model Studio.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "Opgeslagen in het OpenBar-configuratiebestand. Plak uw MiniMax API-sleutel.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "Slaat de lokale Codex-gebruiksgeschiedenis op (8 weken) om tempo-voorspellingen te personaliseren.";
 "Surprise me" = "Verras mij";
 "Switcher shows icons" = "Switcher toont pictogrammen";
@@ -853,7 +852,7 @@
 "cost_data_explanation" = "Kosten kunnen door de provider worden gerapporteerd of worden geschat op basis van tokengebruik tegen openbare API-prijzen. Schattingen zijn geen abonnementskosten.";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "Geen JetBrains IDE met AI Assistant gedetecteerd. Installeer een JetBrains IDE en schakel AI Assistant in.";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "OpenRouter API-token niet geconfigureerd. Stel de omgevingsvariabele OPENROUTER_API_KEY in of configureer deze in Instellingen.";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "z.ai API-token niet gevonden. Stel apiKey in ~/.openbar/config.json of Z_AI_API_KEY.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "z.ai API-token niet gevonden. Stel apiKey in via ~/.config/openbar/config.json (oude locatie: ~/.openbar/config.json) of Z_AI_API_KEY.";
 "Missing DeepSeek API key." = "Ontbrekende DeepSeek API-sleutel.";
 "%@ is unavailable in the current environment." = "%@ is niet beschikbaar in de huidige omgeving.";
 "All Systems Operational" = "Alle systemen operationeel";
@@ -1203,7 +1202,7 @@
 "Open Moonshot Console" = "Open de Moonshot-console";
 "Open Ollama API Keys" = "Open Ollama API-sleutels";
 "Open llmman" = "llmman openen";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "Opgeslagen in ~/.openbar/config.json. Alleen nodig als llmman serve API-sleutels vereist.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "Opgeslagen in het OpenBar-configuratiebestand. Alleen nodig als llmman serve API-sleutels vereist.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "Adres van llmman serve. Standaard http://127.0.0.1:17434.";
 "Open StepFun Platform" = "Open het StepFun-platform";
 "Open T3 Chat Settings" = "Open T3 Chat-instellingen";
@@ -1255,21 +1254,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "Meld u aan bij cursor.com in uw browser en vernieuw vervolgens Cursor in OpenBar.";
 "Simulated error text" = "Gesimuleerde fouttekst";
 "StepFun platform account (phone number or email)." = "StepFun-platformaccount (telefoonnummer of e-mailadres).";
-"Stored in ~/.openbar/config.json." = "Opgeslagen in ~/.openbar/config.json.";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "Opgeslagen in ~/.openbar/config.json. AZURE_OPENAI_API_KEY wordt ook ondersteund.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "Opgeslagen in ~/.openbar/config.json. Gebruik Moonshot / Kimi API voor de officiële Kimi API.";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "Opgeslagen in ~/.openbar/config.json. Haal uw API-sleutel op via de Volcengine Ark-console.";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "Opgeslagen in ~/.openbar/config.json. Haal uw sleutel op via Ollama-instellingen.";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "Opgeslagen in ~/.openbar/config.json. Haal uw sleutel op via console.deepgram.com.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "Opgeslagen in ~/.openbar/config.json. Haal uw sleutel op via elevenlabs.io/app/settings/api-keys.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "Opgeslagen in ~/.openbar/config.json. Haal uw sleutel op via openrouter.ai/settings/keys en stel daar een sleutelbestedingslimiet in om het bijhouden van API-sleutelquota in te schakelen.";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "Opgeslagen in ~/.openbar/config.json. Open in Warp Instellingen > Platform > API-sleutels en maak er vervolgens een.";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "Opgeslagen in ~/.openbar/config.json. Voor statistieken is toegang tot Groq Enterprise Prometheus vereist.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "Opgeslagen in ~/.openbar/config.json. OPENAI_ADMIN_KEY heeft de voorkeur; OPENAI_API_KEY werkt nog steeds.";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "Opgeslagen in ~/.openbar/config.json. Vereist een Anthropic Admin API-sleutel.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "Opgeslagen in ~/.openbar/config.json. Gebruikt voor /v1/quota-stats.";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Opgeslagen in ~/.openbar/config.json. Je kunt ook CODEBUFF_API_KEY opgeven of OpenBar ~/.config/manicode/credentials.json laten lezen (gemaakt door `codebuff login`).";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Opgeslagen in ~/.openbar/config.json. U kunt ook KILO_API_KEY of ~/.local/share/kilo/auth.json (kilo.access) opgeven.";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "Opgeslagen in het OpenBar-configuratiebestand. AZURE_OPENAI_API_KEY wordt ook ondersteund.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "Opgeslagen in het OpenBar-configuratiebestand. Haal uw sleutel op via Ollama-instellingen.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "Opgeslagen in het OpenBar-configuratiebestand. Haal uw sleutel op via console.deepgram.com.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "Opgeslagen in het OpenBar-configuratiebestand. Haal uw sleutel op via elevenlabs.io/app/settings/api-keys.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "Opgeslagen in het OpenBar-configuratiebestand. Open in Warp Instellingen > Platform > API-sleutels en maak er vervolgens een.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "Opgeslagen in het OpenBar-configuratiebestand. Vereist een Anthropic Admin API-sleutel.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "Opgeslagen in het OpenBar-configuratiebestand. Gebruikt voor /v1/quota-stats.";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Opgeslagen in het OpenBar-configuratiebestand. Je kunt ook CODEBUFF_API_KEY opgeven of OpenBar ~/.config/manicode/credentials.json laten lezen (gemaakt door `codebuff login`).";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Opgeslagen in het OpenBar-configuratiebestand. U kunt ook KILO_API_KEY of ~/.local/share/kilo/auth.json (kilo.access) opgeven.";
 "T3 Chat cookie" = "T3 Chat-cookie";
 "Team mode" = "Teammodus";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "Dat account is niet langer beschikbaar in OpenBar. Vernieuw de accountlijst en probeer het opnieuw.";
@@ -1987,9 +1980,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "Toont het gebruik uit `tcr`; wisselt niet van account, omdat tcr voor elk verzoek het account kiest. Inloggegevens blijven beheerd door tcr; OpenBar leest ze nooit.";
 "Stay Awake" = "Blijf wakker";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "Opgeslagen in het OpenBar-configuratiebestand. Leest het maandbudget en het gerouteerde gebruik van /v1/usage.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Opgeslagen in ~/.openbar/config.json. OPENAI_ADMIN_KEY is vereist voor gebruik in de organisatie; oudere/gebruikerssleutels krijgen alleen een terugval in de balans van de beste inspanning.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Opgeslagen in ~/.openbar/config.json. U kunt ook FACTORY_API_KEY of ~/.factory/.env opgeven.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "Opgeslagen in ~/.openbar/config.json. U kunt ook AMP_API_KEY instellen.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Opgeslagen in het OpenBar-configuratiebestand. OPENAI_ADMIN_KEY is vereist voor organisatiegebruik; met oudere of gebruikerssleutels wordt alleen het saldo getoond, waar mogelijk.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Opgeslagen in het OpenBar-configuratiebestand. U kunt ook FACTORY_API_KEY of ~/.factory/.env opgeven.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "Opgeslagen in het OpenBar-configuratiebestand. U kunt ook AMP_API_KEY instellen.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "Van account wisselen…";
 "Switch Claude Code account" = "Claude Code-account wijzigen";
@@ -2110,14 +2103,14 @@
 "Paste the Cookie request header from zed.dev." = "Plak de Cookie-verzoekheader uit zed.dev.";
 "Points" = "Punten";
 "Poe usage history is unavailable." = "Poe-gebruiksgeschiedenis is niet beschikbaar.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "Opgeslagen in ~/.openbar/config.json. Haal uw sleutel op bij poe.com/api/keys.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "Opgeslagen in het OpenBar-configuratiebestand. Haal uw sleutel op bij poe.com/api/keys.";
 "Billing" = "Facturering";
 "Invoice billing" = "Betaling op factuur";
 "Prepaid" = "Vooruitbetaald";
 "Rate limit" = "Verzoeksnelheidslimiet";
 "Billing and rate-limit data from the v0 Platform API" = "Factureringsgegevens en verzoeksnelheidslimieten van de v0 Platform API";
 "v0 cost history is not available via the Platform API." = "De kostengeschiedenis van v0 is niet beschikbaar via het platform API.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "Opgeslagen in ~/.config/openbar/config.json. Maak er een in de v0-instellingen of stel V0_API_KEY in.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "Opgeslagen in het OpenBar-configuratiebestand. Maak er een in de v0-instellingen of stel V0_API_KEY in.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "Open v0 API-sleutels";
 "Scope" = "Reikwijdte";
@@ -2159,7 +2152,7 @@
 "Monthly quota" = "Maandelijks Quotum";
 "Subscription usage from the Chutes API." = "Abonnementsgebruik van de Chutes API.";
 "Chutes cost history is not available from OpenBar." = "De kostengeschiedenis van Chutes is niet beschikbaar via OpenBar.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "Opgeslagen in ~/.openbar/config.json. Plak een Chutes API-sleutel.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "Opgeslagen in het OpenBar-configuratiebestand. Plak een Chutes API-sleutel.";
 "chutes key..." = "Chutes-API-sleutel...";
 "Spend" = "Uitgaven";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "De Fireworks-uitgaven komen uit het factuuroverzicht API; de kostengeschiedenis wordt niet bijgehouden.";
@@ -2200,7 +2193,7 @@
 "Shared pool" = "Gedeeld quotum";
 "GitKraken cost history is not available." = "GitKraken-kostengeschiedenis is niet beschikbaar.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "Voor de dagelijkse uitgaven voor xAI zijn een Management API-sleutel en team ID vereist. Prepaid-saldo wordt niet als uitgave beschouwd.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Opgeslagen in ~/.openbar/config.json. Maak er een aan op console.x.ai onder Instellingen > Beheersleutels; gevolgtrekking API-sleutels worden niet geaccepteerd.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Opgeslagen in het OpenBar-configuratiebestand. Maak er een aan op console.x.ai onder Instellingen > Beheersleutels; API-sleutels voor inferentie worden niet geaccepteerd.";
 "xai-..." = "xai-...";
 "Team ID" = "Team ID";
 "Vercel access token" = "Vercel-toegangstoken";
@@ -2209,7 +2202,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Vereist samen met een Vercel-toegangstoken. Of stel VERCEL_TEAM_ID in.";
 "Required. Shown in the xAI Console URL and team settings." = "Vereist. Weergegeven in de xAI-console URL en teaminstellingen.";
 "Sakana AI cost summary is not supported." = "Sakana AI-kostenoverzicht wordt niet ondersteund.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "Opgeslagen in ~/.openbar/config.json. Kopieer de Sakana AI-console Cookie-verzoekheader.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "Opgeslagen in het OpenBar-configuratiebestand. Kopieer de Sakana AI-console Cookie-verzoekheader.";
 "Open Sakana AI Console" = "Open de Sakana AI-console";
 "SuperGrok tokens" = "SuperGrok tokens";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "Plak een SuperGrok-drager of grok.com cookie. Open het tokens-bestand opent ~/.grok/auth.json.";
@@ -2326,7 +2319,7 @@
 "5-hour quota" = "5 uur Quotum";
 "Weekly quota" = "Wekelijks Quotum";
 "ZenMux cost history is not exposed by the Management API." = "De kostengeschiedenis van ZenMux wordt niet weergegeven door het management API.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "Opgeslagen in ~/.openbar/config.json. Standaard ZenMux-inferentie API-sleutels worden niet ondersteund.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "Opgeslagen in het OpenBar-configuratiebestand. Standaard ZenMux-inferentie API-sleutels worden niet ondersteund.";
 "ZenMux management key…" = "ZenMux-beheersleutel…";
 "Monthly Plan" = "Maandelijks abonnement";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "Leest de belangrijkste Quotum, abonnementslimieten, gebruik en portemonneesaldo van /v1/usage.";
@@ -2570,7 +2563,7 @@
 "Local Codex details; excluded from combined totals." = "Lokale Codex-details; niet opgenomen in de gecombineerde totalen.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Opgeslagen in het OpenBar-configuratiebestand. U kunt ook COMMAND_CODE_API_KEY instellen.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ tokens · %@ verzoeken";
 "15m" = "15 min";

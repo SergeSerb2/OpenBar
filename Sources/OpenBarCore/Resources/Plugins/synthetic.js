@@ -154,7 +154,7 @@ defineProvider({
 
     function normalizedPercent(value) {
       if (value === null) return null;
-      return value <= 1 ? value * 100 : value;
+      return value;
     }
 
     function currencyValue(value) {

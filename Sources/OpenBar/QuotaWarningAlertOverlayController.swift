@@ -127,52 +127,51 @@ private final class ClickThroughAlertPanel: NSPanel {
     }
 }
 
-private struct QuotaWarningAlertOverlayView: View {
+/// Calm native alert card (docs/design/README.md §9.6): the `warning` triangle, a headline, and one `meta`
+/// line on an opaque card. No material, shadow, or entrance animation; a hairline separates the card from
+/// whatever is behind the click-through panel.
+struct QuotaWarningAlertOverlayView: View {
     let title: String
     let message: String
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    private static let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: OpenBarSpacing.section) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
+                .font(.system(size: 22))
+                .foregroundStyle(OpenBarTheme.Colors.warning)
+                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: OpenBarSpacing.tight) {
                 Text(self.title)
-                    .font(.headline)
+                    .font(OpenBarTheme.Fonts.cardTitle)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(self.message)
-                    .font(.subheadline)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 20)
+        .padding(.vertical, OpenBarSpacing.group)
+        .padding(.horizontal, OpenBarSpacing.pane)
         .frame(maxWidth: 420, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08)))
-        .shadow(color: .black.opacity(0.25), radius: 24, y: 8)
-        .scaleEffect(self.reduceMotion || self.appeared ? 1 : 0.92)
-        .opacity(self.reduceMotion || self.appeared ? 1 : 0)
+        .background {
+            // The panel is transparent, so the card starts from the opaque window background.
+            Self.shape
+                .fill(Color(nsColor: .windowBackgroundColor))
+                .overlay(Self.shape.fill(OpenBarTheme.Colors.cardFill))
+                .overlay(Self.shape.strokeBorder(
+                    OpenBarTheme.Colors.cardStroke,
+                    lineWidth: self.contrast == .increased ? 1.5 : 1))
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .padding(40)
         .allowsHitTesting(false)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(self.title)
         .accessibilityValue(self.message)
-        .task {
-            guard !self.reduceMotion else {
-                self.appeared = true
-                return
-            }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                self.appeared = true
-            }
-        }
     }
 }

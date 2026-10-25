@@ -51,8 +51,8 @@ struct KimiSubscriptionEnrichmentTests {
         #expect(await !plan.released)
         await plan.release()
         #expect(snapshot.weekly?.used == "25")
-        #expect(snapshot.subscriptionBalance?.amountUsedRatio == 0.42)
-        #expect(snapshot.subscriptionCodeWeeklyLimit?.ratio == 0.17)
+        #expect(snapshot.subscriptionBalance == nil)
+        #expect(snapshot.subscriptionCodeWeeklyLimit == nil)
         #expect(snapshot.planName == nil)
     }
 

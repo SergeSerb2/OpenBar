@@ -218,9 +218,7 @@ struct SettingsWindowAppearanceTests {
         window.contentView = bridge
 
         #expect(window.styleMask.contains(.fullSizeContentView))
-        if #unavailable(macOS 26.0) {
-            #expect(window.titlebarAppearsTransparent)
-        }
+        #expect(window.titlebarAppearsTransparent)
     }
 
     @Test
@@ -236,14 +234,13 @@ struct SettingsWindowAppearanceTests {
 
         bridge.refreshWindowAppearance(for: .light, windowTitle: "General")
         #expect(window.title == "General")
-        if #available(macOS 26.0, *) {
-            // The split view owns the toolbar through scene bridging; the bridge leaves it native.
-            #expect(!window.titlebarAppearsTransparent)
-            #expect(window.titlebarSeparatorStyle == .automatic)
-        } else {
-            #expect(window.toolbar == nil)
-            #expect(window.titleVisibility == .visible)
-        }
+        // Every OS uses the HStack shell: it draws the title in its own titlebar strip, and an empty unified
+        // toolbar keeps the standard titlebar height so the traffic lights line up with that strip.
+        #expect(window.titlebarAppearsTransparent)
+        #expect(window.titleVisibility == .hidden)
+        #expect(window.toolbar?.identifier == SettingsWindowToolbar.identifier)
+        #expect(window.toolbarStyle == .unified)
+        #expect(window.titlebarSeparatorStyle == .none)
     }
 
     @Test

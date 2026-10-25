@@ -324,8 +324,11 @@ public struct DoubaoUsageFetcher: Sendable {
 
         let response = try await transport.response(for: request)
         guard response.statusCode == 200 else {
-            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: response.data)
-            Self.log.error("Doubao coding plan API returned \(response.statusCode): \(summary)")
+            let summary = Self.apiErrorSummary(
+                statusCode: response.statusCode,
+                data: response.data,
+                secrets: [credentials.accessKeyID, credentials.secretAccessKey])
+            Self.log.error("Doubao coding plan API returned \(response.statusCode)")
             throw DoubaoUsageError.apiError(response.statusCode, summary)
         }
 
@@ -412,11 +415,14 @@ public struct DoubaoUsageFetcher: Sendable {
             throw DoubaoUsageError.networkError(error.localizedDescription)
         }
         guard response.statusCode == 200 else {
-            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: response.data)
+            let summary = Self.apiErrorSummary(
+                statusCode: response.statusCode,
+                data: response.data,
+                secrets: [credentials.accessKeyID, credentials.secretAccessKey])
             if response.statusCode == 403 || response.statusCode == 404 {
-                Self.log.debug("Doubao agent plan is unavailable: \(summary)")
+                Self.log.debug("Doubao agent plan is unavailable")
             } else {
-                Self.log.error("Doubao agent plan API returned \(response.statusCode): \(summary)")
+                Self.log.error("Doubao agent plan API returned \(response.statusCode)")
             }
             throw DoubaoUsageError.apiError(response.statusCode, summary)
         }
@@ -722,8 +728,8 @@ public struct DoubaoUsageFetcher: Sendable {
 
         // Accept both 200 (success) and 429 (rate limited) – both carry rate limit headers.
         guard response.statusCode == 200 || response.statusCode == 429 else {
-            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: data)
-            Self.log.error("Doubao API returned \(response.statusCode): \(summary)")
+            let summary = Self.apiErrorSummary(statusCode: response.statusCode, data: data, secrets: [apiKey])
+            Self.log.error("Doubao API returned \(response.statusCode)")
             throw DoubaoUsageError.apiError(response.statusCode, summary)
         }
 
@@ -814,9 +820,11 @@ public struct DoubaoUsageFetcher: Sendable {
         }
 
         var seconds: TimeInterval = 0
-        let pattern = /(\d+)([dhms])/
+        let pattern = /(\d+(?:\.\d+)?)([dhms])/
+        var end = trimmed.startIndex
         for match in trimmed.matches(of: pattern) {
-            guard let num = Double(match.1) else { continue }
+            guard match.range.lowerBound == end, let num = Double(match.1), num.isFinite else { return nil }
+            end = match.range.upperBound
             switch match.2 {
             case "d": seconds += num * 86400
             case "h": seconds += num * 3600
@@ -825,18 +833,23 @@ public struct DoubaoUsageFetcher: Sendable {
             default: break
             }
         }
-        if seconds > 0 {
+        if end == trimmed.endIndex, seconds.isFinite, seconds > 0 {
             return Date().addingTimeInterval(seconds)
         }
 
-        if let secs = TimeInterval(trimmed) {
+        if let secs = TimeInterval(trimmed), secs.isFinite, secs >= 0 {
             return Date().addingTimeInterval(secs)
         }
 
         return nil
     }
 
-    private static func apiErrorSummary(statusCode: Int, data: Data) -> String {
+    private static func apiErrorSummary(statusCode: Int, data: Data, secrets: [String] = []) -> String {
+        var text = (String(bytes: data, encoding: .utf8) ?? "")
+        for secret in secrets where !secret.isEmpty {
+            text = text.replacingOccurrences(of: secret, with: "<redacted>")
+        }
+        let data = Data(text.utf8)
         guard let root = try? JSONSerialization.jsonObject(with: data),
               let json = root as? [String: Any]
         else {

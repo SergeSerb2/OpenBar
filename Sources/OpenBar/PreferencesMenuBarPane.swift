@@ -153,9 +153,7 @@ struct MenuBarPane: View {
                 Text(L("section_animation"))
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .onAppear {
             self.reconcileOverviewSelection()
         }
@@ -202,9 +200,9 @@ struct MenuBarPane: View {
     private var overviewProviderPopover: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(Self.overviewProviderLimitText())
-                .font(.headline)
+                .font(OpenBarTheme.Fonts.cardTitle)
             Text(L("overview_rows_follow_order"))
-                .font(.footnote)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.tertiary)
 
             ScrollView(.vertical, showsIndicators: true) {

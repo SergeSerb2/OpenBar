@@ -27,12 +27,13 @@ extension SettingsStore {
         }
     }
 
-    /// Manual Oasis-Token — stored in the region config field (repurposed for token).
+    /// Manual Oasis-Token — stored in the secretKey config field.
     var stepfunToken: String {
-        get { self.configSnapshot.providerConfig(for: .stepfun)?.region ?? "" }
+        get { self.configSnapshot.providerConfig(for: .stepfun)?.sanitizedSecretKey ?? "" }
         set {
             self.updateProviderConfig(provider: .stepfun) { entry in
-                entry.region = self.normalizedConfigValue(newValue)
+                entry.secretKey = self.normalizedConfigValue(newValue)
+                entry.region = nil
             }
             self.logSecretUpdate(provider: .stepfun, field: "token", value: newValue)
         }

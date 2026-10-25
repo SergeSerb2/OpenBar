@@ -128,6 +128,7 @@ extension StatusItemController {
             width: width,
             heightCacheScope: "agentSession",
             heightCacheFingerprint: "singleLine",
+            chrome: .row,
             onClick: { [weak self] in
                 self?.focusAgentSession(id: session.id, remoteHost: remoteHost)
             })

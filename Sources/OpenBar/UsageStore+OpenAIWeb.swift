@@ -874,6 +874,7 @@ extension UsageStore {
             self.lastOpenAIDashboardError = nil
             self.lastOpenAIDashboardAttemptAt = nil
             self.lastOpenAIDashboardPageScrapeAt = nil
+            self.lastOpenAISubscriptionBillingFallbackAt = nil
             self.openAIDashboardRequiresLogin = true
             self.openAIDashboardCookieImportStatus = L("Codex account changed; importing browser cookies…")
             self.lastOpenAIDashboardCookieImportAttemptAt = nil
@@ -1359,6 +1360,7 @@ extension UsageStore {
         self.lastOpenAIDashboardTargetIsolationKey = nil
         self.lastOpenAIDashboardAttemptAt = nil
         self.lastOpenAIDashboardPageScrapeAt = nil
+        self.lastOpenAISubscriptionBillingFallbackAt = nil
         self.openAIDashboardRequiresLogin = false
         self.openAIDashboardCookieImportStatus = nil
         self.openAIDashboardCookieImportDebugLog = nil

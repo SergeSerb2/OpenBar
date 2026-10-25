@@ -218,10 +218,10 @@ struct SessionUsageBrowser: View {
                 Spacer(minLength: 6)
                 Text(self.costText(session.costUSD))
             }
-            .font(.caption.monospacedDigit())
+            .font(OpenBarTheme.Fonts.caption.monospacedDigit())
             .foregroundStyle(.secondary)
             Text(self.dateText(session.lastActivity))
-                .font(.caption2)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 5)
@@ -233,7 +233,7 @@ struct SessionUsageBrowser: View {
             LazyVStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(self.identity(session).name)
-                        .font(.title2.weight(.semibold))
+                        .font(OpenBarTheme.Fonts.title)
                         .textSelection(.enabled)
                     if !self.hidePersonalInfo {
                         Text(session.sessionID)
@@ -242,14 +242,14 @@ struct SessionUsageBrowser: View {
                             .textSelection(.enabled)
                     }
                     Text("\(self.context.providerName) · \(self.context.windowLabel)")
-                        .font(.subheadline)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                     Text(self.dateText(session.lastActivity))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                     if self.hidePersonalInfo {
                         Label(L("hide_personal_info_title"), systemImage: "eye.slash")
-                            .font(.caption)
+                            .font(OpenBarTheme.Fonts.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -275,20 +275,20 @@ struct SessionUsageBrowser: View {
                 }
 
                 Text(L("Cached input is included in input; reasoning is included in output."))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 Text(L(UsageFormatter.costEstimateHint))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 if let performance = CostUsageTurnPerformanceSummary(samples: session.turnPerformanceSamples) {
                     SpendSessionPerformanceView(summary: performance)
                 }
 
                 Divider()
-                Text(L("spend_performance_turns")).font(.headline)
+                Text(L("spend_performance_turns")).font(OpenBarTheme.Fonts.cardTitle)
                 Text(L("Each turn includes its recorded model calls within this period. " +
                         "Messages sharing a turn cannot be priced separately."))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
                 if self.loadingDetails {
                     ProgressView().controlSize(.small)
@@ -310,12 +310,12 @@ struct SessionUsageBrowser: View {
                     Divider()
                     activity
                     Text(L("Tool activity has no separate recorded token or monetary cost."))
-                        .font(.caption2).foregroundStyle(.secondary)
+                        .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                 }
 
                 if !session.modelBreakdowns.isEmpty {
                     Divider()
-                    Text(L("Models")).font(.headline)
+                    Text(L("Models")).font(OpenBarTheme.Fonts.cardTitle)
                     ForEach(Array(session.modelBreakdowns.enumerated()), id: \.offset) { _, model in
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
@@ -325,7 +325,7 @@ struct SessionUsageBrowser: View {
                                     self.tokenText(model.inputTokens),
                                     self.tokenText(model.cacheReadTokens),
                                     self.tokenText(model.outputTokens)))
-                                    .font(.caption)
+                                    .font(OpenBarTheme.Fonts.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer(minLength: 12)
@@ -386,14 +386,14 @@ struct SessionUsageBrowser: View {
             {
                 activity
                 Text(L("Tool activity has no separate recorded token or monetary cost."))
-                    .font(.caption2).foregroundStyle(.secondary)
+                    .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             }
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(turn.turnID == nil ? L("Unattributed usage") : L("Turn %d", index + 1))
                     if let date = turn.firstActivity {
-                        Text(self.dateText(date)).font(.caption).foregroundStyle(.secondary)
+                        Text(self.dateText(date)).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                 }
                 Spacer(minLength: 8)
@@ -421,15 +421,15 @@ struct SessionUsageBrowser: View {
                 Spacer(minLength: 8)
                 Text(L("Reasoning") + ": " + self.tokenText(request.reasoningTokens))
             }
-            .font(.caption2).foregroundStyle(.secondary)
+            .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.caption)
         .textSelection(.enabled)
     }
 
     private func metric(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
             Text(value).font(.title3.monospacedDigit()).textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

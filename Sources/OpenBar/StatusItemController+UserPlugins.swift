@@ -116,6 +116,7 @@ extension StatusItemController {
                 showUsed: self.settings.usageBarsShowUsed,
                 resetStyle: self.settings.resetTimeDisplayStyle,
                 width: width,
+                hidePersonalInfo: self.settings.hidePersonalInfo,
                 onRefresh: { [weak self] in
                     self?.startManualRefresh(
                         for: plugin.manifest.id,
@@ -278,43 +279,63 @@ struct UserPluginMenuCardView: View {
     let showUsed: Bool
     let resetStyle: ResetTimeDisplayStyle
     let width: CGFloat
+    var hidePersonalInfo: Bool = false
     let onRefresh: () -> Void
+    @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneSpacing) {
+            HStack(alignment: .center, spacing: OpenBarMenuStyle.logoTitleSpacing) {
                 Group {
                     if let image = StatusItemController.userPluginSVGImage(self.plugin) {
-                        Image(nsImage: image).resizable().scaledToFit().padding(4)
+                        Image(nsImage: image)
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
                     } else {
-                        Text(self.plugin.manifest.icon.monogram).font(.caption.bold())
+                        Text(self.plugin.manifest.icon.monogram)
+                            .font(.system(size: 9, weight: .bold))
                     }
                 }
-                .foregroundStyle(.white)
-                .frame(width: 26, height: 26)
-                .background(self.tint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .frame(width: OpenBarMenuStyle.logoSize, height: OpenBarMenuStyle.logoSize)
+                .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(self.plugin.manifest.name).font(.headline)
+                    Text(self.plugin.manifest.name)
+                        .font(OpenBarTheme.Fonts.cardTitle)
+                        .lineLimit(1)
                     Text(self.plugin.fileURL.lastPathComponent)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
-                Spacer()
-                if self.isRefreshing {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Button(action: self.onRefresh) {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .buttonStyle(.plain)
-                    .help(L("Refresh"))
+                Spacer(minLength: OpenBarSpacing.regular)
+                // Static while refreshing: nothing animates inside the menu (spec §7).
+                Button(action: self.onRefresh) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(self.isRefreshing
+                            ? MenuHighlightStyle.tertiary(self.isHighlighted)
+                            : MenuHighlightStyle.secondary(self.isHighlighted))
                 }
+                .buttonStyle(.plain)
+                .disabled(self.isRefreshing)
+                .help(L("Refresh"))
             }
             if let error {
-                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                HStack(alignment: .top, spacing: OpenBarSpacing.compact) {
+                    MenuToneSymbol(
+                        systemName: OpenBarQuotaTone.critical.symbolName ?? "exclamationmark.octagon.fill",
+                        color: MenuHighlightStyle.error(self.isHighlighted))
+                        .padding(.top, 1)
+                    Text(error)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .textSelection(.enabled)
+                }
                 if let snapshot {
                     Text(LastKnownUsagePresentation.message(capturedAt: snapshot.updatedAt))
-                        .font(.caption2).foregroundStyle(.secondary)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 }
             }
             if let snapshot {
@@ -322,13 +343,13 @@ struct UserPluginMenuCardView: View {
                 self.window("Secondary", snapshot.secondary)
                 self.window("Tertiary", snapshot.tertiary)
                 if let cost = snapshot.providerCost {
-                    HStack {
-                        Text(cost.period ?? "Cost").foregroundStyle(.secondary)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(cost.period ?? "Cost")
+                            .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                         Spacer()
                         Text(UsageFormatter.currencyString(cost.used, currencyCode: cost.currencyCode))
-                            .fontWeight(.medium)
                     }
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                 }
                 if !snapshot.details.isEmpty {
                     Divider()
@@ -338,11 +359,12 @@ struct UserPluginMenuCardView: View {
                     self.identity(identity)
                 }
             } else if self.error == nil {
-                Text(L("No usage fetched yet")).font(.caption).foregroundStyle(.secondary)
+                Text(L("No usage fetched yet"))
+                    .font(OpenBarTheme.Fonts.meta)
+                    .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
             }
         }
-        .padding(.horizontal, UsageMenuCardLayout.horizontalPadding)
-        .padding(.vertical, 8)
+        .menuCardChrome()
         .frame(width: self.width, alignment: .leading)
     }
 
@@ -352,22 +374,29 @@ struct UserPluginMenuCardView: View {
             || identity.accountID != nil
         {
             Divider()
-            self.identityRow("Account", identity.accountEmail)
-            self.identityRow("Organization", identity.accountOrganization)
-            self.identityRow("Plan", identity.loginMethod)
-            self.identityRow("Account ID", identity.accountID)
+            self.identityRow("Account", identity.accountEmail.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
+            self.identityRow("Organization", identity.accountOrganization.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
+            self.identityRow("Plan", PersonalInfoRedactor.redactEmails(
+                in: identity.loginMethod, isEnabled: self.hidePersonalInfo))
+            self.identityRow("Account ID", identity.accountID.map {
+                PersonalInfoRedactor.redactEmail($0, isEnabled: self.hidePersonalInfo)
+            })
         }
     }
 
     @ViewBuilder
     private func identityRow(_ label: String, _ value: String?) -> some View {
         if let value {
-            HStack {
-                Text(label).foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(label).foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 Spacer()
-                Text(value).fontWeight(.medium).textSelection(.enabled)
+                Text(value).textSelection(.enabled)
             }
-            .font(.caption)
+            .font(OpenBarTheme.Fonts.meta)
         }
     }
 
@@ -379,19 +408,31 @@ struct UserPluginMenuCardView: View {
                 window: window,
                 showUsed: self.showUsed,
                 resetStyle: self.resetStyle)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(presentation.title).foregroundStyle(.secondary)
-                    Spacer()
-                    Text(presentation.text).monospacedDigit()
+            let remaining = self.showUsed ? 100 - presentation.percent : presentation.percent
+            let tone = OpenBarQuotaTone.resolve(remainingPercent: remaining, isStale: false)
+            let toneColor = tone.menuColor(highlighted: self.isHighlighted)
+            VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneInnerSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
+                    Text(presentation.title)
+                        .font(OpenBarTheme.Fonts.laneTitle)
+                        .lineLimit(1)
+                    Spacer(minLength: OpenBarSpacing.regular)
+                    if let toneColor, let symbolName = tone.symbolName {
+                        MenuToneSymbol(systemName: symbolName, color: toneColor, size: 11)
+                    }
+                    Text(presentation.text)
+                        .font(OpenBarTheme.Fonts.laneValueEmphasis)
+                        .foregroundStyle(toneColor ?? MenuHighlightStyle.primary(self.isHighlighted))
+                        .lineLimit(1)
                 }
-                .font(.caption)
                 UsageProgressBar(
                     percent: presentation.percent,
                     tint: self.tint,
                     accessibilityLabel: presentation.title)
                 if let reset = presentation.resetText {
-                    Text(reset).font(.caption2).foregroundStyle(.secondary)
+                    Text(reset)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                 }
             }
         }

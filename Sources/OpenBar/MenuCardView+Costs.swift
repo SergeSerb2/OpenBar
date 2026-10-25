@@ -5,36 +5,41 @@ import SwiftUI
 struct ProviderCostContent: View {
     let section: UsageMenuCardView.Model.ProviderCostSection
     let progressColor: Color
+    /// True when this content heads its own card, so a submenu chevron belongs on its title row.
+    var showsSubmenuChevron = true
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
         if self.section.presentation == .inlineValue {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
                 Text(self.section.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                Spacer()
-                Text(self.section.spendLine)
-                    .font(.footnote)
-                    .monospacedDigit()
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .lineLimit(1)
+                Spacer(minLength: OpenBarSpacing.regular)
+                Text(self.section.spendLine)
+                    .font(OpenBarTheme.Fonts.laneValue)
+                    .lineLimit(1)
+                if self.showsSubmenuChevron {
+                    MenuCardSubmenuChevron()
+                }
             }
         } else {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: OpenBarMenuStyle.laneInnerSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
                     Text(self.section.title)
-                        .font(.body)
-                        .fontWeight(.medium)
+                        .font(OpenBarTheme.Fonts.laneTitle)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                    Spacer(minLength: OpenBarSpacing.regular)
                     if let balanceLine = self.section.balanceLine {
-                        Spacer(minLength: 8)
                         Text(balanceLine)
-                            .font(.footnote)
+                            .font(OpenBarTheme.Fonts.meta)
                             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                            .monospacedDigit()
                             .lineLimit(1)
                             .layoutPriority(1)
+                    }
+                    if self.showsSubmenuChevron {
+                        MenuCardSubmenuChevron()
                     }
                 }
                 if let percent = self.section.displayPercent {
@@ -44,23 +49,29 @@ struct ProviderCostContent: View {
                         accessibilityLabel: self.section.progressAccessibilityLabel)
                 }
                 HStack(alignment: .firstTextBaseline) {
-                    Text(self.section.spendLine).font(.footnote).lineLimit(1)
+                    Text(self.section.spendLine)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .lineLimit(1)
                     Spacer()
                     if let percentLine = self.section.percentLine {
                         Text(percentLine)
-                            .font(.footnote)
+                            .font(OpenBarTheme.Fonts.meta)
                             .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                             .lineLimit(1)
                     }
                 }
                 if let personalSpendLine = self.section.personalSpendLine {
                     Text(personalSpendLine)
-                        .font(.footnote).foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted)).lineLimit(1)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(1)
                 }
                 if let target = self.section.dailyTargetText {
                     Text(target)
-                        .font(.footnote).foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
-                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

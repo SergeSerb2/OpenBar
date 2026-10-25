@@ -42,6 +42,9 @@ The provider shows the current point balance in the menu and menu bar. When avai
 The 30-day history cutoff and today's totals use the same refresh timestamp, so pagination and daily grouping stay consistent throughout a refresh.
 The last 7 and 30 days totals cover rolling time windows, including days without activity. Older activity remains in the
 30-day chart without contributing to the 7-day total.
+History requests are bounded to five pages. Repeated cursors stop traversal, and stable query IDs are counted once.
+If the page cap, a repeated cursor, or a later-page failure leaves coverage incomplete,
+retained totals and the chart are labeled partial, and a History row shows Incomplete. The balance stays available.
 
 ## CLI Usage
 

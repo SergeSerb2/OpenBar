@@ -259,6 +259,10 @@ struct SpendTrendChartModel {
 enum SpendChartPalette {
     /// Source IDs, rather than display labels, keep same-name accounts distinct and colors stable
     /// when a day has no entries for one account or the legend isolates a source.
+    ///
+    /// The first account of a provider uses the provider color. Further accounts of the same provider
+    /// are told apart by their legend labels, so they take the chart palette in its fixed order
+    /// (docs/design/README.md §2.5) and fall back to the neutral "Other" color past the last slot.
     static func color(
         sourceID: String,
         provider: UsageProvider,
@@ -268,15 +272,9 @@ enum SpendChartPalette {
         let color = NSColor(srgbRed: base.red, green: base.green, blue: base.blue, alpha: 1)
         let ids = providers.filter { $0.provider == provider }.map(\.id).sorted()
         guard let index = ids.firstIndex(of: sourceID), index > 0 else { return color }
-        var hue: CGFloat = 0
-        var saturation: CGFloat = 0
-        var brightness: CGFloat = 0
-        color.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: nil)
-        return NSColor(
-            calibratedHue: (hue + CGFloat(index) * 0.17).truncatingRemainder(dividingBy: 1),
-            saturation: max(saturation, 0.55),
-            brightness: max(0.60, brightness * 0.82),
-            alpha: 1)
+        let slot = index - 1
+        guard OpenBarPalette.categorical.indices.contains(slot) else { return .tertiaryLabelColor }
+        return OpenBarPalette.categorical[slot].nsColor
     }
 
     static func label(_ row: SpendDashboardModel.ProviderRow, providers: [SpendDashboardModel.ProviderRow]) -> String {

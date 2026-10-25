@@ -7,6 +7,9 @@ read_when:
 
 # OpenBar Homebrew Release Playbook
 
+> OpenBar 1.0 publishes no Homebrew cask, and the release pipeline does not update a tap. This page describes the
+> app's Homebrew support and the steps to follow if a cask or tap is created later.
+
 Homebrew is for the UI app via Cask. OpenBar disables Sparkle and reads the owning prefix's `Caskroom/openbar/.metadata/INSTALL_RECEIPT.json` to select the installed cask's update feed. Both official `homebrew/cask` and `SergeSerb2/tap` installs retain daily checks, notifications, and one-click updates. Users are only prompted once their owning cask is bumped.
 
 Automatic checks also submit a silent macOS notification when a newer version of the owning cask is found. Clicking it opens Settings → About to review and install the update. A successfully submitted version is remembered locally across restarts; newer versions can notify again. Denied permissions or failed submissions remain retryable on a later check. Manual checks show their result in About without an extra notification. Starting installation or disabling automatic checks invalidates pending update notices. System notification settings still control whether a banner is displayed.

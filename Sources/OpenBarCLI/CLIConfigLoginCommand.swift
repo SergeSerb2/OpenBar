@@ -43,7 +43,6 @@ extension OpenBarCLI {
         emit: (ConfigLoginEvent) -> Void) async throws
     {
         let original = try store.load()
-        let originalBytes = try original?.encodedData()
         var config = original ?? .makeDefault()
         // Provider-specific by design: reuse Copilot's device flow, account identity, and config storage.
         var provider = config.providerConfig(for: .copilot) ?? ProviderConfig(id: .copilot)
@@ -90,12 +89,13 @@ extension OpenBarCLI {
         provider.apiKey = nil
         provider.enabled = true
         config.setProviderConfig(provider)
-        let data = try store.encodedData(for: config)
-        try store.saveEncodedData(data) {
+        try store.update { latest in
             try Task.checkCancellation()
-            guard try store.load()?.encodedData() == originalBytes else {
+            // Provider-specific by design: this transaction finishes the Copilot device login.
+            guard latest.providerConfig(for: .copilot)?.sanitizedEnterpriseHost == host else {
                 throw CLIArgumentError("Config changed during login. Please try again.")
             }
+            latest = try latest.applyingChanges(from: original ?? .makeDefault(), to: config)
         }
         emit(ConfigLoginEvent(status: "authorized"))
     }

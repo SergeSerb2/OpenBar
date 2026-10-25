@@ -470,13 +470,11 @@ public struct AugmentStatusProbe: Sendable {
         }
 
         if httpResponse.statusCode == 403 {
-            let responseBody = String(data: data, encoding: .utf8) ?? ""
-            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode): \(responseBody)")
+            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode)")
         }
 
         guard httpResponse.statusCode == 200 else {
-            let responseBody = String(data: data, encoding: .utf8) ?? ""
-            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode): \(responseBody)")
+            throw AugmentStatusProbeError.networkError("HTTP \(httpResponse.statusCode)")
         }
 
         let rawJSON = String(data: data, encoding: .utf8) ?? ""
@@ -540,8 +538,7 @@ public struct AugmentStatusProbe: Sendable {
         // Parse billing period end date from ISO8601 string
         let billingCycleEnd: Date? = {
             guard let dateString = subscription?.billingPeriodEnd else { return nil }
-            let formatter = ISO8601DateFormatter()
-            return formatter.date(from: dateString)
+            return ISO8601DateParser.parse(dateString)
         }()
 
         return AugmentStatusSnapshot(

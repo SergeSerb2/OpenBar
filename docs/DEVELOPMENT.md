@@ -70,6 +70,41 @@ use the repository's suppression-safe test harness and never query the real Keyc
 
 See [Keychain prompts](keychain-prompts.md) for the current user-facing boundary and safe troubleshooting.
 
+### Containment boundaries
+
+Keychain access is an interaction boundary, not a property that an item's accessibility class can fix. Background
+work fails closed, user-initiated work may acknowledge one deliberate interactive read, and all first-party
+Security.framework item operations route through `KeychainSecurity`.
+
+- `KeychainAccessGate` is the global app policy. `KeychainSecurity` applies it before every item read, update,
+  addition, and deletion, in addition to the independent test-process suppression policy.
+- `KeychainNoUIQuery` and the process test guard add defense in depth for paths that must not display UI.
+- Chromium imports use a no-UI preflight and scope the dependency's background record read with
+  `BrowserCookieKeychainAccessGate.withUserInteractionDisallowed`. An explicit user retry keeps the one
+  acknowledged interactive recovery path.
+- Foreign-item readers, including Zed, check the global gate at their ownership boundary and fail closed.
+- Claude Code's Keychain item is foreign-owned. Direct reads require explicit, default-off consent and have their own
+  prompt policy. Provider-owned CLI fallback is outside the global gate because the child executable owns its
+  credential behavior.
+- `KeychainCacheStore` keeps its ACL-creation fallback and disabled-mode in-memory cookie behavior.
+
+Credential-bearing file writes share `CredentialFileWriter`: each write creates its own `0700` staging directory
+beside the destination and an exclusive `0600` file, syncs it, and atomically renames it over the destination. A
+failed write leaves the previous file intact. Config, token accounts, Codex auth and promotion, Antigravity and
+Gemini OAuth, and file-backed cookie and session stores use this path.
+
+`OpenBarConfigMigrator` is the single owner of legacy token, cookie, MiniMax, Kimi, OpenCode, and token-account
+store migration. It reads every legacy source before cleanup and clears legacy stores only after the config is
+persisted and every loader was readable. "Not found" is a successful read with no value; "unreadable" is a
+failure that blocks all cleanup for that launch and leaves `openbar.legacySecretsMigrationCompleted` unset, so the
+next launch retries. The older `KeychainMigration` pass that rewrote `kSecAttrAccessible` at launch was retired: it
+could prompt during launch and deleted secrets before confirming their replacement.
+
+Routine tests run with `OPENBAR_SUPPRESS_TEST_KEYCHAIN_ACCESS=1` through `Scripts/test.sh` and use task overrides,
+query construction checks, source audits, and store doubles. No test source except the audit itself may call a
+Security item API directly. The live Claude PTY test needs both `LIVE_CLAUDE_FETCH=1` and
+`OPENBAR_ALLOW_TEST_KEYCHAIN_ACCESS=1`, because the provider CLI owns its own Keychain access.
+
 ## Augment Cookie Refresh
 
 ### How It Works
@@ -602,27 +637,33 @@ swiftlint --strict
 # Creates: OpenBar.app with ad-hoc signing by default
 ```
 
-For an identity-signed package, set `OPENBAR_SIGNING=identity` and `APP_IDENTITY` to an installed Developer ID Application signing
-identity's full name, unique name substring, or SHA-1 certificate hash. Packaging resolves it through
+The release signing identity has one source of truth: `team_id` and `signing_identity` in `.github/release.json`.
+`Scripts/package_app.sh` and `Scripts/sign-and-notarize.sh` read both values through `Scripts/release_identity.sh`;
+`APP_IDENTITY` and `APP_TEAM_ID` override them for one invocation. See `docs/RELEASING.md` for the identity check.
+
+For an identity-signed package, set `OPENBAR_SIGNING=identity`. Packaging uses the release identity unless
+`APP_IDENTITY` names another installed Developer ID Application signing identity by full name, unique name substring,
+or SHA-1 certificate hash. Packaging resolves it through
 `security find-identity -p codesigning -v`, derives the Team ID from the selected identity, and signs with that
 certificate's hash. A missing or ambiguous match, a certificate other than Developer ID Application with a ten-character Team ID, or a conflicting
 `APP_TEAM_ID` fails before entitlements are generated. Self-signed and Apple Development/Distribution certificates are not supported by this
 path; use ad-hoc packaging or a Developer ID Application identity. Developer ID names carry a Team ID, whereas
 development certificate names can carry a personal ID. Explicit identity selections are also validated in LLDB builds.
 
-App and widget entitlements use the resolved team. Only upstream-team identity-signed release builds embed the
-upstream provisioning profile and CloudKit entitlements; other teams package without those upstream resources.
+App and widget entitlements use the resolved team's app group. No build embeds a provisioning profile or CloudKit
+entitlements: iCloud Sync is deferred until the release team has a Developer ID provisioning profile.
 Widget build failures and timestamp/signature failures still fail packaging. The sandboxed launch smoke check is
 retained; the existing `OPENBAR_SKIP_LAUNCH_SMOKE=1` override explicitly reports that it skipped validation.
 
 ### Release Build (Notarized)
 ```bash
 ./Scripts/sign-and-notarize.sh
-# Creates: OpenBar-<version>.zip and OpenBar-<version>.dSYM.zip
+# Creates: OpenBar-macos-universal-<version>.zip and OpenBar-macos-universal-<version>.dSYM.zip
 ```
 
-`sign-and-notarize.sh` honors `APP_IDENTITY` and passes the same selection to packaging; it defaults to the upstream
-Developer ID. Timestamping and hardened runtime remain required for all identity-signed releases.
+`sign-and-notarize.sh` honors `APP_IDENTITY` and passes the same selection to packaging; without it, it signs with
+`signing_identity` from `.github/release.json`. Timestamping and hardened runtime remain required for all
+identity-signed releases.
 
 See `docs/RELEASING.md` for full release process.
 

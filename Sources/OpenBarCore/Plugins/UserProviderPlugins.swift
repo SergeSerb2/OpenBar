@@ -177,12 +177,24 @@ public struct UserProviderPlugin: @unchecked Sendable {
         }
     }
 
-    public static func environmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String {
-        let id = instanceID.rawValue.uppercased().replacingOccurrences(of: "-", with: "_")
-        let key = settingKey.uppercased().map { character in
+    /// `OPENBAR_PLUGIN_<ID>__<KEY>`. IDs map `-` to `_` and keys start with a letter, so the `__` boundary
+    /// names exactly one plugin and setting. An ID containing `--` would blur that boundary and gets no override.
+    public static func environmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String? {
+        guard !instanceID.rawValue.contains("--") else { return nil }
+        return "OPENBAR_PLUGIN_\(self.environmentName(instanceID.rawValue))__\(self.environmentName(settingKey))"
+    }
+
+    /// The original single-underscore name. It is honored only when it has one reading: a hyphen-free ID and an
+    /// underscore-free key. Otherwise `acme` + `PROD_TOKEN` and `acme-prod` + `TOKEN` would share one variable.
+    static func legacyEnvironmentKey(instanceID: ProviderInstanceID, settingKey: String) -> String? {
+        guard !instanceID.rawValue.contains("-"), !settingKey.contains("_") else { return nil }
+        return "OPENBAR_PLUGIN_\(self.environmentName(instanceID.rawValue))_\(self.environmentName(settingKey))"
+    }
+
+    private static func environmentName(_ value: String) -> String {
+        String(value.uppercased().map { character in
             character.isASCII && (character.isLetter || character.isNumber) ? character : "_"
-        }
-        return "OPENBAR_PLUGIN_\(id)_\(String(key))"
+        })
     }
 
     private static func applyingEnvironmentOverrides(
@@ -192,8 +204,14 @@ public struct UserProviderPlugin: @unchecked Sendable {
     {
         var resolved = secrets
         for setting in manifest.settings where setting.kind == .secure {
-            let key = self.environmentKey(instanceID: manifest.id, settingKey: setting.key)
-            if let value = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty {
+            let names = [
+                self.environmentKey(instanceID: manifest.id, settingKey: setting.key),
+                self.legacyEnvironmentKey(instanceID: manifest.id, settingKey: setting.key),
+            ].compactMap(\.self)
+            let value = names.lazy.compactMap { name in
+                environment[name]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }.first { !$0.isEmpty }
+            if let value {
                 resolved[setting.key] = value
             }
         }
@@ -333,7 +351,8 @@ public final class UserProviderPluginLoader: @unchecked Sendable {
             responseSizeLimit: UserProviderPlugin.maximumSourceBytes,
             enforcesUserResponsePolicy: true,
             allowsDynamicID: true,
-            storageDirectory: self.storageDirectory)
+            storageDirectory: self.storageDirectory,
+            loadTimeout: ProviderPluginRuntime.userPluginLoadTimeout)
         return UserProviderPlugin(
             fileURL: fileURL,
             sourceHash: hash,
@@ -429,6 +448,8 @@ public enum UserProviderPluginRegistry {
     private final class Store: @unchecked Sendable {
         var results: [UserProviderPluginLoadResult] = []
         var byID: [ProviderInstanceID: UserProviderPlugin] = [:]
+        var issuedScans: UInt64 = 0
+        var publishedScan: UInt64 = 0
     }
 
     private static let lock = NSLock()
@@ -438,14 +459,39 @@ public enum UserProviderPluginRegistry {
     public static func refresh(loader: UserProviderPluginLoader = UserProviderPluginLoader())
         -> [UserProviderPluginLoadResult]
     {
+        let scan = self.lock.withLock {
+            self.store.issuedScans &+= 1
+            return self.store.issuedScans
+        }
         let results = loader.discover()
         self.lock.withLock {
+            // Scans can overlap once they run in the background; a slower, older scan must not win.
+            guard scan > self.store.publishedScan else { return }
+            self.store.publishedScan = scan
             self.store.results = results
             self.store.byID = Dictionary(uniqueKeysWithValues: results.compactMap { result in
                 result.plugin.map { ($0.manifest.id, $0) }
             })
         }
         return results
+    }
+
+    /// Discovery evaluates each plugin's top-level code; keep it off the caller's actor.
+    @discardableResult
+    public static func refreshInBackground(loader: UserProviderPluginLoader = UserProviderPluginLoader()) async
+        -> [UserProviderPluginLoadResult]
+    {
+        await Task.detached(priority: .userInitiated) { self.refresh(loader: loader) }.value
+    }
+
+    /// Forgets a deleted plugin without re-running the remaining plugins' code.
+    public static func remove(_ instanceID: ProviderInstanceID) {
+        self.lock.withLock {
+            self.store.issuedScans &+= 1
+            self.store.publishedScan = self.store.issuedScans
+            self.store.results.removeAll { $0.plugin?.manifest.id == instanceID }
+            self.store.byID[instanceID] = nil
+        }
     }
 
     public static var allResults: [UserProviderPluginLoadResult] {

@@ -187,13 +187,12 @@ public struct DevinUsageFetcher: Sendable {
         }
         let response = try await transport.response(for: request)
         guard response.statusCode == 200 else {
-            let body = String(data: response.data.prefix(200), encoding: .utf8) ?? "<binary>"
             if response.statusCode == 401 || response.statusCode == 403 {
                 let payload = try? JSONSerialization.jsonObject(with: response.data) as? [String: Any]
                 throw payload?["detail"] as? String == "No organizations found for auth1 user"
                     ? DevinUsageError.missingOrganization : DevinUsageError.invalidCredentials
             }
-            Self.log.error("Devin API returned \(response.statusCode): \(body)")
+            Self.log.error("Devin API returned \(response.statusCode)")
             throw DevinUsageError.apiError("HTTP \(response.statusCode)")
         }
         return response.data

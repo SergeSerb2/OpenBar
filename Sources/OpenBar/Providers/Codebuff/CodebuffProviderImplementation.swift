@@ -15,7 +15,7 @@ struct CodebuffProviderImplementation: ProviderImplementation {
             ProviderSettingsFieldDescriptor(
                 id: "codebuff-api-key",
                 title: "API key",
-                subtitle: "Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let " +
+                subtitle: "Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let " +
                     "OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`).",
                 kind: .secure,
                 placeholder: "cb_...",

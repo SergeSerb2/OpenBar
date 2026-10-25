@@ -65,9 +65,7 @@ struct NotificationsPane: View {
                 Text(L("section_celebrations"))
             }
         }
-        .formStyle(.grouped)
-        .toggleStyle(.switch)
-        .scrollContentBackground(.hidden)
+        .settingsPaneForm()
         .background(FocusResigningBackground())
     }
 }

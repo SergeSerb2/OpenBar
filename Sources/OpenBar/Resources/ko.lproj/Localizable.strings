@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "사용량 스냅샷 동기화";
 "Show accounts from other Macs" = "다른 Mac의 계정 보기";
 "Requires a signed release build of OpenBar." = "OpenBar의 서명된 릴리스 빌드가 필요합니다.";
+"iCloud Sync is not available in this build of OpenBar." = "이 OpenBar 빌드에서는 iCloud 동기화를 사용할 수 없습니다.";
 "Sign in to iCloud in System Settings to enable sync." = "동기화를 활성화하려면 시스템 설정에서 iCloud에 로그인하세요.";
 "iCloud access is restricted on this Mac." = "이 Mac에서는 iCloud 액세스가 제한되어 있습니다.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "동기화가 일시 중지되었습니다. 다른 Mac에서 최신 버전의 OpenBar를 사용하고 있습니다. 재개하려면 업데이트하세요.";
@@ -373,11 +374,9 @@
 "Store multiple OpenCode Cookie headers." = "여러 OpenCode 쿠키 헤더를 저장합니다.";
 "Store multiple OpenCode Go Cookie headers." = "여러 OpenCode Go 쿠키 헤더를 저장합니다.";
 "Stored in the OpenBar config file." = "OpenBar 설정 파일에 저장됩니다.";
-"Stored in ~/.openbar/config.json. " = "~/.openbar/config.json에 저장됩니다. ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "~/.openbar/config.json에 저장됩니다. Synthetic 대시보드에서 키를 붙여넣으세요.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "~/.openbar/config.json에 저장됩니다. Model Studio에서 Coding Plan API 키를 붙여넣으세요.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "~/.openbar/config.json에 저장됩니다. MiniMax API 키를 붙여넣으세요.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "~/.openbar/config.json에 저장됩니다. KILO_API_KEY를 제공할 수도 있습니다. ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "OpenBar 설정 파일에 저장됩니다. Synthetic 대시보드에서 키를 붙여넣으세요.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "OpenBar 설정 파일에 저장됩니다. Model Studio에서 Coding Plan API 키를 붙여넣으세요.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "OpenBar 설정 파일에 저장됩니다. MiniMax API 키를 붙여넣으세요.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "사용 속도 예측을 개인화하기 위해 로컬 Codex 사용 기록(8주)을 저장합니다.";
 "Surprise me" = "랜덤으로 선택";
 "Switcher shows icons" = "전환기에 아이콘 표시";
@@ -825,7 +824,7 @@
 "cost_data_explanation" = "비용은 제공업체가 보고하거나 토큰 사용량과 공개 API 가격을 기준으로 추정할 수 있습니다. 추정치는 구독 요금이 아닙니다.";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "AI Assistant가 있는 JetBrains IDE를 찾지 못했습니다. JetBrains IDE를 설치하고 AI Assistant를 사용하세요.";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "OpenRouter API 토큰이 구성되지 않았습니다. OPENROUTER_API_KEY 환경 변수를 설정하거나 설정에서 구성하세요.";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "z.ai API 토큰을 찾을 수 없습니다. ~/.openbar/config.json에 apiKey를 설정하거나 Z_AI_API_KEY를 설정하세요.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "z.ai API 토큰을 찾을 수 없습니다. ~/.config/openbar/config.json(이전 경로: ~/.openbar/config.json)에 apiKey를 설정하거나 Z_AI_API_KEY를 설정하세요.";
 "Missing DeepSeek API key." = "DeepSeek API 키가 없습니다.";
 "%@ is unavailable in the current environment." = "%@은(는) 현재 환경에서 사용할 수 없습니다.";
 "All Systems Operational" = "모든 시스템 정상 작동";
@@ -1169,7 +1168,7 @@
 "Open Moonshot Console" = "Moonshot 콘솔 열기";
 "Open Ollama API Keys" = "Ollama API 키 열기";
 "Open llmman" = "llmman 열기";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "~/.openbar/config.json에 저장됩니다. llmman serve에 API 키가 필요한 경우에만 필요합니다.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "OpenBar 설정 파일에 저장됩니다. llmman serve에 API 키가 필요한 경우에만 필요합니다.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "llmman serve 주소입니다. 기본값은 http://127.0.0.1:17434입니다.";
 "Open StepFun Platform" = "StepFun 플랫폼 열기";
 "Open T3 Chat Settings" = "T3 Chat 설정 열기";
@@ -1221,21 +1220,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "브라우저에서 cursor.com에 로그인한 다음 OpenBar에서 Cursor를 새로 고침하세요.";
 "Simulated error text" = "시뮬레이션된 오류 텍스트";
 "StepFun platform account (phone number or email)." = "StepFun 플랫폼 계정(전화번호 또는 이메일).";
-"Stored in ~/.openbar/config.json." = "~/.openbar/config.json에 저장됩니다.";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "~/.openbar/config.json에 저장됩니다. AZURE_OPENAI_API_KEY도 지원됩니다.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "~/.openbar/config.json에 저장됩니다. 공식 Kimi API의 경우 Moonshot / Kimi API를 사용하세요.";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "~/.openbar/config.json에 저장됩니다. Volcengine Ark 콘솔에서 API 키를 받으세요.";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "~/.openbar/config.json에 저장됩니다. Ollama 설정에서 키를 받으세요.";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "~/.openbar/config.json에 저장됩니다. console.deepgram.com에서 키를 받으세요.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "~/.openbar/config.json에 저장됩니다. elevenlabs.io/app/settings/api-keys에서 키를 받으세요.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "~/.openbar/config.json에 저장됩니다. openrouter.ai/settings/keys에서 키를 받고, API 키 할당량 추적을 사용하려면 그곳에서 키 지출 한도를 설정하세요.";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "~/.openbar/config.json에 저장됩니다. Warp에서 Settings > Platform > API Keys를 연 다음 하나를 생성하세요.";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "~/.openbar/config.json에 저장됩니다. 지표를 보려면 Groq Enterprise Prometheus 액세스가 필요합니다.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "~/.openbar/config.json에 저장됩니다. OPENAI_ADMIN_KEY를 권장하지만 OPENAI_API_KEY도 여전히 작동합니다.";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "~/.openbar/config.json에 저장됩니다. Anthropic Admin API 키가 필요합니다.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "~/.openbar/config.json에 저장됩니다. /v1/quota-stats에 사용됩니다.";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "~/.openbar/config.json에 저장됩니다. CODEBUFF_API_KEY를 제공하거나 OpenBar가 ~/.config/manicode/credentials.json(`codebuff login`으로 생성됨)을 읽도록 할 수도 있습니다.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "~/.openbar/config.json에 저장됩니다. KILO_API_KEY 또는 ~/.local/share/kilo/auth.json(kilo.access)을 제공할 수도 있습니다.";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "OpenBar 설정 파일에 저장됩니다. AZURE_OPENAI_API_KEY도 지원됩니다.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "OpenBar 설정 파일에 저장됩니다. Ollama 설정에서 키를 받으세요.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "OpenBar 설정 파일에 저장됩니다. console.deepgram.com에서 키를 받으세요.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "OpenBar 설정 파일에 저장됩니다. elevenlabs.io/app/settings/api-keys에서 키를 받으세요.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "OpenBar 설정 파일에 저장됩니다. Warp에서 Settings > Platform > API Keys를 연 다음 하나를 생성하세요.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "OpenBar 설정 파일에 저장됩니다. Anthropic Admin API 키가 필요합니다.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "OpenBar 설정 파일에 저장됩니다. /v1/quota-stats에 사용됩니다.";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "OpenBar 설정 파일에 저장됩니다. CODEBUFF_API_KEY를 제공하거나 OpenBar가 ~/.config/manicode/credentials.json(`codebuff login`으로 생성됨)을 읽도록 할 수도 있습니다.";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "OpenBar 설정 파일에 저장됩니다. KILO_API_KEY 또는 ~/.local/share/kilo/auth.json(kilo.access)을 제공할 수도 있습니다.";
 "T3 Chat cookie" = "T3 Chat 쿠키";
 "Team mode" = "팀 모드";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "해당 계정은 더 이상 OpenBar에서 사용할 수 없습니다. 계정 목록을 새로 고침한 후 다시 시도하세요.";
@@ -1956,9 +1949,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "`tcr`의 사용량을 표시합니다. tcr가 요청마다 계정을 선택하므로 계정을 전환하지 않습니다. 자격 증명은 tcr에 의해 관리됩니다. OpenBar는 절대 읽지 않습니다.";
 "Stay Awake" = "깨어 있으라";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "OpenBar 구성 파일에 저장됩니다. /v1/usage에서 월별 예산 및 라우팅된 사용량을 읽습니다.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "~/.openbar/config.json에 저장됩니다. 조직에서 사용하려면 OPENAI_ADMIN_KEY가 필요합니다. 레거시/사용자 키는 최선의 균형 대체만 얻습니다.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "~/.openbar/config.json에 저장됩니다. FACTORY_API_KEY 또는 ~/.factory/.env를 제공할 수도 있습니다.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "~/.openbar/config.json에 저장됩니다. AMP_API_KEY를 설정할 수도 있습니다.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "OpenBar 설정 파일에 저장됩니다. 조직 사용량에는 OPENAI_ADMIN_KEY가 필요합니다. 레거시/사용자 키는 가능한 경우 잔액만 표시합니다.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "OpenBar 설정 파일에 저장됩니다. FACTORY_API_KEY 또는 ~/.factory/.env를 제공할 수도 있습니다.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "OpenBar 설정 파일에 저장됩니다. AMP_API_KEY를 설정할 수도 있습니다.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "계정 전환…";
 "Switch Claude Code account" = "Claude Code 계정 전환";
@@ -2079,14 +2072,14 @@
 "Paste the Cookie request header from zed.dev." = "zed.dev에서 Cookie 요청 헤더를 붙여넣습니다.";
 "Points" = "포인트";
 "Poe usage history is unavailable." = "Poe 사용 내역을 확인할 수 없습니다.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "~/.openbar/config.json에 저장됩니다. poe.com/api/keys에서 키를 가져옵니다.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "OpenBar 설정 파일에 저장됩니다. poe.com/api/keys에서 키를 가져옵니다.";
 "Billing" = "청구";
 "Invoice billing" = "청구서 결제";
 "Prepaid" = "선불";
 "Rate limit" = "비율 제한";
 "Billing and rate-limit data from the v0 Platform API" = "v0 플랫폼 API의 청구 및 요금 제한 데이터";
 "v0 cost history is not available via the Platform API." = "v0 비용 내역은 플랫폼 API를 통해 확인할 수 없습니다.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "~/.config/openbar/config.json에 저장됩니다. v0 설정에서 하나를 생성하거나 V0_API_KEY를 설정하세요.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "OpenBar 설정 파일에 저장됩니다. v0 설정에서 하나를 생성하거나 V0_API_KEY를 설정하세요.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "v0 API 키 열기";
 "Scope" = "범위";
@@ -2128,7 +2121,7 @@
 "Monthly quota" = "월간 할당량";
 "Subscription usage from the Chutes API." = "Chutes API의 구독 사용량입니다.";
 "Chutes cost history is not available from OpenBar." = "Chutes 비용 내역은 OpenBar에서 확인할 수 없습니다.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "~/.openbar/config.json에 저장됩니다. Chutes API 키를 붙여넣습니다.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "OpenBar 설정 파일에 저장됩니다. Chutes API 키를 붙여넣습니다.";
 "chutes key..." = "Chutes API 키...";
 "Spend" = "지출";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "Fireworks 지출은 청구 요약 API에서 발생합니다. 비용 내역은 추적되지 않습니다.";
@@ -2169,7 +2162,7 @@
 "Shared pool" = "공유 풀";
 "GitKraken cost history is not available." = "GitKraken 비용 내역을 확인할 수 없습니다.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "xAI 일일 지출에는 관리 API 키와 팀 ID가 필요합니다. 선불 잔액은 지출로 간주되지 않습니다.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "~/.openbar/config.json에 저장됩니다. 설정 > 관리 키 아래 console.x.ai에서 하나를 생성합니다. 추론 API 키는 허용되지 않습니다.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "OpenBar 설정 파일에 저장됩니다. console.x.ai의 설정 > 관리 키에서 생성하세요. 추론 API 키는 허용되지 않습니다.";
 "xai-..." = "xai-...";
 "Team ID" = "팀 ID";
 "Vercel access token" = "Vercel 액세스 토큰";
@@ -2178,7 +2171,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Vercel 액세스 토큰과 함께 필요합니다. 또는 VERCEL_TEAM_ID를 설정하세요.";
 "Required. Shown in the xAI Console URL and team settings." = "필수입니다. xAI 콘솔 URL 및 팀 설정에 표시됩니다.";
 "Sakana AI cost summary is not supported." = "Sakana AI 비용 요약은 지원되지 않습니다.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "~/.openbar/config.json에 저장됩니다. Sakana AI 콘솔 Cookie 요청 헤더를 복사합니다.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "OpenBar 설정 파일에 저장됩니다. Sakana AI 콘솔 Cookie 요청 헤더를 복사합니다.";
 "Open Sakana AI Console" = "Sakana AI 콘솔 열기";
 "SuperGrok tokens" = "SuperGrok 토큰";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "SuperGrok 전달자 또는 grok.com cookie를 붙여넣습니다. 토큰 파일 열기 ~/.grok/auth.json를 엽니다.";
@@ -2295,7 +2288,7 @@
 "5-hour quota" = "5시간 할당량";
 "Weekly quota" = "주간 할당량";
 "ZenMux cost history is not exposed by the Management API." = "ZenMux 비용 내역은 관리 API에 의해 공개되지 않습니다.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "~/.openbar/config.json에 저장됩니다. 표준 ZenMux 추론 API 키는 지원되지 않습니다.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "OpenBar 설정 파일에 저장됩니다. 표준 ZenMux 추론 API 키는 지원되지 않습니다.";
 "ZenMux management key…" = "ZenMux 관리 키…";
 "Monthly Plan" = "월간 구독 요금제";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "/v1/usage에서 키 할당량, 구독 한도, 사용량 및 지갑 잔액을 읽습니다.";
@@ -2539,7 +2532,7 @@
 "Local Codex details; excluded from combined totals." = "로컬 Codex 세부 정보, 합산 총계에서 제외됩니다.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "OpenBar 설정 파일에 저장됩니다. COMMAND_CODE_API_KEY를 설정할 수도 있습니다.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "토큰 %@ · 요청 %@";
 "15m" = "15분";

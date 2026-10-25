@@ -351,15 +351,15 @@ public struct CursorUserInfo: Codable, Sendable {
 
 public struct CursorStatusSnapshot: Sendable {
     /// Percentage of included plan usage (0-100) — the "Total" headline number from Cursor's UI
-    public let planPercentUsed: Double
+    public let planPercentUsed: Double?
     /// Auto + Composer usage percent (0-100), nil when not available
     public let autoPercentUsed: Double?
     /// API (named model) usage percent (0-100), nil when not available
     public let apiPercentUsed: Double?
     /// Included plan usage in USD
-    public let planUsedUSD: Double
+    public let planUsedUSD: Double?
     /// Included plan limit in USD
-    public let planLimitUSD: Double
+    public let planLimitUSD: Double?
     /// On-demand usage in USD
     public let onDemandUsedUSD: Double
     /// On-demand limit in USD (nil if unlimited)
@@ -401,11 +401,11 @@ public struct CursorStatusSnapshot: Sendable {
     }
 
     public init(
-        planPercentUsed: Double,
+        planPercentUsed: Double?,
         autoPercentUsed: Double? = nil,
         apiPercentUsed: Double? = nil,
-        planUsedUSD: Double,
-        planLimitUSD: Double,
+        planUsedUSD: Double?,
+        planLimitUSD: Double?,
         onDemandUsedUSD: Double,
         onDemandLimitUSD: Double?,
         teamOnDemandUsedUSD: Double?,
@@ -1335,7 +1335,7 @@ public struct CursorStatusProbe: Sendable {
         }
 
         try Task.checkCancellation()
-        return self.parseUsageSummary(
+        let snapshot = self.parseUsageSummary(
             usageSummary,
             userInfo: userInfo,
             rawJSON: combinedRawJSON,
@@ -1344,6 +1344,13 @@ public struct CursorStatusProbe: Sendable {
             unifiedUsage: unifiedUsage,
             identityFallback: identityFallback,
             teamBudget: teamBudget)
+        let usage = snapshot.toUsageSnapshot()
+        guard usage.primary != nil || usage.secondary != nil || usage.tertiary != nil
+            || usage.extraRateWindows?.isEmpty == false || usage.providerCost != nil
+        else {
+            throw CursorStatusProbeError.parseFailed("No usage measurements in the response")
+        }
+        return snapshot
     }
 
     private func fetchSandUsage(
@@ -1405,7 +1412,7 @@ public struct CursorStatusProbe: Sendable {
         } catch {
             guard let decodingLabel else { throw error }
             throw CursorStatusProbeError.parseFailed(
-                "\(decodingLabel) decode failed: \(error.localizedDescription). Raw: \(rawJSON.prefix(200))")
+                "\(decodingLabel) decode failed: \(error.localizedDescription)")
         }
     }
 

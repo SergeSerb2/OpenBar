@@ -37,7 +37,7 @@ public enum XAIProviderDescriptor {
         apiKeyField: .init(
             id: "xai-management-api-key",
             title: "Management API key",
-            subtitle: "Stored in ~/.openbar/config.json. Create one at console.x.ai under "
+            subtitle: "Stored in the OpenBar config file. Create one at console.x.ai under "
                 + "Settings > Management Keys; inference API keys are not accepted.",
             placeholder: "xai-..."),
         workspaceField: .init(

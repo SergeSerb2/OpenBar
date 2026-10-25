@@ -23,6 +23,7 @@
 		D1B3B06F03A2F05251AC0B42 /* BurnDownWidgetProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B99BBE05D3817388F9649AD0 /* BurnDownWidgetProvider.swift */; };
 		DA83EC1B33AD5AE43FAE16D3 /* OpenBarAccountUsageWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E09EE9A805DF69C250848E39 /* OpenBarAccountUsageWidget.swift */; };
 		FB60A7A0640B8D1B32A925F7 /* WidgetTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6A8350FD0147A03637A88E /* WidgetTiles.swift */; };
+		A1B2C3D4E5F60718293A4B5C /* WidgetTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E2D3C4B5A69788796A5B4 /* WidgetTheme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +44,7 @@
 		5411B15D79BD3C89B413E86D /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		549C61629C144C190B18EAD9 /* OpenBarWidgetProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenBarWidgetProvider.swift; sourceTree = "<group>"; };
 		5B6A8350FD0147A03637A88E /* WidgetTiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTiles.swift; sourceTree = "<group>"; };
+		0F1E2D3C4B5A69788796A5B4 /* WidgetTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetTheme.swift; sourceTree = "<group>"; };
 		65CDF1E0EBA2E89F91356B37 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		73AC2E28F780BB0CE6B6A42E /* WidgetDesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetDesignSystem.swift; sourceTree = "<group>"; };
 		7E5E76CB93C20A1075A9CB18 /* sv */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = sv; path = sv.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				73AC2E28F780BB0CE6B6A42E /* WidgetDesignSystem.swift */,
 				4D122E6214A1AA991810D7AB /* WidgetTilePlan.swift */,
 				5B6A8350FD0147A03637A88E /* WidgetTiles.swift */,
+				0F1E2D3C4B5A69788796A5B4 /* WidgetTheme.swift */,
 				037FC525BF6C59732CE6EA62 /* Resources */,
 			);
 			name = OpenBarWidget;
@@ -251,6 +254,7 @@
 				5034CBBD03D8421698E0A343 /* WidgetDesignSystem.swift in Sources */,
 				272038F061362C98F89CA872 /* WidgetTilePlan.swift in Sources */,
 				FB60A7A0640B8D1B32A925F7 /* WidgetTiles.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* WidgetTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

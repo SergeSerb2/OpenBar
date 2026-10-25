@@ -11,6 +11,11 @@ final class ScreenConfettiOverlayController {
     private var dismissalTask: Task<Void, Never>?
 
     func play(originInScreen origin: CGPoint?, colors: [ProviderColor]) {
+        // Reduce Motion skips the celebration entirely (docs/design/README.md §7, §10).
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            self.logger.debug("Skipping confetti because Reduce Motion is on")
+            return
+        }
         guard self.windows.isEmpty else {
             self.logger.debug("Ignoring confetti trigger while overlay is already active")
             return

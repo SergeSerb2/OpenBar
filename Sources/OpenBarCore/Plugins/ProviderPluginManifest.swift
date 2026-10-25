@@ -154,7 +154,7 @@ public struct ProviderPluginManifest: Sendable {
         guard let endpointValue, endpointValue.isArray else {
             throw ProviderPluginError.invalidManifest("'endpoints' must be a non-empty array of HTTPS origins")
         }
-        let endpointCount = Int(endpointValue.property("length")?.int32Value() ?? 0)
+        let endpointCount = Self.arrayLength(endpointValue) ?? 0
         guard (1...16).contains(endpointCount) else {
             throw ProviderPluginError.invalidManifest("'endpoints' must not be empty")
         }
@@ -190,8 +190,7 @@ public struct ProviderPluginManifest: Sendable {
         guard let settingsValue = definition.property("settings"), settingsValue.isArray else {
             throw ProviderPluginError.invalidManifest("'settings' must be an array")
         }
-        let settingCount = Int(settingsValue.property("length")?.int32Value() ?? 0)
-        guard settingCount <= 32 else {
+        guard let settingCount = Self.arrayLength(settingsValue), settingCount <= 32 else {
             throw ProviderPluginError.invalidManifest("'settings' exceeds 32 entries")
         }
         var settings: [ProviderPluginSetting] = []
@@ -269,7 +268,9 @@ public struct ProviderPluginManifest: Sendable {
             guard capabilitiesValue.isArray else {
                 throw ProviderPluginError.invalidManifest("'capabilities' must be an array when present")
             }
-            let count = Int(capabilitiesValue.property("length")?.int32Value() ?? 0)
+            guard let count = Self.arrayLength(capabilitiesValue), count <= 16 else {
+                throw ProviderPluginError.invalidManifest("'capabilities' exceeds 16 entries")
+            }
             for index in 0..<count {
                 guard let value = capabilitiesValue.element(at: index), value.isString,
                       let capability = ProviderPluginCapability(rawValue: value.stringValue())
@@ -288,7 +289,9 @@ public struct ProviderPluginManifest: Sendable {
                 throw ProviderPluginError.invalidManifest(
                     "'cookieDomains' requires the browser-cookies capability and must be an array")
             }
-            let count = Int(cookieDomainsValue.property("length")?.int32Value() ?? 0)
+            guard let count = Self.arrayLength(cookieDomainsValue), count <= 32 else {
+                throw ProviderPluginError.invalidManifest("'cookieDomains' exceeds 32 entries")
+            }
             for index in 0..<count {
                 guard let value = cookieDomainsValue.element(at: index), value.isString else {
                     throw ProviderPluginError.invalidManifest("cookie domain at index \(index) must be a string")
@@ -376,6 +379,14 @@ public struct ProviderPluginManifest: Sendable {
             throw ProviderPluginError.invalidManifest("'\(property)' exceeds \(maximumLength) UTF-8 bytes")
         }
         return value.isEmpty ? nil : value
+    }
+
+    /// JS array lengths reach 2^32 - 1, which wraps negative through `int32Value()` and would trap in a range.
+    private static func arrayLength(_ value: any ProviderPluginValue) -> Int? {
+        guard let length = value.property("length")?.doubleValue(),
+              length.isFinite, length >= 0, length <= Double(Int32.max), length.rounded() == length
+        else { return nil }
+        return Int(length)
     }
 
     private static func isValidHeaderName(_ value: String) -> Bool {

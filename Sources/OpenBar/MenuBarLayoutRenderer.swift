@@ -611,7 +611,8 @@ final class MenuBarLayoutRenderer {
         for run in runs {
             let runAttributes = CTRunGetAttributes(run) as NSDictionary
             let attributes = title.attributes(at: CTRunGetStringRange(run).location, effectiveRange: nil)
-            guard attributes[.foregroundColor] as? NSColor == foregroundColor,
+            let color = attributes[.foregroundColor] as? NSColor
+            guard color == foregroundColor || color == Self.separatorColor(foregroundColor),
                   (attributes[.attachment] as? NSTextAttachment)?.image?.isTemplate != false,
                   let font = runAttributes[kCTFontAttributeName] as? NSFont,
                   !CTFontGetSymbolicTraits(font as CTFont).contains(.traitColorGlyphs)
@@ -728,7 +729,7 @@ final class MenuBarLayoutRenderer {
             attributes[.foregroundColor] = Self.neutralForegroundColor(options)
             if options.colorPace, let delta = Self.paceDelta(window, data: data), delta.isFinite, delta != 0 {
                 // Use the same rounded numeric delta as the displayed text, never its localized sign.
-                let color: NSColor = delta < 0 ? .systemGreen : .systemRed
+                let color: NSColor = delta < 0 ? Self.paceReserveColor : Self.paceDeficitColor
                 attributes[.foregroundColor] = options.isStale && !options.highContrast ? color
                     .withAlphaComponent(0.5) : color
             }
@@ -775,7 +776,11 @@ final class MenuBarLayoutRenderer {
                 unavailableLabel: L("%@ unavailable", L("menu_bar_layout_token_cost_window")),
                 attributes: style.attributes)
         case .separatorDot:
-            return self.textToken("·", accessibilityText: nil, attributes: style.attributes)
+            var attributes = style.attributes
+            if !options.highContrast {
+                attributes[.foregroundColor] = Self.separatorColor(style.foregroundColor)
+            }
+            return self.textToken("·", accessibilityText: nil, attributes: attributes)
         case .space:
             return self.textToken(" ", accessibilityText: nil, attributes: style.attributes)
         case .hidden:
@@ -1114,6 +1119,22 @@ final class MenuBarLayoutRenderer {
         options.highContrast ? .labelColor : options.isStale ? .secondaryLabelColor : .controlTextColor
     }
 
+    /// Opt-in pace colors use the OpenBar status tones (docs/design/README.md §2.2): a reserve that lasts to
+    /// the reset reads `ok`, a deficit reads `warning`. Dynamic, so they resolve for the menu bar appearance.
+    nonisolated static let paceReserveColor = OpenBarPalette.ok.nsColor
+    nonisolated static let paceDeficitColor = OpenBarPalette.warning.nsColor
+
+    /// The separator dot steps back one label level (about 55 %); the numbers keep full weight. System label
+    /// colors step to the next system level, which resolves correctly for the menu bar appearance; a fixed
+    /// provider tint fades to 55 %.
+    static func separatorColor(_ foregroundColor: NSColor) -> NSColor {
+        switch foregroundColor {
+        case .controlTextColor, .labelColor: .secondaryLabelColor
+        case .secondaryLabelColor: .tertiaryLabelColor
+        default: foregroundColor.withAlphaComponent(0.55)
+        }
+    }
+
     /// Provider color is decoration; native monochrome owns stale, selected and accessible states.
     static func effectiveProviderTintColor(
         for provider: UsageProvider,
@@ -1391,6 +1412,9 @@ extension MenuBarLayoutRenderer {
         return NSSize(width: width, height: height)
     }
 
+    /// One Meter bars rail (docs/design/README.md §9.1): a capsule track with the fill running from the
+    /// leading edge to a straight level edge. Drawn on demand, so the fill snaps to the destination's pixel
+    /// grid and the track follows Increase Contrast and Reduce Transparency at every draw.
     private static func progressBarImage(
         fillPercent: Double,
         size: NSSize,
@@ -1398,27 +1422,29 @@ extension MenuBarLayoutRenderer {
         stale: Bool)
         -> NSImage
     {
-        // Graphical counterpart to the persisted three-segment character usageBar.
-        let alpha: CGFloat = stale ? 0.55 : 1.0
-        let segmentCount = 5
-        let gap: CGFloat = 2
-        let corner = min(size.height, 3) / 2
+        let alpha = stale ? OpenBarGlyphMetrics.staleRailAlpha : 1
+        let fraction = fillPercent.clamped(to: 0...100) / 100
         return NSImage(size: size, flipped: false) { rect in
-            let segmentWidth = max(2, (rect.width - gap * CGFloat(segmentCount - 1)) / CGFloat(segmentCount))
-            let filled = Int((fillPercent.clamped(to: 0...100) / 100 * Double(segmentCount)).rounded())
-            for index in 0..<segmentCount {
-                let x = CGFloat(index) * (segmentWidth + gap)
-                let box = NSRect(x: x, y: 0, width: segmentWidth, height: rect.height)
-                let path = NSBezierPath(roundedRect: box, xRadius: corner, yRadius: corner)
-                if index < filled {
-                    tint.withAlphaComponent(alpha).setFill()
-                    path.fill()
-                } else {
-                    tint.withAlphaComponent(0.45 * alpha).setStroke()
-                    path.lineWidth = 1
-                    path.stroke()
-                }
+            let scale = NSGraphicsContext.current?.cgContext.userSpaceToDeviceSpaceTransform.a ?? 2
+            let pixelScale = max(1, scale)
+            var fillWidth = (rect.width * fraction * pixelScale).rounded() / pixelScale
+            if fraction > 0 {
+                fillWidth = max(fillWidth, OpenBarGlyphMetrics.minimumFill)
             }
+            fillWidth = min(fillWidth, rect.width)
+            let capsule = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+            NSGraphicsContext.saveGraphicsState()
+            capsule.addClip()
+            if fillWidth < rect.width {
+                tint.withAlphaComponent(MeterBarsGlyph.DisplayOptions.current.trackAlpha * alpha).setFill()
+                NSRect(x: rect.minX + fillWidth, y: rect.minY, width: rect.width - fillWidth, height: rect.height)
+                    .fill(using: .sourceOver)
+            }
+            if fillWidth > 0 {
+                tint.withAlphaComponent(alpha).setFill()
+                NSRect(x: rect.minX, y: rect.minY, width: fillWidth, height: rect.height).fill(using: .sourceOver)
+            }
+            NSGraphicsContext.restoreGraphicsState()
             return true
         }
     }

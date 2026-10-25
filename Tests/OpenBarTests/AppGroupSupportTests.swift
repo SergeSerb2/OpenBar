@@ -6,8 +6,8 @@ struct AppGroupSupportTests {
     @Test
     func `app group identifiers use resolved team-prefixed release and debug variants`() {
         #expect(
-            AppGroupSupport.currentGroupID(teamID: "Y5PE65HELJ", bundleID: "com.serbinenko.openbar")
-                == "Y5PE65HELJ.com.serbinenko.openbar")
+            AppGroupSupport.currentGroupID(teamID: "78A5P57U23", bundleID: "com.serbinenko.openbar")
+                == "78A5P57U23.com.serbinenko.openbar")
         #expect(
             AppGroupSupport.currentGroupID(teamID: "ABCDE12345", bundleID: "com.serbinenko.openbar.debug")
                 == "ABCDE12345.com.serbinenko.openbar.debug")

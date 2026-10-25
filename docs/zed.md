@@ -96,3 +96,6 @@ Per [LLM Providers](https://zed.dev/docs/ai/llm-providers.html) and [External Ag
 - `Sources/OpenBar/Providers/Zed/ZedProviderImplementation.swift` - app registration and cookie settings
 - `Tests/OpenBarTests/ZedStatusProbeTests.swift` - cloud API and routing tests
 - `Tests/OpenBarTests/ZedPluginTests.swift` - synthetic billing and editor fixtures on both plugin engines
+
+Editor settings accept JSON comments and trailing commas. An unreadable or malformed settings file stops
+editor usage refresh before credential lookup; only an absent file uses the default server settings.

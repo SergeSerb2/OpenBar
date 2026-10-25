@@ -116,3 +116,7 @@ optional source fails or does not expose data for the account, OpenBar keeps the
 - `Sources/OpenBarCore/Providers/Mistral/MistralModels.swift`
 - `Sources/OpenBarCore/Providers/Mistral/MistralCookieImporter.swift`
 - `Sources/OpenBar/Providers/Mistral/MistralProviderImplementation.swift`
+
+Billed usage requires an exact tariff or an explicitly unqualified legacy tariff. Missing prices, nonfinite charges,
+or overflowing cost totals fail the billing refresh instead of publishing zero or incomplete spend. Explicitly
+zero-billed rows remain zero even without a tariff.

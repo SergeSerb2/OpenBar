@@ -37,11 +37,47 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     }
 
     public func load() throws -> OpenBarConfig? {
-        guard self.fileManager.fileExists(atPath: self.fileURL.path) else { return nil }
+        let loaded = try self.readNormalized()
+        guard loaded.movedLegacySecret else { return loaded.config }
+        var migrated: OpenBarConfig?
+        try self.withWriteLock {
+            // Read again under the write lock so migration cannot replace a newer credential.
+            migrated = try self.loadPublishingLegacyMigration()
+        }
+        return migrated
+    }
+
+    /// Read without publishing a legacy-secret migration, so a caller that holds another lock
+    /// never waits on the file lock.
+    package func loadWithoutMigrating() throws -> OpenBarConfig? {
+        try self.readNormalized().config
+    }
+
+    /// The caller must already hold the write lock; taking it again here would block on our own lock.
+    private func loadPublishingLegacyMigration() throws -> OpenBarConfig? {
+        let loaded = try self.readNormalized()
+        if let config = loaded.config, loaded.movedLegacySecret {
+            try CredentialFileWriter.writePrivate(self.encodedData(for: config), to: self.fileURL)
+        }
+        return loaded.config
+    }
+
+    private func readNormalized() throws -> (config: OpenBarConfig?, movedLegacySecret: Bool) {
+        guard self.fileManager.fileExists(atPath: self.fileURL.path) else { return (nil, false) }
         let data = try Data(contentsOf: self.fileURL)
-        guard !data.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0A || $0 == 0x0D }) else { return nil }
+        guard !data.allSatisfy({ $0 == 0x20 || $0 == 0x09 || $0 == 0x0A || $0 == 0x0D }) else { return (nil, false) }
         do {
-            return try OpenBarConfig.decode(from: data).normalized()
+            let decoded = try OpenBarConfig.decode(from: data)
+            let normalized = decoded.normalized()
+            // Provider normalizers may move a legacy credential out of the public region field.
+            let movedLegacySecret = decoded.providers.contains { original in
+                guard original.region != nil,
+                      let current = normalized.providerConfig(for: original.id), current.region == nil,
+                      let provider = original.id.firstPartyProvider
+                else { return false }
+                return ProviderDescriptorRegistry.descriptor(for: provider).credentials?.usesSecretKey == true
+            }
+            return (normalized, movedLegacySecret)
         } catch {
             throw OpenBarConfigStoreError.decodeFailed(error.localizedDescription)
         }
@@ -51,9 +87,32 @@ public struct OpenBarConfigStore: @unchecked Sendable {
         if let existing = try self.load() {
             return existing
         }
-        let config = OpenBarConfig.makeDefault()
-        try self.save(config)
-        return config
+        return try self.update { _ in }
+    }
+
+    /// Serialize the entire read-modify-write across processes, then publish atomically.
+    @discardableResult
+    public func update(_ update: (inout OpenBarConfig) throws -> Void) throws -> OpenBarConfig {
+        try self.withTransaction { existing, publish in
+            var config = existing ?? .makeDefault()
+            try update(&config)
+            try publish(config)
+            return config
+        }
+    }
+
+    /// Legacy migration also needs to defer cleanup until publication succeeds, under the same lock.
+    package func withTransaction<T>(
+        _ operation: (OpenBarConfig?, (OpenBarConfig) throws -> Void) throws -> T) throws -> T
+    {
+        var result: T?
+        try self.withWriteLock {
+            result = try operation(self.loadPublishingLegacyMigration()) { config in
+                try CredentialFileWriter.writePrivate(self.encodedData(for: config), to: self.fileURL)
+            }
+        }
+        guard let result else { throw POSIXError(.EIO) }
+        return result
     }
 
     public func save(_ config: OpenBarConfig) throws {
@@ -62,6 +121,9 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     }
 
     public func encodedData(for config: OpenBarConfig) throws -> Data {
+        guard config.version == OpenBarConfig.currentVersion else {
+            throw OpenBarConfigStoreError.encodeFailed("Unsupported config version \(config.version).")
+        }
         do {
             return try config.normalized().encodedData()
         } catch {
@@ -86,7 +148,7 @@ public struct OpenBarConfigStore: @unchecked Sendable {
     /// Skip contention rather than delaying an interactive writer or publishing a stale credential.
     package func updateIfAvailable(_ update: (inout OpenBarConfig) throws -> Bool) throws {
         try self.withWriteLock(wait: false) {
-            guard var config = try self.load(), try update(&config) else { return }
+            guard var config = try self.readNormalized().config, try update(&config) else { return }
             try CredentialFileWriter.writePrivate(self.encodedData(for: config), to: self.fileURL)
         }
     }

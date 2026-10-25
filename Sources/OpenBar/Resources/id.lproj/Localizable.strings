@@ -15,6 +15,7 @@
 "Sync usage snapshots" = "Sinkronkan snapshot penggunaan";
 "Show accounts from other Macs" = "Tampilkan akun dari Mac lain";
 "Requires a signed release build of OpenBar." = "Memerlukan build rilis OpenBar yang ditandatangani.";
+"iCloud Sync is not available in this build of OpenBar." = "Sinkronisasi iCloud tidak tersedia di build OpenBar ini.";
 "Sign in to iCloud in System Settings to enable sync." = "Masuk ke iCloud di Pengaturan Sistem untuk mengaktifkan sinkronisasi.";
 "iCloud access is restricted on this Mac." = "Akses iCloud dibatasi di Mac ini.";
 "Sync is paused: another Mac uses a newer version of OpenBar. Update to resume." = "Sinkronisasi dijeda: Mac lain menggunakan versi OpenBar yang lebih baru. Perbarui untuk melanjutkan.";
@@ -357,11 +358,9 @@
 "Store multiple OpenCode Cookie headers." = "Simpan beberapa header Cookie OpenCode.";
 "Store multiple OpenCode Go Cookie headers." = "Simpan beberapa header Cookie OpenCode Go.";
 "Stored in the OpenBar config file." = "Disimpan dalam file konfigurasi OpenBar.";
-"Stored in ~/.openbar/config.json. " = "Disimpan di ~/.openbar/config.json. ";
-"Stored in ~/.openbar/config.json. Paste the key from the Synthetic dashboard." = "Disimpan di ~/.openbar/config.json. Tempel kunci dari dasbor Synthetic.";
-"Stored in ~/.openbar/config.json. Paste your Coding Plan API key from Model Studio." = "Disimpan di ~/.openbar/config.json. Tempel kunci API Coding Plan Anda dari Model Studio.";
-"Stored in ~/.openbar/config.json. Paste your MiniMax API key." = "Disimpan di ~/.openbar/config.json. Tempel kunci API MiniMax Anda.";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or " = "Disimpan di ~/.openbar/config.json. Anda juga dapat menyediakan KILO_API_KEY atau ";
+"Stored in the OpenBar config file. Paste the key from the Synthetic dashboard." = "Disimpan dalam file konfigurasi OpenBar. Tempel kunci dari dasbor Synthetic.";
+"Stored in the OpenBar config file. Paste your Coding Plan API key from Model Studio." = "Disimpan dalam file konfigurasi OpenBar. Tempel kunci API Coding Plan Anda dari Model Studio.";
+"Stored in the OpenBar config file. Paste your MiniMax API key." = "Disimpan dalam file konfigurasi OpenBar. Tempel kunci API MiniMax Anda.";
 "Stores local Codex usage history (8 weeks) to personalize Pace predictions." = "Menyimpan riwayat penggunaan Codex lokal (8 minggu) untuk personalisasi prediksi Pace.";
 "Surprise me" = "Kejutkan saya";
 "Switcher shows icons" = "Pengalih tampilkan ikon";
@@ -861,7 +860,7 @@
 "cost_data_explanation" = "Biaya dapat dilaporkan oleh penyedia atau diperkirakan dari penggunaan token dengan harga API publik. Estimasi bukan biaya langganan.";
 "No JetBrains IDE with AI Assistant detected. Install a JetBrains IDE and enable AI Assistant." = "Tidak ada JetBrains IDE dengan AI Assistant terdeteksi. Pasang JetBrains IDE dan aktifkan AI Assistant.";
 "OpenRouter API token not configured. Set OPENROUTER_API_KEY environment variable or configure in Settings." = "Token API OpenRouter belum dikonfigurasi. Atur variabel lingkungan OPENROUTER_API_KEY atau konfigurasi di Pengaturan.";
-"z.ai API token not found. Set apiKey in ~/.openbar/config.json or Z_AI_API_KEY." = "Token API z.ai tidak ditemukan. Atur apiKey di ~/.openbar/config.json atau Z_AI_API_KEY.";
+"z.ai API token not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) or Z_AI_API_KEY." = "Token API z.ai tidak ditemukan. Atur apiKey di ~/.config/openbar/config.json (lokasi lama: ~/.openbar/config.json) atau Z_AI_API_KEY.";
 "Missing DeepSeek API key." = "Kunci API DeepSeek tidak ada.";
 "%@ is unavailable in the current environment." = "%@ tidak tersedia di lingkungan saat ini.";
 "All Systems Operational" = "Semua Sistem Operasional";
@@ -1223,7 +1222,7 @@
 "Open Moonshot Console" = "Buka Konsol Moonshot";
 "Open Ollama API Keys" = "Buka Kunci API Ollama";
 "Open llmman" = "Buka llmman";
-"Stored in ~/.openbar/config.json. Only needed when llmman serve requires API keys." = "Disimpan di ~/.openbar/config.json. Hanya diperlukan jika llmman serve mewajibkan kunci API.";
+"Stored in the OpenBar config file. Only needed when llmman serve requires API keys." = "Disimpan dalam file konfigurasi OpenBar. Hanya diperlukan jika llmman serve mewajibkan kunci API.";
 "Address of llmman serve. Defaults to http://127.0.0.1:17434." = "Alamat llmman serve. Default: http://127.0.0.1:17434.";
 "Open StepFun Platform" = "Buka Platform StepFun";
 "Open T3 Chat Settings" = "Buka Pengaturan T3 Chat";
@@ -1275,21 +1274,15 @@
 "Sign in to cursor.com in your browser, then refresh Cursor in OpenBar." = "Masuk ke cursor.com di browser Anda, lalu segarkan Cursor di OpenBar.";
 "Simulated error text" = "Teks error simulasi";
 "StepFun platform account (phone number or email)." = "Akun platform StepFun (nomor telepon atau email).";
-"Stored in ~/.openbar/config.json." = "Disimpan di ~/.openbar/config.json.";
-"Stored in ~/.openbar/config.json. AZURE_OPENAI_API_KEY is also supported." = "Disimpan di ~/.openbar/config.json. AZURE_OPENAI_API_KEY juga didukung.";
-"Stored in ~/.openbar/config.json. For the official Kimi API, use Moonshot / Kimi API." = "Disimpan di ~/.openbar/config.json. Untuk API Kimi resmi, gunakan Moonshot / Kimi API.";
-"Stored in ~/.openbar/config.json. Get your API key from the Volcengine Ark console." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci API Anda dari konsol Volcengine Ark.";
-"Stored in ~/.openbar/config.json. Get your key from Ollama settings." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci Anda dari pengaturan Ollama.";
-"Stored in ~/.openbar/config.json. Get your key from console.deepgram.com." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci Anda dari console.deepgram.com.";
-"Stored in ~/.openbar/config.json. Get your key from elevenlabs.io/app/settings/api-keys." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci Anda dari elevenlabs.io/app/settings/api-keys.";
-"Stored in ~/.openbar/config.json. Get your key from openrouter.ai/settings/keys and set a key spending limit there to enable API key quota tracking." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci Anda dari openrouter.ai/settings/keys dan atur batas pengeluaran kunci di sana untuk mengaktifkan pelacakan kuota kunci API.";
-"Stored in ~/.openbar/config.json. In Warp, open Settings > Platform > API Keys, then create one." = "Disimpan di ~/.openbar/config.json. Di Warp, buka Settings > Platform > API Keys, lalu buat satu.";
-"Stored in ~/.openbar/config.json. Metrics require Groq Enterprise Prometheus access." = "Disimpan di ~/.openbar/config.json. Metrik memerlukan akses Groq Enterprise Prometheus.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is preferred; OPENAI_API_KEY still works." = "Disimpan di ~/.openbar/config.json. OPENAI_ADMIN_KEY lebih diutamakan; OPENAI_API_KEY masih berfungsi.";
-"Stored in ~/.openbar/config.json. Requires an Anthropic Admin API key." = "Disimpan di ~/.openbar/config.json. Memerlukan kunci API Admin Anthropic.";
-"Stored in ~/.openbar/config.json. Used for /v1/quota-stats." = "Disimpan di ~/.openbar/config.json. Digunakan untuk /v1/quota-stats.";
-"Stored in ~/.openbar/config.json. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Disimpan di ~/.openbar/config.json. Anda juga dapat menyediakan CODEBUFF_API_KEY atau biarkan OpenBar membaca ~/.config/manicode/credentials.json (dibuat oleh `codebuff login`).";
-"Stored in ~/.openbar/config.json. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Disimpan di ~/.openbar/config.json. Anda juga dapat menyediakan KILO_API_KEY atau ~/.local/share/kilo/auth.json (kilo.access).";
+"Stored in the OpenBar config file. AZURE_OPENAI_API_KEY is also supported." = "Disimpan dalam file konfigurasi OpenBar. AZURE_OPENAI_API_KEY juga didukung.";
+"Stored in the OpenBar config file. Get your key from Ollama settings." = "Disimpan dalam file konfigurasi OpenBar. Dapatkan kunci Anda dari pengaturan Ollama.";
+"Stored in the OpenBar config file. Get your key from console.deepgram.com." = "Disimpan dalam file konfigurasi OpenBar. Dapatkan kunci Anda dari console.deepgram.com.";
+"Stored in the OpenBar config file. Get your key from elevenlabs.io/app/settings/api-keys." = "Disimpan dalam file konfigurasi OpenBar. Dapatkan kunci Anda dari elevenlabs.io/app/settings/api-keys.";
+"Stored in the OpenBar config file. In Warp, open Settings > Platform > API Keys, then create one." = "Disimpan dalam file konfigurasi OpenBar. Di Warp, buka Settings > Platform > API Keys, lalu buat satu.";
+"Stored in the OpenBar config file. Requires an Anthropic Admin API key." = "Disimpan dalam file konfigurasi OpenBar. Memerlukan kunci API Admin Anthropic.";
+"Stored in the OpenBar config file. Used for /v1/quota-stats." = "Disimpan dalam file konfigurasi OpenBar. Digunakan untuk /v1/quota-stats.";
+"Stored in the OpenBar config file. You can also provide CODEBUFF_API_KEY or let OpenBar read ~/.config/manicode/credentials.json (created by `codebuff login`)." = "Disimpan dalam file konfigurasi OpenBar. Anda juga dapat menyediakan CODEBUFF_API_KEY atau biarkan OpenBar membaca ~/.config/manicode/credentials.json (dibuat oleh `codebuff login`).";
+"Stored in the OpenBar config file. You can also provide KILO_API_KEY or ~/.local/share/kilo/auth.json (kilo.access)." = "Disimpan dalam file konfigurasi OpenBar. Anda juga dapat menyediakan KILO_API_KEY atau ~/.local/share/kilo/auth.json (kilo.access).";
 "T3 Chat cookie" = "Cookie T3 Chat";
 "Team mode" = "Mode tim";
 "That account is no longer available in OpenBar. Refresh the account list and try again." = "Akun tersebut tidak lagi tersedia di OpenBar. Segarkan daftar akun dan coba lagi.";
@@ -1992,9 +1985,9 @@
 "Shows usage from `tcr`; it does not switch accounts, because tcr picks the account for each request. Credentials stay managed by tcr; OpenBar never reads them." = "Menunjukkan penggunaan dari `tcr`; tidak berpindah akun, karena tcr memilih akun untuk setiap permintaan. Kredensial tetap dikelola oleh tcr; OpenBar tidak pernah membacanya.";
 "Stay Awake" = "Tetap terjaga";
 "Stored in the OpenBar config file. Reads monthly budget and routed usage from /v1/usage." = "Disimpan dalam file konfigurasi OpenBar. Membaca anggaran bulanan dan penggunaan yang dialihkan dari /v1/usage.";
-"Stored in ~/.openbar/config.json. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Disimpan di ~/.openbar/config.json. OPENAI_ADMIN_KEY diperlukan untuk penggunaan organisasi; kunci lama/pengguna hanya mendapatkan penggantian keseimbangan upaya terbaik.";
-"Stored in ~/.openbar/config.json. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Disimpan di ~/.openbar/config.json. Anda juga dapat memberikan FACTORY_API_KEY atau ~/.factory/.env.";
-"Stored in ~/.openbar/config.json. You can also set AMP_API_KEY." = "Disimpan di ~/.openbar/config.json. Anda juga dapat mengatur AMP_API_KEY.";
+"Stored in the OpenBar config file. OPENAI_ADMIN_KEY is required for organization usage; legacy/user keys only get a best-effort balance fallback." = "Disimpan dalam file konfigurasi OpenBar. OPENAI_ADMIN_KEY diperlukan untuk penggunaan organisasi; kunci lama/pengguna hanya mencoba menampilkan saldo.";
+"Stored in the OpenBar config file. You can also provide FACTORY_API_KEY or ~/.factory/.env." = "Disimpan dalam file konfigurasi OpenBar. Anda juga dapat memberikan FACTORY_API_KEY atau ~/.factory/.env.";
+"Stored in the OpenBar config file. You can also set AMP_API_KEY." = "Disimpan dalam file konfigurasi OpenBar. Anda juga dapat mengatur AMP_API_KEY.";
 "SuperGrok OAuth" = "SuperGrok OAuth";
 "Switch Account…" = "Ganti Akun…";
 "Switch Claude Code account" = "Ganti akun Claude Code";
@@ -2115,14 +2108,14 @@
 "Paste the Cookie request header from zed.dev." = "Tempel header permintaan Cookie dari zed.dev.";
 "Points" = "Poin";
 "Poe usage history is unavailable." = "Riwayat penggunaan Poe tidak tersedia.";
-"Stored in ~/.openbar/config.json. Get your key from poe.com/api/keys." = "Disimpan di ~/.openbar/config.json. Dapatkan kunci Anda dari poe.com/api/keys.";
+"Stored in the OpenBar config file. Get your key from poe.com/api/keys." = "Disimpan dalam file konfigurasi OpenBar. Dapatkan kunci Anda dari poe.com/api/keys.";
 "Billing" = "Penagihan";
 "Invoice billing" = "Pembayaran dengan faktur";
 "Prepaid" = "Prabayar";
 "Rate limit" = "Batas frekuensi permintaan";
 "Billing and rate-limit data from the v0 Platform API" = "Data penagihan dan batas frekuensi permintaan dari Platform v0 API";
 "v0 cost history is not available via the Platform API." = "Riwayat biaya v0 tidak tersedia melalui Platform API.";
-"Stored in ~/.config/openbar/config.json. Create one in v0 settings or set V0_API_KEY." = "Disimpan di ~/.config/openbar/config.json. Buat satu di pengaturan v0 atau atur V0_API_KEY.";
+"Stored in the OpenBar config file. Create one in v0 settings or set V0_API_KEY." = "Disimpan dalam file konfigurasi OpenBar. Buat satu di pengaturan v0 atau atur V0_API_KEY.";
 "v0_..." = "v0_...";
 "Open v0 API keys" = "Buka kunci v0 API";
 "Scope" = "Ruang lingkup";
@@ -2164,7 +2157,7 @@
 "Monthly quota" = "Kuota bulanan";
 "Subscription usage from the Chutes API." = "Penggunaan berlangganan dari Chutes API.";
 "Chutes cost history is not available from OpenBar." = "Riwayat biaya Chutes tidak tersedia dari OpenBar.";
-"Stored in ~/.openbar/config.json. Paste a Chutes API key." = "Disimpan di ~/.openbar/config.json. Tempelkan kunci Chutes API.";
+"Stored in the OpenBar config file. Paste a Chutes API key." = "Disimpan dalam file konfigurasi OpenBar. Tempelkan kunci Chutes API.";
 "chutes key..." = "Kunci API Chutes...";
 "Spend" = "Pengeluaran";
 "Fireworks spend comes from the billing summary API; cost history is not tracked." = "Pembelanjaan Fireworks berasal dari ringkasan penagihan API; riwayat biaya tidak dilacak.";
@@ -2205,7 +2198,7 @@
 "Shared pool" = "Kuota bersama";
 "GitKraken cost history is not available." = "Riwayat biaya GitKraken tidak tersedia.";
 "xAI daily spend requires a Management API key and team ID. Prepaid balance is not treated as spend." = "Pembelanjaan harian xAI memerlukan kunci Manajemen API dan tim ID. Saldo prabayar tidak diperlakukan sebagai pembelanjaan.";
-"Stored in ~/.openbar/config.json. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Disimpan di ~/.openbar/config.json. Buat satu di console.x.ai di bawah Pengaturan > Kunci Manajemen; kesimpulan kunci API tidak diterima.";
+"Stored in the OpenBar config file. Create one at console.x.ai under Settings > Management Keys; inference API keys are not accepted." = "Disimpan dalam file konfigurasi OpenBar. Buat di console.x.ai pada Pengaturan > Kunci Manajemen; kunci API inferensi tidak diterima.";
 "xai-..." = "xai-...";
 "Team ID" = "Tim ID";
 "Vercel access token" = "Token akses Vercel";
@@ -2214,7 +2207,7 @@
 "Required with a Vercel access token. Or set VERCEL_TEAM_ID." = "Wajib bersama token akses Vercel. Atau atur VERCEL_TEAM_ID.";
 "Required. Shown in the xAI Console URL and team settings." = "Diperlukan. Ditampilkan di Konsol xAI URL dan pengaturan tim.";
 "Sakana AI cost summary is not supported." = "Ringkasan biaya Sakana AI tidak didukung.";
-"Stored in ~/.openbar/config.json. Copy the Sakana AI console Cookie request header." = "Disimpan di ~/.openbar/config.json. Salin header permintaan Sakana AI konsol Cookie.";
+"Stored in the OpenBar config file. Copy the Sakana AI console Cookie request header." = "Disimpan dalam file konfigurasi OpenBar. Salin header permintaan Cookie dari konsol Sakana AI.";
 "Open Sakana AI Console" = "Buka Konsol Sakana AI";
 "SuperGrok tokens" = "SuperGrok token";
 "Paste a SuperGrok bearer or grok.com cookie. Open token file opens ~/.grok/auth.json." = "Tempelkan pembawa SuperGrok atau grok.com cookie. Buka file token membuka ~/.grok/auth.json.";
@@ -2331,7 +2324,7 @@
 "5-hour quota" = "Kuota 5 jam";
 "Weekly quota" = "Kuota mingguan";
 "ZenMux cost history is not exposed by the Management API." = "Riwayat biaya ZenMux tidak diungkapkan oleh Manajemen API.";
-"Stored in ~/.openbar/config.json. Standard ZenMux inference API keys are not supported." = "Disimpan di ~/.openbar/config.json. Kunci API inferensi ZenMux standar tidak didukung.";
+"Stored in the OpenBar config file. Standard ZenMux inference API keys are not supported." = "Disimpan dalam file konfigurasi OpenBar. Kunci API inferensi ZenMux standar tidak didukung.";
 "ZenMux management key…" = "Kunci manajemen ZenMux…";
 "Monthly Plan" = "Paket berlangganan bulanan";
 "Reads key quota, subscription limits, usage, and wallet balance from /v1/usage." = "Membaca kunci Kuota, batas langganan, penggunaan, dan saldo dompet dari /v1/usage.";
@@ -2575,7 +2568,7 @@
 "Local Codex details; excluded from combined totals." = "Detail Codex lokal; tidak termasuk dalam total gabungan.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
-"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY.";
+"Stored in the OpenBar config file. You can also set COMMAND_CODE_API_KEY." = "Disimpan dalam file konfigurasi OpenBar. Anda juga dapat mengatur COMMAND_CODE_API_KEY.";
 /* OpenAI organization rate limits and live usage */
 "%@ tokens · %@ requests" = "%@ token · %@ permintaan";
 "15m" = "15 mnt";

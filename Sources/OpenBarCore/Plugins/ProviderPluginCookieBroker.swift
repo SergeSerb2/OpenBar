@@ -265,27 +265,40 @@ final class ProviderPluginCookieBroker: @unchecked Sendable {
             } else {
                 self.browserAccessFailures.append((browser: browser, profileDenied: profileDenied))
             }
-            let message = self.browserAccessFailures
-                .sorted { $0.profileDenied && !$1.profileDenied }
-                .map { failure in
-                    if failure.browser == .safari {
-                        return "Safari cookies need Full Disk Access for OpenBar in System Settings → "
-                            + "Privacy & Security → Full Disk Access, then refresh."
-                    }
-                    if failure.profileDenied {
-                        return "Cannot read \(failure.browser.displayName)'s profile. In System Settings → "
-                            + "Privacy & Security → Files & Folders, turn on \(failure.browser.displayName) "
-                            + "under OpenBar, then refresh."
-                    }
-                    let permission = failure.browser.usesKeychainForCookieDecryption
-                        ? "Keychain permission" : "browser permission"
-                    return "\(failure.browser.displayName) cookie access needs \(permission) — "
-                        + "use Refresh beside Cookie source or Refresh in the provider menu to allow it, "
-                        + "or paste a Cookie header in Manual mode."
-                }
-                .joined(separator: " ")
-            self.cookieAccessFailure = ProviderFetchClassifiedError(kind: .permissionDenied, message: message)
+            self.cookieAccessFailure = ProviderFetchClassifiedError(
+                kind: .permissionDenied,
+                message: Self.accessFailureMessage(self.browserAccessFailures))
         }
+    }
+
+    /// User plugins have no Cookie source picker or Manual mode, so their guidance names only the menu refresh.
+    static func accessFailureMessage(
+        _ failures: [(browser: Browser, profileDenied: Bool)],
+        offersCookieSourceSettings: Bool = true) -> String
+    {
+        failures
+            .sorted { $0.profileDenied && !$1.profileDenied }
+            .map { failure in
+                if failure.browser == .safari {
+                    return "Safari cookies need Full Disk Access for OpenBar in System Settings → "
+                        + "Privacy & Security → Full Disk Access, then refresh."
+                }
+                if failure.profileDenied {
+                    return "Cannot read \(failure.browser.displayName)'s profile. In System Settings → "
+                        + "Privacy & Security → Files & Folders, turn on \(failure.browser.displayName) "
+                        + "under OpenBar, then refresh."
+                }
+                let permission = failure.browser.usesKeychainForCookieDecryption
+                    ? "Keychain permission" : "browser permission"
+                guard offersCookieSourceSettings else {
+                    return "\(failure.browser.displayName) cookie access needs \(permission) — "
+                        + "use Refresh in the provider menu to allow it."
+                }
+                return "\(failure.browser.displayName) cookie access needs \(permission) — "
+                    + "use Refresh beside Cookie source or Refresh in the provider menu to allow it, "
+                    + "or paste a Cookie header in Manual mode."
+            }
+            .joined(separator: " ")
     }
     #endif
 
@@ -522,19 +535,67 @@ final class ProviderPluginCookieBroker: @unchecked Sendable {
 }
 
 public enum UserProviderPluginCookieBroker {
+    /// Build this inside the refresh. Plugin engines call it from detached work, which does not inherit the
+    /// manual refresh's interaction and retry scope, so the cookie access gate would treat every read as background.
     public static func resolver(
         browserDetection: BrowserDetection) -> ProviderPluginRuntime.InstanceCookieResolver
     {
-        { _, domain in
-            guard let session = try ProviderPluginCookieBroker.importCookieHeaders(
-                domain: domain, browserDetection: browserDetection)?.first
-            else {
-                throw ProviderPluginError.secretAccess("no browser session cookies were found")
-            }
-            return session.header
+        #if os(macOS)
+        let importHeader = BrowserCookieAccessGate.operationPreservingAccessContext { (domain: String) in
+            try Self.importHeader(domain: domain, browserDetection: browserDetection)
         }
+        return { _, domain in try importHeader(domain) }
+        #else
+        return { _, domain in try Self.importHeader(domain: domain, browserDetection: browserDetection) }
+        #endif
+    }
+
+    private static func importHeader(domain: String, browserDetection: BrowserDetection) throws -> String {
+        #if os(macOS)
+        let failures = UserPluginCookieAccessFailures()
+        let session = try BrowserCookieAccessGate.withAccessFailureObserver {
+            failures.record($0, profileDenied: $1)
+        } operation: {
+            try ProviderPluginCookieBroker.importCookieHeaders(domain: domain, browserDetection: browserDetection)?
+                .first
+        }
+        // A suppressed or denied read is a permission problem, not a missing login.
+        if session == nil, let failure = failures.error { throw failure }
+        #else
+        let session = try ProviderPluginCookieBroker.importCookieHeaders(
+            domain: domain, browserDetection: browserDetection)?.first
+        #endif
+        guard let session else {
+            throw ProviderPluginError.secretAccess("no browser session cookies were found")
+        }
+        return session.header
     }
 }
+
+#if os(macOS)
+private final class UserPluginCookieAccessFailures: @unchecked Sendable {
+    private let lock = NSLock()
+    private var failures: [(browser: Browser, profileDenied: Bool)] = []
+
+    func record(_ browser: Browser, profileDenied: Bool) {
+        self.lock.withLock {
+            if let index = self.failures.firstIndex(where: { $0.browser == browser }) {
+                self.failures[index].profileDenied = self.failures[index].profileDenied && profileDenied
+            } else {
+                self.failures.append((browser: browser, profileDenied: profileDenied))
+            }
+        }
+    }
+
+    var error: ProviderFetchClassifiedError? {
+        let failures = self.lock.withLock { self.failures }
+        guard !failures.isEmpty else { return nil }
+        return ProviderFetchClassifiedError(
+            kind: .permissionDenied,
+            message: ProviderPluginCookieBroker.accessFailureMessage(failures, offersCookieSourceSettings: false))
+    }
+}
+#endif
 
 extension ProviderPluginCookieSession {
     /// Existing injected header resolvers represent one candidate per domain, not a profile iterator.

@@ -130,7 +130,7 @@ struct SpendProviderBreakdownRows: View {
             HStack(spacing: 10) {
                 SpendProviderIcon(provider: breakdown.provider)
                 Text(breakdown.displayName)
-                    .font(.headline)
+                    .font(OpenBarTheme.Fonts.cardTitle)
                     .lineLimit(1)
                     .help(breakdown.displayName)
                 Spacer()
@@ -143,7 +143,7 @@ struct SpendProviderBreakdownRows: View {
                     incompleteRequestCount: breakdown.incompleteRequestCount,
                     costIsLowerBound: breakdown.costIsLowerBound,
                     tokensAreLowerBound: breakdown.tokensAreLowerBound))
-                    .font(.subheadline.weight(.medium))
+                    .font(OpenBarTheme.Fonts.laneTitle)
                     .foregroundStyle(breakdown.totalCost == nil && breakdown.totalTokens == nil ? .secondary : .primary)
                     .monospacedDigit()
                     .fixedSize(horizontal: true, vertical: false)
@@ -178,7 +178,7 @@ struct SpendProviderBreakdownRows: View {
                             .monospacedDigit()
                             .fixedSize(horizontal: true, vertical: false)
                     }
-                    .font(.subheadline)
+                    .font(OpenBarTheme.Fonts.meta)
                     .padding(.leading, 32)
                     .padding(.vertical, 4)
                 }
@@ -215,7 +215,7 @@ struct SpendProviderBreakdownRows: View {
                             .monospacedDigit()
                             .fixedSize(horizontal: true, vertical: false)
                     }
-                    .font(.subheadline)
+                    .font(OpenBarTheme.Fonts.meta)
                     .padding(.leading, 32)
                     .padding(.vertical, 4)
                     .accessibilityElement(children: .combine)
@@ -231,8 +231,8 @@ struct SpendProviderBreakdownRows: View {
                     } label: {
                         Text(isExpanded ? L("Show less") : L("Show all (%d)", breakdown.modelCount))
                     }
-                    .buttonStyle(.link)
-                    .font(.caption)
+                    .buttonStyle(.settingsLink)
+                    .font(OpenBarTheme.Fonts.caption)
                     .padding(.leading, 61)
                     .padding(.top, 5)
                 }
@@ -248,7 +248,7 @@ struct SpendProviderBreakdownRows: View {
         VStack(alignment: .leading, spacing: 2) {
             self.subsectionLabel(L("Models"))
             Text(message)
-                .font(.subheadline)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .padding(.leading, 61)
                 .padding(.vertical, 4)
@@ -258,10 +258,10 @@ struct SpendProviderBreakdownRows: View {
     private func subsectionLabel(_ title: String, showsPartialWarning: Bool = false) -> some View {
         HStack(spacing: 6) {
             Text(title)
-                .font(.caption2.weight(.medium))
+                .font(OpenBarTheme.Fonts.caption.weight(.medium))
             if showsPartialWarning {
                 Label(L("Partial model breakdown"), systemImage: "exclamationmark.triangle")
-                    .font(.caption2)
+                    .font(OpenBarTheme.Fonts.caption)
             }
         }
         .foregroundStyle(.secondary)

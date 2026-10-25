@@ -35,17 +35,9 @@ struct StorageBreakdownMenuView: View {
     /// How many legend rows we let the breakdown show before collapsing the tail into "Other".
     private static let maxRows = 8
 
-    private static let segmentPalette: [Color] = [
-        Color(red: 0.20, green: 0.51, blue: 0.96),
-        Color(red: 0.96, green: 0.55, blue: 0.20),
-        Color(red: 0.30, green: 0.78, blue: 0.47),
-        Color(red: 0.66, green: 0.42, blue: 0.93),
-        Color(red: 0.95, green: 0.74, blue: 0.22),
-        Color(red: 0.92, green: 0.36, blue: 0.55),
-        Color(red: 0.27, green: 0.76, blue: 0.82),
-    ]
-
-    private static let otherColor = Color(nsColor: .tertiaryLabelColor)
+    /// Same height as the menu meters.
+    private static let barHeight = CGFloat(OpenBarMenuMetrics.meterHeight)
+    private static let otherColor = OpenBarTheme.Chart.otherSeriesColor
     private static let overflowRowHeight: CGFloat = 18
     private static let overflowRowSpacing: CGFloat = 4
     private static let overflowTopSpacing: CGFloat = 6
@@ -65,8 +57,10 @@ struct StorageBreakdownMenuView: View {
         let components = self.footprint.components
         guard !components.isEmpty else { return [] }
 
+        /// The chart palette in its fixed order. It has six slots and never cycles: rows past the sixth
+        /// take the neutral "Other" color, like the folded tail.
         func color(_ index: Int) -> Color {
-            Self.segmentPalette[index % Self.segmentPalette.count]
+            OpenBarTheme.Chart.seriesColor(index)
         }
 
         func segment(_ component: ProviderStorageFootprint.Component, _ index: Int) -> Segment {
@@ -135,16 +129,15 @@ struct StorageBreakdownMenuView: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(L("Storage"))
-                    .font(.body)
-                    .fontWeight(.medium)
+                    .font(OpenBarTheme.Fonts.laneTitle)
                 Text(String(format: L("Total: %@"), UsageFormatter.byteCountStringLong(self.footprint.totalBytes)))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             }
 
             if self.segments.isEmpty {
                 Text(L("No local data found"))
-                    .font(.footnote)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             } else {
                 self.segmentedBar
@@ -160,8 +153,7 @@ struct StorageBreakdownMenuView: View {
                     .padding(.vertical, 2)
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L("Cleanup ideas"))
-                        .font(.body)
-                        .fontWeight(.medium)
+                        .font(OpenBarTheme.Fonts.laneTitle)
                     ForEach(self.cleanupRecommendations) { recommendation in
                         self.recommendationRow(recommendation)
                     }
@@ -169,7 +161,7 @@ struct StorageBreakdownMenuView: View {
             }
             if !self.footprint.unreadablePaths.isEmpty {
                 Text(String(format: L("%d unreadable item(s) skipped"), self.footprint.unreadablePaths.count))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
             }
         }
@@ -179,22 +171,43 @@ struct StorageBreakdownMenuView: View {
         .openBarLocalized()
     }
 
+    /// One plain shape per segment. Segments are separated by a 2-pt gap where they are wide enough
+    /// (a segment never shrinks below 1 pt); the strip's outer ends are round like a meter.
     private var segmentedBar: some View {
         GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Color(nsColor: .quaternaryLabelColor))
-                HStack(spacing: 0) {
-                    ForEach(self.segments) { segment in
-                        Rectangle()
-                            .fill(segment.color)
-                            .frame(width: self.segmentWidth(segment, barWidth: proxy.size.width))
-                    }
+            let shapes = self.segmentShapes(barWidth: proxy.size.width, height: proxy.size.height)
+            ZStack(alignment: .topLeading) {
+                ForEach(shapes, id: \.id) { shape in
+                    shape.path.fill(shape.color)
                 }
             }
-            .clipShape(Capsule())
         }
-        .frame(height: 5)
+        .frame(height: Self.barHeight)
+    }
+
+    private func segmentShapes(barWidth: CGFloat, height: CGFloat) -> [(id: String, color: Color, path: Path)] {
+        let segments = self.segments
+        var x: CGFloat = 0
+        return segments.enumerated().map { index, segment in
+            let slot = self.segmentWidth(segment, barWidth: barWidth)
+            let isFirst = index == 0
+            let isLast = index == segments.count - 1
+            let width = isLast ? slot : OpenBarTheme.Chart.barWidth(slot, pitch: slot)
+            let rect = CGRect(x: x, y: 0, width: max(0, width), height: height)
+            x += slot
+            let outer = min(height / 2, rect.width / 2)
+            let inner = min(1, rect.width / 2)
+            var path = Path()
+            path.addRoundedRect(
+                in: rect,
+                cornerRadii: RectangleCornerRadii(
+                    topLeading: isFirst ? outer : inner,
+                    bottomLeading: isFirst ? outer : inner,
+                    bottomTrailing: isLast ? outer : inner,
+                    topTrailing: isLast ? outer : inner),
+                style: .continuous)
+            return (segment.id, segment.color, path)
+        }
     }
 
     /// Each segment gets at least `minWidth` so tiny components stay visible, with the remaining width
@@ -217,9 +230,9 @@ struct StorageBreakdownMenuView: View {
             HStack(spacing: 8) {
                 Circle()
                     .fill(segment.color)
-                    .frame(width: 9, height: 9)
+                    .frame(width: 8, height: 8)
                 Text(segment.name)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -232,7 +245,7 @@ struct StorageBreakdownMenuView: View {
                     self.otherExpandButton
                 }
                 Text(UsageFormatter.byteCountString(segment.bytes))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -264,7 +277,7 @@ struct StorageBreakdownMenuView: View {
             ForEach(self.overflowComponents) { component in
                 HStack(spacing: 8) {
                     Text(component.name)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
@@ -272,7 +285,7 @@ struct StorageBreakdownMenuView: View {
                     Spacer()
                     StoragePathCopyButton(path: component.path)
                     Text(UsageFormatter.byteCountString(component.totalBytes))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -285,18 +298,18 @@ struct StorageBreakdownMenuView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
                 Text(L(recommendation.title))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .fontWeight(.medium)
                     .lineLimit(1)
                 Spacer()
                 Text(UsageFormatter.byteCountString(recommendation.bytes))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
             HStack(spacing: 4) {
                 Text(recommendation.path)
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.meta)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -306,7 +319,7 @@ struct StorageBreakdownMenuView: View {
                 StoragePathCopyButton(path: recommendation.path)
             }
             Text(L(recommendation.consequence))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.meta)
                 .foregroundStyle(.secondary)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)

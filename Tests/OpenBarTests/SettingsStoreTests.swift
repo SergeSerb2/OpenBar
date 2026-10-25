@@ -294,9 +294,10 @@ struct SettingsStoreTests {
             zaiTokenStore: NoopZaiTokenStore(),
             syntheticTokenStore: NoopSyntheticTokenStore())
 
-        #expect(storeA.menuBarHidesCritters == false)
-        #expect(defaultsA.bool(forKey: "menuBarHidesCritters") == false)
-        storeA.menuBarHidesCritters = true
+        // OpenBar defaults to Meter bars; an explicit choice of the critters style must persist.
+        #expect(storeA.menuBarHidesCritters == true)
+        #expect(defaultsA.object(forKey: "menuBarHidesCritters") == nil)
+        storeA.menuBarHidesCritters = false
 
         let defaultsB = try #require(UserDefaults(suiteName: suite))
         let storeB = SettingsStore(
@@ -305,7 +306,7 @@ struct SettingsStoreTests {
             zaiTokenStore: NoopZaiTokenStore(),
             syntheticTokenStore: NoopSyntheticTokenStore())
 
-        #expect(storeB.menuBarHidesCritters == true)
+        #expect(storeB.menuBarHidesCritters == false)
     }
 
     @Test

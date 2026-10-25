@@ -40,7 +40,8 @@ public enum ChutesSettingsError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .missingToken:
-            "Chutes API key not found. Set apiKey in ~/.openbar/config.json or CHUTES_API_KEY."
+            "Chutes API key not found. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) " +
+                "or CHUTES_API_KEY."
         case let .invalidEndpointOverride(key):
             "Chutes endpoint override \(key) must use HTTPS or a bare host."
         }

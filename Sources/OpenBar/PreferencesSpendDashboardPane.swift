@@ -133,7 +133,7 @@ struct SpendDashboardPane: View {
             VStack(alignment: .leading, spacing: 18) {
                 if let request = self.sessionNavigation.request {
                     HStack {
-                        Text(L("Sessions")).font(.title2.weight(.semibold))
+                        Text(L("Sessions")).font(OpenBarTheme.Fonts.title)
                         Spacer()
                         Button(L("Usage & Spend")) { self.sessionNavigation.request = nil }
                     }
@@ -224,10 +224,11 @@ struct SpendDashboardPane: View {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L("Usage & Spend"))
-                        .font(.title2.weight(.semibold))
+                        .font(OpenBarTheme.Fonts.title)
                         .lineLimit(1)
+                        .accessibilityAddTraits(.isHeader)
                     Text(L("Local estimated cost history across supported providers."))
-                        .font(.subheadline)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -264,15 +265,10 @@ struct SpendDashboardPane: View {
     @ViewBuilder
     private var refreshStatus: some View {
         if self.controller.failedSourceCount > 0 {
-            Label(
-                spendDashboardRefreshFailureText(self.controller.failedSourceCount),
-                systemImage: "exclamationmark.triangle.fill")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.orange)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+            SettingsStatusMessage(spendDashboardRefreshFailureText(self.controller.failedSourceCount), tone: .warning)
+                .font(OpenBarTheme.Fonts.meta)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .settingsPanelCard(padding: OpenBarSpacing.section)
         }
     }
 
@@ -287,10 +283,10 @@ struct SpendDashboardPane: View {
                         Label(
                             self.codexCostCatchUpTitle(activity),
                             systemImage: activity.phase == .paused ? "pause.circle" : "externaldrive")
-                            .font(.headline)
+                            .font(OpenBarTheme.Fonts.cardTitle)
                         Spacer()
                         Text(codexCostCatchUpProgressText(activity))
-                            .font(.caption.monospacedDigit())
+                            .font(OpenBarTheme.Fonts.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
 
@@ -302,18 +298,18 @@ struct SpendDashboardPane: View {
                     }
 
                     if let staleSnapshotUpdatedAt = activity.staleSnapshotUpdatedAt {
-                        HStack(spacing: 6) {
-                            Label(L("stale data"), systemImage: "clock.badge.exclamationmark")
+                        HStack(spacing: OpenBarSpacing.compact) {
+                            Label(L("stale data"), systemImage: "clock")
                             Text(L(
                                 "Updated relative %@",
                                 staleSnapshotUpdatedAt.relativeDescription()))
                         }
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.orange)
+                        .font(OpenBarTheme.Fonts.meta)
+                        .foregroundStyle(.secondary)
                     }
 
                     Text(self.codexCostCatchUpDetail(activity))
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
 
                     HStack {
@@ -499,7 +495,7 @@ struct SpendDashboardPane: View {
             } label: {
                 Label {
                     Text(L("List-price equivalent — not a billing receipt."))
-                        .font(.subheadline.weight(.medium))
+                        .font(OpenBarTheme.Fonts.laneTitle)
                 } icon: {
                     Image(systemName: "lock.shield.fill")
                         .foregroundStyle(.secondary)
@@ -729,10 +725,10 @@ struct SpendDashboardCurrencySection: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(self.group.currencyCode)
-                    .font(.caption.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Text(spendDashboardHistoryCaption(self.group, requestedDays: self.requestedDays))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -785,17 +781,17 @@ private struct SpendDashboardDetailPanel: View {
                 if self.activeSection != .providers {
                     if self.group.projects.isEmpty, self.group.sessions.isEmpty {
                         Text(L("No usage breakdown data available."))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                     if self.group.detailsExcludedFromTotals {
                         Text(L("Local Codex details; excluded from combined totals."))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                     if let updatedAt = self.group.retainedDetailUpdatedAt {
                         Text(L("Incomplete") + " · " + L(
                             "Updated %@",
                             spendDashboardLedgerDateText(updatedAt, timeZone: self.group.timeZone)))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -855,24 +851,24 @@ private struct SpendProjectRows: View {
                 }
                 HStack(spacing: 10) {
                     Text(spendDashboardRankText(row.rank))
-                        .font(.caption.monospacedDigit())
+                        .font(OpenBarTheme.Fonts.caption.monospacedDigit())
                         .foregroundStyle(.tertiary)
                         .frame(width: 26, alignment: .leading)
                     Image(systemName: row.isProjectless ? "bubble.left.and.bubble.right" : "folder")
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.tertiary)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(identity.name)
                             .lineLimit(1)
                             .help(identity.path ?? identity.name)
                         Text(row.providerName)
-                            .font(.caption)
+                            .font(OpenBarTheme.Fonts.caption)
                             .foregroundStyle(.secondary)
                         if let path = identity.path,
                            row.needsPathDisambiguation(in: self.rows)
                         {
                             Text(path)
-                                .font(.caption)
+                                .font(OpenBarTheme.Fonts.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
@@ -918,7 +914,7 @@ private struct SpendPanelExpandButton: View {
                     self.showsAllRows
                         ? L("Show less")
                         : L("Show all (%d)", self.rowCount))
-                    .font(.caption)
+                    .font(OpenBarTheme.Fonts.caption)
             }
             .buttonStyle(.borderless)
             .padding(.top, 6)
@@ -970,7 +966,7 @@ private struct SpendDailyLedger: View {
         SpendDashboardPanel {
             VStack(alignment: .leading, spacing: 0) {
                 Text(L("Daily estimated spend"))
-                    .font(.headline)
+                    .font(OpenBarTheme.Fonts.cardTitle)
                     .padding(.bottom, 10)
 
                 if self.group.dailySummaries.isEmpty {
@@ -1023,7 +1019,7 @@ private struct SpendDailyLedger: View {
                 width: SpendDailyLedgerLayout.estimatedSpendWidth,
                 alignment: .trailing)
         }
-        .font(.caption)
+        .font(OpenBarTheme.Fonts.caption)
         .foregroundStyle(.secondary)
         .padding(.horizontal, SpendDailyLedgerLayout.horizontalPadding)
         .padding(.vertical, 6)
@@ -1063,7 +1059,7 @@ private struct SpendDailyLedgerRow: View {
     private var providerMix: some View {
         if self.activeProviders.isEmpty {
             Text(L("No usage yet"))
-                .font(.caption)
+                .font(OpenBarTheme.Fonts.caption)
                 .foregroundStyle(.secondary)
         } else {
             HStack(spacing: 5) {
@@ -1072,7 +1068,7 @@ private struct SpendDailyLedgerRow: View {
                 }
                 if self.activeProviders.count > 4 {
                     Text("+\(openBarLocalizedInteger(self.activeProviders.count - 4))")
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.caption)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -1197,7 +1193,7 @@ private struct SpendDashboardSourceFilter: View {
         let ids = self.sourceIDs
         if !ids.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
-                Text(L("Sources")).font(.caption).foregroundStyle(.secondary)
+                Text(L("Sources")).font(OpenBarTheme.Fonts.caption).foregroundStyle(.secondary)
                 ForEach(ids, id: \.self) { sourceID in
                     Toggle(isOn: self.visibilityBinding(sourceID)) {
                         Text(self.label(for: sourceID)).lineLimit(1)
@@ -1383,19 +1379,13 @@ enum SpendDashboardJSONExporter {
     }
 }
 
+/// Dashboard panel: a flat card (card fill, radius 10, padding 16) on the window background (docs/design §9.4).
 struct SpendDashboardPanel<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
         self.content
-            .padding(16)
-            .background(
-                Color(nsColor: .textBackgroundColor).opacity(0.74),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color(nsColor: .separatorColor).opacity(0.42))
-            }
+            .settingsPanelCard()
     }
 }
 

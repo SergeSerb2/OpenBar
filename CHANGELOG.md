@@ -1,37 +1,132 @@
 # Changelog
 
-OpenBar is a fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
-Entries from 0.80.1 down are CodexBar's upstream history and keep their original names.
+OpenBar is based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
+Entries from 0.80.1 down are CodexBar's release history and keep their original names; OpenBar 1.0.0 includes
+all of them.
 
-## OpenBar — Unreleased
+## 1.0.0 — Unreleased
+
+OpenBar's first public release. It includes everything in CodexBar 0.80.1 below, with a new design, much lower
+memory use, and the fixes from a full bug and security audit (96 findings, 92 fixed).
+
+### Design
+
+- New "Calm native" look across the app: system fonts and controls, one Iris accent, soft flat cards, and status
+  shown with a symbol and words, never color alone. The
+  [design spec](https://github.com/SergeSerb2/OpenBar/blob/main/docs/design/README.md) covers every surface.
+- New app icon, the Open Ring, in the macOS 26 Default, Dark, Clear, and Tinted styles, plus a classic icon for
+  earlier macOS versions.
+- New default menu bar glyph, **Meter bars**: session and weekly meters with one corner mark for low quota (dot),
+  stale data (ring), or a critical quota or incident (exclamation). New installs get it, and Critters stays
+  available as an option.
+- Menu: redesigned provider cards with plain meters, quota-warning gaps, a pace tick, and a "lasts until reset" or
+  "runs out" line. The provider switcher sits on a flat rail and shows each provider's lowest figure. The Codex and
+  Claude account switchers, native menu rows, and selection highlights match the new style.
+- Settings: a lighter window shell with the sidebar and provider search next to the pane. Every pane, including
+  About, is restyled.
+- Charts in menus, the Usage & Spend dashboard, and OpenAI live usage follow one chart style. Codex now uses
+  OpenAI green instead of CodexBar's teal; a custom provider color you set is kept.
+- Widgets, the quota warning overlay, the share card, CLI output, the `openbar serve` dashboard, the website, and the
+  Linux icons use the new identity. Limit-reset confetti is skipped when Reduce Motion is on.
+
+### Performance
+
+- Local Codex and Claude cost scans, cache reads, and catch-up passes run in a short-lived helper (the bundled CLI's
+  internal `__cost-worker` command). All scan memory returns to macOS when the helper exits. If the helper is not
+  available, the app scans in process as before. The app now waits for the helper's events instead of polling it.
+- Usage bars, menu chart submenus, the token activity heatmap, the Usage & Spend trend chart, and the OpenAI live usage
+  chart are drawn with plain SwiftUI shapes instead of `Canvas` and Swift Charts. On macOS 26 and later those drew
+  through Metal and committed about 97 MB of graphics memory the first time a menu or window showed one.
+- Limit-reset confetti uses Core Animation particles instead of the Vortex package. A celebration no longer commits
+  graphics memory or takes about 4 s of main-thread CPU, and the Vortex dependency is removed. Pieces now spin flat
+  instead of tumbling.
+- Settings, Workspaces, OpenAI Live Usage, Share Stats, and chart submenus release their content when closed and keep
+  only navigation state. Hidden Usage & Spend detail is released after 1 minute, and freed memory pages are returned
+  to macOS after windows and menus close. Menu warmup covers at most three tabs.
+- The decoded Codex scan baseline is released after 90 seconds idle, the Claude fragment cache stays within 32 MiB,
+  and the cost helper's peak memory is lower.
+- The offscreen ChatGPT dashboard page loads at most every 6 hours. Usage limits still refresh through the API on
+  every cycle, and a manual refresh or missing history still loads the page.
+- Provider descriptors are shared instead of copied, and the release app is about 10% smaller.
+- `OPENBAR_MEMORY_PROBE_DIR` runs a scripted memory scenario for before-and-after comparisons. It does nothing unless
+  you set it.
+
+### Fixes & security
+
+**Credentials and privacy**
+
+- Logs redact more credential formats: API-key headers, `key=` and `token=` query parameters, JSON access, refresh,
+  and ID tokens, JWTs, and `sk-`, `AIza`, GitHub, and xAI keys. Bearer tokens are redacted in full, and log
+  metadata is private in the system log.
+- Provider credentials no longer appear in error logs or diagnostics, and copied HTTP bearer tokens are marked
+  sensitive.
+- Provider responses stay out of the shared cookie jar and disk cache.
+- `openbar serve` no longer passes its dashboard token to provider CLIs and helpers. Redacted dashboards also redact
+  emails in error messages, and dashboard exports are written with owner-only permissions.
+- **Hide personal information** now also hides token-account switcher labels and custom provider card identities.
+  Codex account identity no longer appears in other providers.
+- Legacy credential migration never shows a Keychain prompt, and a saved Keychain-consent choice applies before
+  startup migration.
+- Manual StepFun session tokens move to the config file's secret field, so `openbar config dump` and sync no longer
+  show them.
+
+**Hardening**
+
+- Config edits from the app and the CLI are locked and merged, so concurrent writes no longer lose changes. An
+  unsupported config schema version is reported instead of overwritten.
+- The local HTTP server bounds slow clients' reads and writes, so they cannot hold connection slots.
+- Plugins: secret environment overrides are bound to one plugin (see Changed), each plugin's `ctx.cache` is bounded,
+  manifest arrays are length-checked, discovery runs off the main thread with a deadline, and a manual refresh can
+  now unlock browser cookies for user plugins, as documented.
+- The Claude probe accepts only HTTPS endpoints on claude.ai, and Gemini login quotes the executable path safely.
+- ChatGPT web: OpenAI cookie domains match on dot boundaries, removing a managed account deletes its ChatGPT web
+  data, the billing page fallback is rate-limited, and the Buy Credits window is isolated from page scripts, closes
+  when the account changes, and stops at the "Add more" dialog.
+- The CLI rejects unknown explicit providers and out-of-range `hooks watch` intervals, and prints very large plugin
+  percentages without crashing.
+- File logging stays within its size cap for a whole session and turns itself off after a write failure instead
+  of crashing. Timed-out Git processes in cost scans are terminated.
+
+**Usage accuracy**
+
+- Claude: usage in large or space-formatted transcript records is counted again; Web keeps model-specific reset
+  dates; session quotas need a real measurement; scoped-only OAuth quotas are accepted.
+- Codex and ChatGPT web: nested usage endpoint overrides are ignored; cookie imports with an unknown email go to the
+  right account; page-fallback reset dates stay in the future across New Year; the credits balance is read next to
+  its label; the dashboard email is no longer guessed; a signed-in dashboard wins over login or Cloudflare text.
+- Cursor keeps missing plan measurements unknown and rejects empty manual cookies. Gemini and Antigravity keep newer
+  OAuth credentials. Aliyun cleans up cookie copies when copying fails.
+- Augment, AWS Bedrock, Claude Platform, Doubao, Fireworks, IBM Bob, Kilo, Kimi, MiniMax, Mistral, Manus, Notion,
+  Poe, StepFun, Synthetic, T3 Chat, Vertex AI, Wayfinder, xAI, Zed, and ZoomMate: fixes to timestamps, reset times,
+  units, partial history, and unknown values. Overflowing counters and invalid quota counts are rejected instead
+  of shown.
+- Quota warnings keep their state across partial responses and start a new episode only after a confirmed reset.
+- Provider autodetection respects a forced re-run and the choices you make while it runs. Shared spend stats keep
+  the selected period. Widget snapshot migrations retry after a failure. Suspended history writes stay with the
+  account that started the refresh.
 
 ### Changed
 
-- Rename CodexBar to OpenBar: app, modules, bundle ID (`com.serbinenko.openbar`), CLI (`openbar`), settings, caches,
-  and environment variables (`OPENBAR_*`). OpenBar runs next to CodexBar without sharing state.
-- Run local Codex and Claude cost scans, cache reads, and catch-up passes in a short-lived helper process (the bundled
-  CLI's internal `__cost-worker` command), so scan memory returns to macOS when the helper exits. The app falls back to
-  in-process scans if the helper is unavailable.
-- Load the ChatGPT dashboard page in its offscreen WebView at most every 6 hours; usage limits keep refreshing through
-  the API, and forced refreshes or missing history still load the page.
-- Release the decoded Codex scan baseline after 90 seconds idle, keep the Claude fragment cache within 32 MiB, and
-  return freed allocator pages after scans.
-- Release Settings, Workspaces, OpenAI Live Usage, Share Stats, and closed chart submenu content when closed; keep only
-  navigation state. Hidden spend-dashboard detail is released after 1 minute, and freed allocator pages are returned after windows and menus close. Menu warmup covers at most three tabs.
-- Draw usage bars, menu chart submenus, the token activity heatmap, the Usage & Spend trend chart, and the OpenAI live
-  usage chart with plain SwiftUI shapes instead of `Canvas` and Swift Charts. On macOS 26 and later those render through
-  Metal and committed about 97 MB of graphics memory the first time a menu or window drew one.
-- Draw the limit-reset confetti with Core Animation particles instead of the Vortex package, which drew with `Canvas`;
-  a celebration no longer commits graphics memory or ~4 s of main-thread CPU. Pieces now spin flat instead of tumbling.
-  The Vortex dependency is removed.
-- Lower the cost helper's peak memory: bound per-file and per-row temporaries, drop the scanner baseline before report
-  reads in single-request helpers, and share request-identity strings between decoded rows and ledgers.
+- CodexBar is renamed OpenBar: the app, modules, bundle ID (`com.serbinenko.openbar`), the CLI (`openbar`), settings,
+  caches, and environment variables (`OPENBAR_*`). New installs keep their config in `~/.config/openbar/config.json`.
+  OpenBar runs next to CodexBar without sharing state.
+- Plugin secret environment overrides use a double underscore between the plugin ID and the setting key:
+  `OPENBAR_PLUGIN_<PLUGIN_ID>__<SETTING_KEY>`, for example `OPENBAR_PLUGIN_ACME_USAGE__API_KEY`. The old
+  single-underscore form still works only when the plugin ID has no hyphen and the key has no underscore; rename
+  any other variable. If both are set, the double-underscore form wins.
+- Updates come from OpenBar's own Sparkle feed and are verified with OpenBar's own update key. Release tags are
+  signed with OpenBar's own key.
 
-### Added
+### Known issues
 
-- `OPENBAR_MEMORY_PROBE_DIR`: an inert-by-default scripted memory scenario for before/after footprint comparisons.
+- Alibaba (Aliyun) and Qwen Cloud: the OneConsole browser-cookie import stops at a revoked session instead of
+  trying the next browser. Sign out of the stale session in that browser, or paste a cookie header manually where
+  the provider supports it.
+- Turning OpenAI web access off or clearing the cache does not yet delete the per-account web data store, and a
+  removed account's cached cookie header can remain until the next refresh.
+- iCloud Sync is not available in OpenBar 1.0. Settings → iCloud Sync says so and shows no sync controls.
 
-## 0.80.1 — Unreleased
+## 0.80.1 — CodexBar main at fork time (never released upstream)
 
 ### Added
 

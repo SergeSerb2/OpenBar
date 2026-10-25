@@ -463,9 +463,32 @@ public enum WayfinderUsageFetcher {
 
     private static func metricValue(line: Substring, name: String) -> Double? {
         guard line.hasPrefix(name) else { return nil }
-        let rest = line.dropFirst(name.count)
-        guard let first = rest.first, first == " " || first == "{" else { return nil }
-        guard let valueToken = rest.split(separator: " ").last else { return nil }
-        return Double(valueToken)
+        var rest = line.dropFirst(name.count)
+        guard let first = rest.first, first.isWhitespace || first == "{" else { return nil }
+        if first == "{" {
+            var quoted = false
+            var escaped = false
+            var labelEnd: Substring.Index?
+            for index in rest.indices.dropFirst() {
+                let character = rest[index]
+                if escaped {
+                    escaped = false
+                } else if quoted, character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    quoted.toggle()
+                } else if !quoted, character == "}" {
+                    labelEnd = index
+                    break
+                }
+            }
+            guard let labelEnd else { return nil }
+            rest = rest[rest.index(after: labelEnd)...]
+        }
+        guard rest.first?.isWhitespace == true,
+              let valueToken = rest.split(whereSeparator: \.isWhitespace).first,
+              let value = Double(valueToken), value.isFinite, value >= 0
+        else { return nil }
+        return value
     }
 }

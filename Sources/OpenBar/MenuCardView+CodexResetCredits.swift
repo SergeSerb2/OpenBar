@@ -106,23 +106,22 @@ struct LimitResetCreditsContent: View {
     @Environment(\.menuItemHighlighted) private var isHighlighted
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: OpenBarSpacing.tight) {
             Text(L("Limit Reset Credits"))
-                .font(.body)
-                .fontWeight(.medium)
+                .font(OpenBarTheme.Fonts.laneTitle)
                 .lineLimit(1)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.regular) {
                 Text(self.presentation.text)
-                    .font(.footnote.weight(.semibold))
+                    .font(OpenBarTheme.Fonts.laneValue)
                     .foregroundStyle(MenuHighlightStyle.primary(self.isHighlighted))
                     .lineLimit(1)
                     .layoutPriority(1)
-                Spacer(minLength: 8)
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Spacer(minLength: OpenBarSpacing.regular)
+                HStack(alignment: .firstTextBaseline, spacing: OpenBarSpacing.tight) {
                     Image(systemName: "clock")
-                        .font(.caption2)
+                        .font(.system(size: OpenBarMenuStyle.toneSymbolSize))
                     Text(self.presentation.expirySummaryText)
-                        .font(.caption)
+                        .font(OpenBarTheme.Fonts.meta)
                         .foregroundStyle(MenuHighlightStyle.secondary(self.isHighlighted))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)

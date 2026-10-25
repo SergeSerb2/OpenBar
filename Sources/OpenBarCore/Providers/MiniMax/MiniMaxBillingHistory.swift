@@ -130,8 +130,10 @@ struct MiniMaxBillingRecord: Decodable {
     }
 
     var tokenCount: Int {
-        if let consumeToken, consumeToken > 0 { return consumeToken }
-        return max(0, (self.consumeInputToken ?? 0) + (self.consumeOutputToken ?? 0))
+        get throws {
+            if let consumeToken, consumeToken > 0 { return consumeToken }
+            return try ProviderUsageCounter.add(self.consumeInputToken ?? 0, self.consumeOutputToken ?? 0)
+        }
     }
 
     var cashValue: Double? {
@@ -170,19 +172,18 @@ enum MiniMaxBillingHistoryParser {
     {
         let payload = try self.decodePayload(data: data)
         if let status = payload.baseResp?.statusCode, status != 0 {
-            let message = payload.baseResp?.statusMessage ?? "status_code \(status)"
-            throw MiniMaxUsageError.apiError(message)
+            throw MiniMaxUsageError.apiError("status_code \(status)")
         }
         guard !payload.chargeRecords.isEmpty || (payload.totalCount ?? 0) == 0 else {
             throw MiniMaxUsageError.parseFailed("Missing MiniMax billing records.")
         }
-        return self.aggregate(records: payload.chargeRecords, now: now, calendar: calendar)
+        return try self.aggregate(records: payload.chargeRecords, now: now, calendar: calendar)
     }
 
     static func aggregate(
         records: [MiniMaxBillingRecord],
         now: Date = Date(),
-        calendar inputCalendar: Calendar = .current) -> MiniMaxBillingSummary
+        calendar inputCalendar: Calendar = .current) throws -> MiniMaxBillingSummary
     {
         var calendar = inputCalendar
         calendar.timeZone = inputCalendar.timeZone
@@ -193,6 +194,7 @@ enum MiniMaxBillingHistoryParser {
         var methodTotals: [String: (tokens: Int, cash: Double, hasCash: Bool)] = [:]
         var modelTotals: [String: (tokens: Int, cash: Double, hasCash: Bool)] = [:]
 
+        var totalTokens = 0
         for record in records {
             if let recordResult = record.recordResult,
                recordResult.caseInsensitiveCompare("SUCCESS") != .orderedSame
@@ -208,7 +210,8 @@ enum MiniMaxBillingHistoryParser {
             }
 
             let day = self.dayString(date, calendar: calendar)
-            let tokens = record.tokenCount
+            let tokens = try record.tokenCount
+            totalTokens = try ProviderUsageCounter.add(totalTokens, tokens)
             let cash = record.cashValue
             var bucket = daily[day] ?? (calendar.startOfDay(for: date), 0, 0, false)
             bucket.tokens += tokens

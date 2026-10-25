@@ -1732,8 +1732,7 @@ public struct AntigravityStatusProbe: Sendable {
             throw AntigravityStatusProbeError.apiError("Invalid response")
         }
         guard http.statusCode == 200 else {
-            let message = String(data: data, encoding: .utf8) ?? ""
-            throw AntigravityStatusProbeError.apiError("HTTP \(http.statusCode): \(message)")
+            throw AntigravityStatusProbeError.apiError("HTTP \(http.statusCode)")
         }
         return data
     }

@@ -13,7 +13,8 @@ public enum GroqUsageError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .missingCredentials:
-            "Missing Groq API key. Set apiKey in ~/.openbar/config.json or GROQ_API_KEY."
+            "Missing Groq API key. Set apiKey in ~/.config/openbar/config.json (legacy: ~/.openbar/config.json) " +
+                "or GROQ_API_KEY."
         case .invalidURL:
             "Groq metrics URL is invalid."
         case let .accessDenied(message):
@@ -197,7 +198,8 @@ public struct GroqUsageFetcher: Sendable {
 
         let response = try await transport.response(for: request)
         guard (200..<300).contains(response.statusCode) else {
-            let summary = Self.responseSummary(response.data)
+            let summary = Self.responseSummary(Data((String(bytes: response.data, encoding: .utf8) ?? "")
+                    .replacingOccurrences(of: apiKey, with: "<redacted>").utf8))
             if response.statusCode == 401 || response.statusCode == 403 {
                 throw GroqUsageError.accessDenied(summary)
             }

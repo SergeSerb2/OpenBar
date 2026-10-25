@@ -36,6 +36,35 @@ extension StatusItemController {
         return self.settings.usageBarsShowUsed ? monthly.usedPercent : monthly.remainingPercent
     }
 
+    /// SF Symbol for a native menu row (spec §6): a template image aspect-fit into the 16-pt image
+    /// column that `PersistentRefreshRowMetrics` aligns with, so wide symbols are not squeezed.
+    static func menuRowSymbolImage(_ name: String, accessibilityDescription: String? = nil) -> NSImage? {
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: accessibilityDescription) else {
+            return nil
+        }
+        image.isTemplate = true
+        let side = PersistentRefreshRowMetrics.defaults.iconWidth
+        let natural = image.size
+        let scale = side / max(natural.width, natural.height, 1)
+        image.size = NSSize(width: (natural.width * scale).rounded(), height: (natural.height * scale).rounded())
+        return image
+    }
+
+    /// Worst quota lane for a provider's switcher segment, so the menu answers "which provider is close
+    /// to its limit?" without clicking through tabs (design council). Uses the same presentation
+    /// snapshot as the menu bar indicator and the weekly strip.
+    func switcherQuotaSummary(for instanceID: ProviderInstanceID) -> ProviderSwitcherQuotaSummary? {
+        guard let provider = instanceID.firstPartyProvider else { return nil }
+        let source = self.menuBarUsageSource(for: provider)
+        guard let worstRemaining = source.snapshot?.measuredRateWindows.map(\.remainingPercent).min() else {
+            return nil
+        }
+        return ProviderSwitcherQuotaSummary(
+            displayPercent: self.settings.usageBarsShowUsed ? 100 - worstRemaining : worstRemaining,
+            remainingPercent: worstRemaining,
+            isStale: source.isFleet || self.store.isStale(provider: provider))
+    }
+
     func applySubtitle(_ subtitle: String, to item: NSMenuItem, title: String) {
         if #available(macOS 14.4, *) {
             // NSMenuItem.subtitle is only available on macOS 14.4+.
@@ -167,6 +196,8 @@ struct MenuCardRowPayload {
     let containsInteractiveControls: Bool
     let usesGPUSelection: Bool
     let onClick: (() -> Void)?
+    /// Cards draw their own accent fill when highlighted; text rows get a native-style plate.
+    var chrome: MenuRowChrome = .card
 }
 
 /// One stable AppKit class for every menu-card row. Keeping the outer view attached while payloads
@@ -178,7 +209,8 @@ final class MenuRowContainerView: NSView, MenuCardHighlighting, MenuCardMeasurin
     // Forced vibrancy makes white GPU-tinted content disappear on macOS 15.
     private let hosting: NSHostingView<MenuCardSectionContainerView<AnyView>>
     private var measuredSize: NSSize?
-    private var selectionView: NSVisualEffectView?
+    /// GPU-mode selection: a plain accent-filled layer shaped like the card (no material).
+    private var selectionView: MenuSelectionPlateView?
     private var tintFilter: CIFilter?
     private(set) var allowsMenuHighlight: Bool
     private var onClick: (() -> Void)?
@@ -192,9 +224,6 @@ final class MenuRowContainerView: NSView, MenuCardHighlighting, MenuCardMeasurin
     private var testForwardedHostedControlMouseUp = false
     #endif
 
-    private static let selectionHorizontalInset: CGFloat = 6
-    private static let selectionVerticalInset: CGFloat = 2
-    private static let selectionCornerRadius: CGFloat = 6
     private static let selectionFadeDuration: CFTimeInterval = 0.06
 
     override var intrinsicContentSize: NSSize {
@@ -296,15 +325,30 @@ final class MenuRowContainerView: NSView, MenuCardHighlighting, MenuCardMeasurin
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         self.refreshTintFilter()
+        self.selectionView?.refreshColor()
     }
 
     override func layout() {
         super.layout()
         self.hosting.frame = self.bounds
-        self.selectionView?.frame = self.bounds.insetBy(
-            dx: Self.selectionHorizontalInset,
-            dy: Self.selectionVerticalInset)
-        self.selectionView?.layer?.cornerRadius = Self.selectionCornerRadius
+        if let selectionView {
+            self.layoutSelectionPlate(selectionView)
+        }
+    }
+
+    /// The plate matches what the SwiftUI content draws: the card shape (inset from the row edge,
+    /// spanning the centered content) for cards, a native-style row plate for text rows.
+    private func layoutSelectionPlate(_ plate: MenuSelectionPlateView) {
+        switch self.rowPayload.chrome {
+        case .card:
+            // The menu sizes the row as content + `menuCardRowExtraHeight` and centers the content.
+            let verticalInset = min(self.bounds.height / 2, StatusItemController.menuCardRowExtraHeight / 2)
+            plate.frame = self.bounds.insetBy(dx: OpenBarMenuStyle.cardInset, dy: verticalInset)
+            plate.layer?.cornerRadius = OpenBarRadius.card
+        case .row:
+            plate.frame = self.bounds.insetBy(dx: OpenBarMenuStyle.rowPlateHorizontalInset, dy: 0)
+            plate.layer?.cornerRadius = OpenBarMenuStyle.rowPlateRadius
+        }
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? {
@@ -474,21 +518,15 @@ final class MenuRowContainerView: NSView, MenuCardHighlighting, MenuCardMeasurin
         layer?.opacity = targetOpacity
     }
 
-    private func ensureSelectionView() -> NSVisualEffectView {
+    private func ensureSelectionView() -> MenuSelectionPlateView {
         if let selectionView {
             return selectionView
         }
-        let selectionView = NSVisualEffectView()
-        selectionView.material = .selection
-        selectionView.blendingMode = .withinWindow
-        selectionView.state = .active
-        selectionView.isEmphasized = true
-        selectionView.wantsLayer = true
-        selectionView.layer?.masksToBounds = true
+        let selectionView = MenuSelectionPlateView()
         selectionView.layer?.opacity = 0
-        selectionView.autoresizingMask = [.width, .height]
         self.addSubview(selectionView, positioned: .below, relativeTo: self.hosting)
         self.selectionView = selectionView
+        self.needsLayout = true
         return selectionView
     }
 
@@ -528,7 +566,8 @@ final class MenuRowContainerView: NSView, MenuCardHighlighting, MenuCardMeasurin
             submenuIndicatorAlignment: payload.submenuIndicatorAlignment,
             submenuIndicatorTopPadding: payload.submenuIndicatorTopPadding,
             refreshMonitor: refreshMonitor,
-            interactiveRegionStore: interactiveRegionStore)
+            interactiveRegionStore: interactiveRegionStore,
+            chrome: payload.chrome)
         {
             payload.content
         }
@@ -552,7 +591,7 @@ final class PersistentRefreshMenuView: NSView, MenuCardHighlighting {
     private static let titleShortcutGap: CGFloat = 8
     private static let shortcutReferenceText = "⌘ R"
 
-    private let selectionView = NSVisualEffectView()
+    private let selectionView = MenuSelectionPlateView()
     private let iconView = NSImageView()
     private let titleField: NSTextField
     private let shortcutField: NSTextField?
@@ -595,6 +634,11 @@ final class PersistentRefreshMenuView: NSView, MenuCardHighlighting {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
         true
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        self.selectionView.refreshColor()
     }
 
     override func accessibilityRole() -> NSAccessibility.Role? {
@@ -690,13 +734,7 @@ final class PersistentRefreshMenuView: NSView, MenuCardHighlighting {
     }
 
     private func setupSelectionView() {
-        self.selectionView.material = .selection
-        self.selectionView.blendingMode = .withinWindow
-        self.selectionView.state = .active
-        self.selectionView.isEmphasized = true
         self.selectionView.isHidden = true
-        self.selectionView.wantsLayer = true
-        self.selectionView.layer?.masksToBounds = true
         self.addSubview(self.selectionView)
     }
 
@@ -852,6 +890,7 @@ struct MenuCardSectionContainerView<Content: View>: View {
     let submenuIndicatorTopPadding: CGFloat
     var refreshMonitor: MenuCardRefreshMonitor?
     var interactiveRegionStore: MenuCardInteractiveRegionStore?
+    var chrome: MenuRowChrome
     @ViewBuilder let content: () -> Content
 
     init(
@@ -861,6 +900,7 @@ struct MenuCardSectionContainerView<Content: View>: View {
         submenuIndicatorTopPadding: CGFloat,
         refreshMonitor: MenuCardRefreshMonitor?,
         interactiveRegionStore: MenuCardInteractiveRegionStore? = nil,
+        chrome: MenuRowChrome = .card,
         @ViewBuilder content: @escaping () -> Content)
     {
         self.highlightState = highlightState
@@ -869,6 +909,7 @@ struct MenuCardSectionContainerView<Content: View>: View {
         self.submenuIndicatorTopPadding = submenuIndicatorTopPadding
         self.refreshMonitor = refreshMonitor
         self.interactiveRegionStore = interactiveRegionStore
+        self.chrome = chrome
         self.content = content
     }
 
@@ -876,29 +917,81 @@ struct MenuCardSectionContainerView<Content: View>: View {
         self.content()
             .environment(\.menuItemHighlighted, self.highlightState.isHighlighted)
             .environment(\.menuCardRefreshMonitor, self.refreshMonitor)
+            .environment(\.menuCardShowsSubmenuChevron, self.showsSubmenuIndicator && self.chrome == .card)
             .coordinateSpace(name: MenuCardInteractiveRegionPreferenceKey.coordinateSpaceName)
             .onPreferenceChange(MenuCardInteractiveRegionPreferenceKey.self) { regions in
                 self.interactiveRegionStore?.regions = regions
             }
             .foregroundStyle(MenuHighlightStyle.primary(self.highlightState.isHighlighted))
+            .tint(OpenBarTheme.Colors.accent)
             .background(alignment: .topLeading) {
-                if self.highlightState.isHighlighted {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                // Cards fill themselves with the accent when highlighted (`menuCardChrome`); text rows
+                // get the native-style plate here.
+                if self.chrome == .row, self.highlightState.isHighlighted {
+                    RoundedRectangle(cornerRadius: OpenBarMenuStyle.rowPlateRadius, style: .continuous)
                         .fill(MenuHighlightStyle.selectionBackground(true))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
+                        .padding(.horizontal, OpenBarMenuStyle.rowPlateHorizontalInset)
                 }
             }
             .overlay(alignment: self.submenuIndicatorAlignment) {
-                if self.showsSubmenuIndicator {
-                    Image(systemName: "chevron.forward")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(MenuHighlightStyle.secondary(self.highlightState.isHighlighted))
+                if self.showsSubmenuIndicator, self.chrome == .row {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: OpenBarMenuStyle.chevronSize, weight: .semibold))
+                        .foregroundStyle(MenuHighlightStyle.tertiary(self.highlightState.isHighlighted))
                         .padding(.top, self.submenuIndicatorTopPadding)
-                        .padding(.trailing, 10)
+                        .padding(.trailing, UsageMenuCardLayout.horizontalPadding)
                 }
             }
             .openBarLocalized()
+    }
+}
+
+/// Selection plate for AppKit-drawn highlights: one layer with the accent fill and a corner radius.
+/// It has no backing store and no material (spec §11: zero `NSVisualEffectView`s inside rows).
+@MainActor
+final class MenuSelectionPlateView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.wantsLayer = true
+        // A corner radius on a plain background color needs no clipping mask.
+        self.layer?.cornerCurve = .continuous
+        self.refreshColor()
+        // Increase Contrast swaps the accent for its high-contrast variant; resolved CGColors do not follow.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(self.accessibilityDisplayOptionsDidChange),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification,
+            object: nil)
+    }
+
+    @objc private func accessibilityDisplayOptionsDidChange() {
+        self.refreshColor()
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var wantsUpdateLayer: Bool {
+        true
+    }
+
+    override func updateLayer() {
+        self.refreshColor()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        self.refreshColor()
+    }
+
+    func refreshColor() {
+        var color = NSColor.selectedContentBackgroundColor.cgColor
+        self.effectiveAppearance.performAsCurrentDrawingAppearance {
+            color = OpenBarTheme.NSColors.accentFill.cgColor
+        }
+        self.layer?.backgroundColor = color
     }
 }
 

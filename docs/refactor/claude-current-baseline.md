@@ -133,6 +133,14 @@ Claude Web enrichment is usage-extra-only when the primary source is OAuth or CL
 This behavior is implemented in `Sources/OpenBarCore/Providers/Claude/ClaudeUsageFetcher.swift`
 inside `applyWebExtrasIfNeeded`.
 
+## Legacy Opus quota compatibility
+
+The CLI parser still accepts `Current week (Opus)`, the OAuth mapper still falls back to `sevenDayOpus`, and public
+snapshots keep the legacy `opus` fields that project the tertiary quota window. Keep these paths while those source
+formats and public fields are supported. A retirement must name the replacement formats and the migration boundary,
+preserve the remaining model-scoped quota windows, and document the compatibility change. A date alone is not
+evidence that the fallback is unused.
+
 ## Documentation contract
 
 - [docs/claude.md](../claude.md) is the summary doc for contributors who want an overview.

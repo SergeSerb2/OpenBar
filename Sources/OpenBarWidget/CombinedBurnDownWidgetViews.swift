@@ -6,13 +6,15 @@ import WidgetKit
 // MARK: - Entry View
 
 struct CombinedBurnDownWidgetView: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let entry: CombinedBurnDownEntry
 
     var body: some View {
         let state = BurnDownState(
             snapshot: self.entry.snapshot,
             provider: self.entry.provider,
-            selection: .session)
+            selection: .session,
+            now: self.fixedNow ?? Date())
 
         Group {
             if let state {
@@ -21,44 +23,37 @@ struct CombinedBurnDownWidgetView: View {
                 BurnDownEmptyState()
             }
         }
-        .containerBackground(for: .widget) {
-            BurnWidgetBackground()
-        }
+        .containerBackground(.fill.tertiary, for: .widget)
     }
 }
 
 // MARK: - Layout
 
 private struct CombinedBurnDownLayout: View {
-    @Environment(\.widgetRenderingMode) private var renderingMode
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.widgetPalette) private var palette
+    @Environment(\.widgetFixedNow) private var fixedNow
 
     let state: BurnDownState
     let provider: UsageProvider
 
     var body: some View {
-        let dark = self.colorScheme == .dark
-        let isMonochrome = self.renderingMode != .fullColor
-
+        let now = self.fixedNow ?? Date()
         let selections = self.state.combinedSelections
         let sessionWindow = self.state.window(for: selections[0])
         let weeklyWindow = self.state.window(for: selections[1])
 
-        let sessionGeom = sessionWindow.map { BurnGeom(window: $0) }
-        let weeklyGeom = weeklyWindow.map { BurnGeom(window: $0) }
+        let sessionGeom = sessionWindow.map { BurnGeom(window: $0, now: now) }
+        let weeklyGeom = weeklyWindow.map { BurnGeom(window: $0, now: now) }
 
         // Use a neutral baseline theme for the header/hairline colors
         let baseGeom = sessionGeom ?? weeklyGeom ?? BurnGeom(
             window: RateWindow(
                 usedPercent: 50,
                 windowMinutes: 300,
-                resetsAt: Date().addingTimeInterval(2.5 * 3600),
-                resetDescription: nil))
-        let baseTheme = BurnTheme(
-            provider: self.provider,
-            geom: baseGeom,
-            dark: dark,
-            isMonochrome: isMonochrome)
+                resetsAt: now.addingTimeInterval(2.5 * 3600),
+                resetDescription: nil),
+            now: now)
+        let baseTheme = BurnTheme(provider: self.provider, geom: baseGeom, palette: self.palette)
 
         VStack(spacing: 0) {
             // Header
@@ -67,9 +62,8 @@ private struct CombinedBurnDownLayout: View {
                     Circle()
                         .fill(baseTheme.brandDot)
                         .frame(width: 7, height: 7)
-                        .shadow(color: baseTheme.brandDot.opacity(0.7), radius: 3.5)
                     Text(burnProviderName(self.provider))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(WidgetTheme.Fonts.cardTitle)
                         .foregroundStyle(baseTheme.text)
                         .lineLimit(1)
                 }
@@ -77,9 +71,8 @@ private struct CombinedBurnDownLayout: View {
                 Text(selections.map { self.state.title(for: $0) }.joined(separator: " & "))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                    .font(.system(size: 10))
+                    .font(WidgetTheme.Fonts.caption)
                     .foregroundStyle(baseTheme.sub)
-                    .kerning(0.3)
             }
 
             // Two rows
@@ -90,16 +83,14 @@ private struct CombinedBurnDownLayout: View {
                     }
                     let title = self.state.title(for: selection)
                     if let window = self.state.window(for: selection) {
-                        let geom = BurnGeom(window: window)
+                        let geom = BurnGeom(window: window, now: now)
                         CombinedBurnRow(
                             window: window,
                             geom: geom,
-                            theme: BurnTheme(
-                                provider: self.provider, geom: geom, dark: dark, isMonochrome: isMonochrome),
+                            theme: BurnTheme(provider: self.provider, geom: geom, palette: self.palette),
                             tag: title + " · " + burnCompactWindowLabel(window.windowMinutes, fallback: ""),
                             periods: window.windowMinutes == 300 ? 5 : 7,
                             metric: index == 0 ? .remaining : .pace,
-                            dark: dark,
                             blankChart: self.state.blanksChart(for: selection),
                             resetsAtOverride: self.state.blanksChart(for: selection)
                                 ? self.state.secondaryWindow?.resetsAt : nil)
@@ -128,13 +119,13 @@ private enum CombinedMetric {
 // MARK: - Row
 
 private struct CombinedBurnRow: View {
+    @Environment(\.widgetFixedNow) private var fixedNow
     let window: RateWindow
     let geom: BurnGeom
     let theme: BurnTheme
     let tag: String
     let periods: Int
     let metric: CombinedMetric
-    let dark: Bool
     var blankChart = false
     var resetsAtOverride: Date?
 
@@ -157,7 +148,7 @@ private struct CombinedBurnRow: View {
         let explicitReset = self.blankChart
             ? self.resetsAtOverride
             : self.resetsAtOverride ?? self.window.resetsAt
-        let now = Date()
+        let now = self.fixedNow ?? Date()
         let estimatedResetMinutes = self.blankChart || self.geom.tNow >= 1
             ? nil
             : (1 - self.geom.tNow) * Double(windowMins)
@@ -174,7 +165,7 @@ private struct CombinedBurnRow: View {
                 // For remaining/used: "5H ▼ over pace". For pace: "7D on pace" (arrow is on hero line).
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(self.tag)
-                        .font(.system(size: 9.5, weight: .heavy))
+                        .font(WidgetTheme.Fonts.caption.weight(.semibold))
                         .foregroundStyle(self.theme.sub)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -185,7 +176,7 @@ private struct CombinedBurnRow: View {
                                 .foregroundStyle(self.theme.statusColor)
                         }
                         Text(paceWord)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(WidgetTheme.Fonts.caption.weight(.semibold))
                             .foregroundStyle(self.theme.statusColor)
                     }
                     .lineLimit(1)
@@ -199,9 +190,8 @@ private struct CombinedBurnRow: View {
                             .foregroundStyle(heroColor)
                     }
                     Text("\(heroNum)")
-                        .font(.system(size: 27, weight: .semibold))
+                        .font(WidgetTheme.Fonts.hero(size: 27))
                         .foregroundStyle(heroColor)
-                        .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                     Text("%")
@@ -221,11 +211,15 @@ private struct CombinedBurnRow: View {
                         .font(.system(size: 9))
                         .foregroundStyle(self.theme.sub.opacity(0.85))
                     if let effectiveResetDate {
-                        WidgetDateText.offset(effectiveResetDate)
+                        WidgetDateText.offset(effectiveResetDate, now: self.fixedNow)
                             .font(.system(size: 9.5, weight: .medium))
                             .foregroundStyle(self.theme.text)
                             .monospacedDigit()
-                        Text("· \(combinedCompactResetTime(effectiveResetDate, isDailyWindow: isDailyWindow))")
+                        let resetTime = combinedCompactResetTime(
+                            effectiveResetDate,
+                            isDailyWindow: isDailyWindow,
+                            now: now)
+                        Text("· \(resetTime)")
                             .font(.system(size: 9.5, weight: .medium))
                             .foregroundStyle(self.theme.text)
                     } else {
@@ -246,7 +240,7 @@ private struct CombinedBurnRow: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
             } else {
-                BurnChartCanvas(geom: self.geom, theme: self.theme, periods: self.periods, dark: self.dark)
+                BurnChart(geom: self.geom, theme: self.theme, periods: self.periods)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
             }
@@ -264,11 +258,10 @@ private struct CombinedEmptyRow: View {
     var body: some View {
         HStack {
             Text(self.tag)
-                .font(.system(size: 9.5, weight: .heavy))
+                .font(WidgetTheme.Fonts.caption.weight(.semibold))
                 .foregroundStyle(self.theme.sub)
-                .kerning(1)
             Text(W("No data"))
-                .font(.system(size: 10))
+                .font(WidgetTheme.Fonts.caption)
                 .foregroundStyle(self.theme.sub)
             Spacer()
         }
@@ -280,8 +273,8 @@ private struct CombinedEmptyRow: View {
 
 /// Formats a reset date compactly: "4:30p", "5p", "Sun 9a".
 /// Weekday prefix is added for the 7-day window or when the reset is ≥20h away.
-private func combinedCompactResetTime(_ date: Date, isDailyWindow: Bool) -> String {
-    let includeDay = isDailyWindow || date.timeIntervalSinceNow >= 20 * 3600
+private func combinedCompactResetTime(_ date: Date, isDailyWindow: Bool, now: Date) -> String {
+    let includeDay = isDailyWindow || date.timeIntervalSince(now) >= 20 * 3600
     let formatter = DateFormatter()
     formatter.setLocalizedDateFormatFromTemplate(includeDay ? "EEEjm" : "jm")
     return formatter.string(from: date)

@@ -1017,8 +1017,9 @@ extension StatusMenuTests {
         }
         let overviewView = try #require(overview.view as? MenuRowContainerView)
         let providerView = try #require(provider.view as? MenuRowContainerView)
-        let selection = try #require(overviewView.subviews.compactMap { $0 as? NSVisualEffectView }.first)
-        let refreshSelection = try #require(refresh.view?.subviews.compactMap { $0 as? NSVisualEffectView }.first)
+        // Selection plates are plain accent layers now (docs/design/README.md §11: no materials in rows).
+        let selection = try #require(overviewView.subviews.compactMap { $0 as? MenuSelectionPlateView }.first)
+        let refreshSelection = try #require(refresh.view?.subviews.compactMap { $0 as? MenuSelectionPlateView }.first)
 
         controller.menu(menu, willHighlight: overview)
         #expect(controller.highlightedMenuItems[ObjectIdentifier(menu)] === overview)

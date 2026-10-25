@@ -188,7 +188,6 @@ public struct OpenBarConfig: Codable, Sendable {
         }
 
         var copy = self
-        copy.version = Self.currentVersion
         copy.providers = normalized
         return copy
     }
@@ -385,6 +384,9 @@ public struct ProviderConfig: Codable, Sendable, Identifiable {
 
     public func sanitizedForDump() -> ProviderConfig {
         var copy = self
+        if let provider = copy.id.firstPartyProvider {
+            ProviderDescriptorRegistry.descriptor(for: provider).normalizeConfig(&copy)
+        }
         if copy.apiKey != nil {
             copy.apiKey = "[REDACTED]"
         }
