@@ -189,7 +189,7 @@ links `OpenBarCore`).
 | --- | --- | --- |
 | Theme | `docs/site.css:1`, `:96` (links/selection `#0099FF`, focus `#38BDF8`) | ○ |
 | Header, hero, install | `docs/index.html:72`, `:244`, `:264`; `docs/site.css:589` | ● header icon |
-| Hero artwork | `docs/hero-mockup.svg`; `docs/site.css:143`, `:191`; `docs/site.js:20` | ○ |
+| Hero artwork | HTML/CSS `#mockup-stage` in `docs/index.html` (the former `hero-mockup.svg` laptop artwork was removed in the redesign) | ○ |
 | Simulated menu bar | `docs/index.html:168`; `docs/site.css:218`, two-meter mark `:240` | ● |
 | Hero Codex popover | `docs/index.html:179`–`:220`; `docs/site.css:355`, teal fill `#4FB6C3` `:446`, red marker `#FF4055` `:460` | ● |
 | Feature illustrations | `docs/index.html:427`, `:481`, `:519`; `docs/site.css:1202`–`:1468`; `docs/features/*.webp` | ● teal meters |

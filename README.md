@@ -1,102 +1,126 @@
-# OpenBar — every AI coding limit in your menu bar, without the memory bill
+# OpenBar
+
+**Every AI coding limit in your Mac's menu bar — light on memory, quiet by design.**
 
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-1d1d1f?style=flat-square)](#install)
+[![Latest release](https://img.shields.io/github/v/release/SergeSerb2/OpenBar?style=flat-square&color=5246e0&label=release)](https://github.com/SergeSerb2/OpenBar/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5246e0?style=flat-square)](LICENSE)
 
 <img src="docs/social.png?v=7fb58633ec1b8418" alt="OpenBar — every AI coding limit in your menu bar. 109 providers." width="100%" />
 
-OpenBar is a lightweight fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps
-CodexBar's features — usage limits, reset countdowns, credits, local cost scans, and 109 providers — and focuses on
-keeping the app small in memory.
+OpenBar shows how much of your AI plans you have left — session and weekly limits, credits, spend, and the time until
+each limit resets — for Codex, Claude, Cursor, Gemini, Copilot, and 100+ other providers. It lives in the menu bar,
+keeps your credentials on your Mac, and uses much less memory than the app it grew from.
+
+Based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/openbar-menu-dark.png">
+    <img src="docs/screenshots/openbar-menu-light.png" alt="The OpenBar menu: a provider switcher, a Claude card with session and weekly limits and reset times, and local cost totals" width="300">
+  </picture>
+  &nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/openbar-usage-spend-dark.png">
+    <img src="docs/screenshots/openbar-usage-spend-light.png" alt="Settings, Usage and Spend: a stacked daily chart of estimated spend for Claude, Codex, and Cursor" width="480">
+  </picture>
+</p>
+
+## What it does
+
+- **Limits at a glance.** The menu bar icon shows your session and weekly quota as two meters. Open the menu for
+  each provider's limits, reset countdowns, pace ("lasts until reset" or "runs out in 2h"), credits, and plan.
+- **100+ providers.** Coding plans, API platforms, gateways, and local tools. Show one icon per provider, or merge
+  them into one icon with a switcher.
+- **Local cost tracking.** OpenBar reads your local Codex, Claude, and other agent logs to estimate tokens and spend.
+  **Settings → Usage & Spend** shows daily trends by provider, model, project, and session.
+- **Alerts.** Get a notification before a quota runs out, and see provider incidents on the icon.
+- **Widgets.** Desktop and Notification Center widgets for your providers.
+- **Command line.** The `openbar` CLI (macOS and Linux) prints the same data as text or JSON for scripts, status
+  bars, and dashboards.
+- **23 languages,** including right-to-left layouts.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/widgets/07-openbar-usage-wide-dark.png">
+    <img src="docs/widgets/07-openbar-usage-wide.png" alt="The medium OpenBar widget: Claude weekly limit, session limit, and today's spend" width="400">
+  </picture>
+</p>
 
 ## Why OpenBar
 
-CodexBar can use a lot of memory on machines with large local agent histories. On one Mac with 1.8 GB of Codex
-session logs, a long-running CodexBar used 247 MB and had peaked at 1.9 GB, and its offscreen ChatGPT dashboard page
-spawned a 300–520 MB web process about every 25 minutes. OpenBar targets **under 100 MB** in steady state and
-**never above 200 MB**.
+**Lightweight.** The goal is about 100 MB of memory in steady use, and never more than 200 MB.
 
-Measured on one Mac (macOS 27.2) with the same scripted scenario — open the menu and cycle tabs, open Settings on
-Usage & Spend, close it, force a refresh, reopen the menu, idle — Codex and Claude enabled with local cost tracking
-(1.8 GB of Codex logs). Footprint is what Activity Monitor shows as Memory. Medians of 3 runs.
+- Cost scans run in a short-lived helper process. The app receives only the results, and macOS gets all scan memory
+  back when the helper exits.
+- No chart or meter uses SwiftUI `Canvas` or Swift Charts. On macOS 26 and later these draw through Metal and commit
+  about 97 MB of graphics memory the first time anything draws. OpenBar draws them with plain shapes.
+- Closed windows let go of their content. Settings, inspectors, and chart submenus keep only their navigation state.
 
-| | CodexBar code | OpenBar |
-|---|---:|---:|
-| Idle after startup scans | 165 MB | 68 MB |
-| Settled after the scenario | 190 MB (worst 451 MB) | 94 MB |
-| Peak during the scenario | 383 MB (worst 618 MB) | 162 MB |
-| Graphics memory after a chart or menu draws | ~97 MB | under 1 MB |
-| App memory during a Codex cost scan | 133 MB | 14 MB |
-| ChatGPT dashboard page loads (300–520 MB web process each) | every 25 min | at most every 6 h |
+See [Performance](#performance) for measurements.
 
-Cost scans now run in a separate helper process that lives for a few seconds per refresh. Its peak was 166–177 MB in
-these runs, and macOS gets all of it back when the helper exits.
+**An original design.** OpenBar has its own "Calm native" look: one Iris accent, the Open Ring app icon, a "Meter
+bars" menu bar glyph, soft cards, a sidebar Settings window, and redesigned widgets. Status always comes with a symbol
+and words, never color alone. The [design spec](docs/design/README.md) documents every surface.
 
-What changed, in short:
-
-- **Cost scans run in a short-lived helper.** Codex and Claude log scans, cache reads, and catch-up passes run in the
-  bundled `openbar` CLI as a child process (`openbar __cost-worker`). The app receives only the finished results, and
-  all scan memory goes back to macOS when the helper exits. If the helper is missing or fails, the app falls back to
-  scanning in process.
-- **The ChatGPT dashboard page loads at most every 6 hours.** Usage limits still refresh through the API on every
-  cycle. A manual refresh or missing history still loads the page.
-- **Decoded caches do not linger.** The Codex scan baseline is released after 90 seconds idle, the Claude fragment
-  cache keeps 32 MiB instead of 512 MiB, and the allocator returns freed pages after each scan.
-- **Charts are drawn with plain shapes.** On macOS 26 and later, SwiftUI `Canvas` and Swift Charts render through
-  Metal and commit about 97 MB of graphics memory the first time anything draws. Usage bars, menu charts, the token
-  heatmap, the Usage & Spend trend chart, the OpenAI live usage chart, and the limit-reset confetti no longer use them.
-- **Closed windows let go of their content.** Settings, inspectors, and chart submenus release their view trees when
-  closed and keep only navigation state; hidden spend-dashboard detail is released after 1 minute.
-
-Cost totals are checked against golden outputs from the original code on a frozen copy of real logs, both in process
-and through the helper, so the numbers you see do not change.
+**Audited.** Before 1.0, OpenBar went through a bug and security audit: 96 findings, 92 fixed. The fixes keep
+credentials out of logs and error messages, bound plugin and local-server resources, lock config edits, and correct
+usage parsing for dozens of providers. The [changelog](CHANGELOG.md) lists the fixes and the known issues that
+remain.
 
 ## Install
 
-OpenBar has no signed binary releases yet. Build it from source (requires macOS 14+ and Xcode with Swift 6.2+):
+1. Download `OpenBar-macos-universal-<version>.zip` from the
+   [latest release](https://github.com/SergeSerb2/OpenBar/releases/latest).
+2. Unzip it and move **OpenBar.app** to your Applications folder.
+3. Open OpenBar. Its icon appears in the menu bar.
+
+OpenBar needs macOS 14 or later and runs on Apple silicon and Intel Macs. Release builds are signed with a Developer
+ID and notarized by Apple. OpenBar updates itself with [Sparkle](https://sparkle-project.org): it checks for and
+downloads updates automatically. To check now, choose **Check for Updates…** in the menu or in **Settings → About**.
+
+**First run.** Open **Settings → Providers** and turn on the providers you use. Each provider reads its data from one
+or more sources: an existing CLI login, OAuth or a device sign-in, an API key, a browser session, or local files.
+Each [provider guide](docs/providers.md) explains its sources.
+
+OpenBar has its own bundle ID (`com.serbinenko.openbar`), settings, caches, and config file, so it can run next to
+CodexBar without sharing state.
+
+### Command-line tool
+
+The app bundles the `openbar` CLI. To put it on your `PATH`, choose **Settings → Advanced → Install CLI**. This links
+it as `openbar` in `/usr/local/bin` and `/opt/homebrew/bin`, where those folders exist and are writable. If it reports
+no write access, move OpenBar to `/Applications` and run `./bin/install-openbar-cli.sh` from a clone of this
+repository; it asks for an administrator password. Each release also has standalone CLI archives for macOS and
+Linux.
 
 ```bash
-git clone https://github.com/SergeSerb2/OpenBar.git
-cd OpenBar
-./Scripts/package_app.sh        # builds OpenBar.app with ad-hoc signing
-open OpenBar.app
-```
-
-OpenBar uses its own bundle ID (`com.serbinenko.openbar`), settings, caches, and config file
-(`~/.config/openbar/config.json`), so it can run next to CodexBar without sharing state.
-
-### Memory scenario probe (for contributors)
-
-Launch the app with `OPENBAR_MEMORY_PROBE_DIR=/some/dir` to run a scripted scenario: it opens the menu and cycles
-every tab, opens and closes Settings on Usage & Spend, forces a refresh, reopens the menu, and logs the physical
-footprint at each step to `events.csv`. The probe is inert unless that variable is set.
-
-### macOS first run
-- Open Settings → Providers and enable what you use.
-- Install/sign in to the provider sources you rely on: CLIs, browser sessions, OAuth/device flow, API keys, local app files, or provider apps depending on the provider.
-- Optional: Settings → Providers → Codex → OpenAI cookies (Automatic or Manual) to add dashboard extras.
-
-### Set API keys from the CLI
-Provider toggles and API keys live in the resolved OpenBar config file. New installs use
-`~/.config/openbar/config.json`; existing `~/.openbar/config.json` installs still load from the legacy path. You can
-script the same provider list that Settings → Providers uses:
-
-```bash
-openbar config providers
-openbar config enable --provider grok
-openbar config disable --provider cursor
-```
-
-For API-key providers, store a key without opening Settings:
-
-```bash
+openbar                                   # usage for every enabled provider
+openbar --provider claude --format json --pretty
+openbar cost --provider codex             # local cost estimate from Codex logs
+openbar config enable --provider cursor
 printf '%s' "$ELEVENLABS_API_KEY" | openbar config set-api-key --provider elevenlabs --stdin
 ```
 
-`set-api-key` trims the piped value, stores it with restrictive config-file permissions, and enables the provider by default. Use `--no-enable` to only save the key, or `--api-key <key>` for one-off local scripts where shell history is not a concern.
-See [CLI configuration](docs/cli-configuration.md) for the full flow.
+See the [CLI reference](docs/cli.md) and [CLI configuration](docs/cli-configuration.md).
 
-## Providers
+## Supported providers
+
+OpenBar supports **109 providers**. They include:
+
+- **Coding plans and assistants:** Codex, Claude, Cursor, Gemini, Copilot, Antigravity, Droid, Kiro, Windsurf, Zed,
+  Amp, OpenCode, Devin, JetBrains AI, and more.
+- **API platforms and credits:** OpenAI, Claude Platform, OpenRouter, Mistral, DeepSeek, xAI, AWS Bedrock,
+  Vertex AI, Fireworks, DeepInfra, and more.
+- **Gateways and self-hosted proxies:** LiteLLM, Bifrost, sub2api, LLM Proxy, ClawRouter, and Wayfinder.
+- **Regional plans:** z.ai, Kimi, MiniMax, Alibaba, Qwen Cloud, Doubao, StepFun, Xiaomi MiMo, and more.
+
+Each provider has a setup guide with its sources, settings, and limits. Start at the
+[provider overview](docs/providers.md). To add a provider, see the [provider authoring guide](docs/provider.md), or
+write a [plugin](docs/plugins.md) without changing the app.
+
+<details>
+<summary><strong>All providers</strong></summary>
 
 - [Codex](docs/codex.md) — OAuth API or local Codex CLI, plus optional OpenAI web dashboard extras.
 - [OpenAI](docs/openai.md) — Admin API key usage/cost graphs with legacy credit-balance fallback.
@@ -186,7 +210,6 @@ See [CLI configuration](docs/cli-configuration.md) for the full flow.
 - [Atlas Cloud](docs/atlascloud.md) — API key for the account's available USD balance.
 - [Vercel AI Gateway](docs/vercel.md) — API key for the team's USD balance and lifetime spend.
 - [xKiro](docs/xkiro.md) — API key for daily free-token usage, remaining allowance, and the midnight UTC reset.
-- Open to new providers: [provider authoring guide](docs/provider.md).
 
 <!-- Generated provider additions: Scripts/regenerate-provider-docs.mjs -->
 - [Langdock](docs/langdock.md) — Selected Edge, Chrome, or Safari profile → personal included session and weekly limits (`web`, macOS).
@@ -212,104 +235,93 @@ See [CLI configuration](docs/cli-configuration.md) for the full flow.
 - [Chatbox AI](docs/chatbox.md) — API token
 <!-- End generated provider additions -->
 
-## Icon & Screenshot
-The menu bar icon is a tiny usage meter. Bar meaning is provider-specific, and errors/stale data can dim the icon or
-show an incident indicator.
+</details>
 
-## Features
-- Multi-provider menu bar with per-provider toggles (Settings → Providers).
-- Provider-specific usage meters with reset countdowns.
-- Optional Codex web dashboard enrichments (code review remaining, usage breakdown, credits history).
-- Inline spend and usage charts for API-backed providers such as OpenAI, Claude Admin API, OpenRouter, LiteLLM, z.ai, MiniMax, Mistral, and AWS Bedrock.
-- Codex and Claude Plan Usage menus show a quota burndown from recorded snapshots, with the capture time and an even-use guide. The existing utilization history remains below it, and the line fills in as the app collects samples.
-- Configurable cost-usage scans for Codex + Claude, plus reused chart UI for supported provider histories. Codex history uses a WAL-enabled SQLite store capped at 25,000 retained session entries and 256 MiB.
-- A persistent Settings → Usage & Spend view for local estimates, grouped by native currency and provider. Each provider shows its accounts or history sources alongside its model breakdown; project/session views and daily/hourly trends share compact selectors. Incomplete history stays labeled, and source, privacy, export, and sharing controls remain available.
-- Provider status polling with incident badges in the menu and icon overlay.
-- Merge Icons mode to combine providers into one status item + switcher. With **Icon + Percent** and two enabled built-in providers, choose **Stacked** to show their first layout lines together. Automatic rows follow provider order and reserve explicit choices; disabling a selected provider uses a fallback and restores the saved choice when re-enabled. The dropdown menu stays available, and each provider keeps its own layout settings.
-- Display controls for provider icons, labels, bars, reset-time style, and highest-usage auto-selection.
-- Fresh installs default to Adaptive refresh. Existing users keep every valid stored choice, while legacy unset or
-  invalid preferences resolve to 5 minutes. Manual and fixed 1m, 2m, 5m, 15m, and 30m alternatives remain available.
-- Bundled CLI (`openbar`) for scripts and CI (including `openbar cost --provider codex`, `claude`, or `both` for local cost usage); macOS and Linux CLI builds available.
-- WidgetKit widgets for supported providers.
-- Localized app and website with a shared 23-language catalog, automatic website detection, persistent pickers, and RTL support.
-- Optional session quota notifications and weekly-reset confetti.
-- Privacy-first: on-device parsing by default; browser cookies are opt-in and reused (no passwords stored).
+## Privacy and security
 
-## Privacy note
-Wondering if OpenBar scans your disk? It doesn’t crawl your filesystem; it reads a small set of known locations (browser cookies/local storage, provider config files, local JSONL logs) when the related features are enabled. Plain Adaptive refresh never inspects local agent activity. The separate Adaptive (agent-aware) option asks before inspecting the running-process list (including command lines) to identify Codex/Claude and reading bounded known-session metadata. Declining returns to plain Adaptive. When allowed with Agent Sessions hidden, OpenBar retains only the latest activity time and discards session paths and identities. Provider tokens and token-account settings live in the OpenBar config file with restrictive file permissions. See the discussion and audit notes in [issue #12](https://github.com/steipete/CodexBar/issues/12).
+- **Credentials stay on your Mac.** API keys, pasted cookies, and token accounts are saved in the OpenBar config file
+  (`~/.config/openbar/config.json`) with owner-only (`0600`) permissions. Some imported browser cookies and OAuth
+  tokens are cached in OpenBar's own Keychain items. OpenBar never stores browser passwords. The only account
+  password it can save is StepFun's, if you choose its username-and-password login.
+- **No telemetry.** OpenBar has no analytics or tracking. It connects to the providers you turn on, plus provider
+  status pages, the update feed, [models.dev](https://models.dev) for model prices, and an exchange-rate service only
+  when you choose a currency other than USD.
+- **No disk crawling.** OpenBar reads a small set of known locations — provider config files, local agent logs, and
+  browser cookie stores — and only for the features you turn on.
+- **You control browser access.** OpenBar reads browser cookies only for providers you turn on, to reuse your
+  existing session. A provider's cookie source starts on Auto; set it to Manual (paste a cookie header) or Off, or
+  use an API key where the provider supports one.
+- **Keychain prompts are rare and explained.** OpenBar's own background refreshes do not ask for Keychain access,
+  unless you opt in for Claude. A manual refresh can show at most one browser prompt, and a denial pauses further
+  browser prompts for six hours. Provider CLIs that OpenBar starts, such as Claude Code, handle their own Keychain
+  access. **Settings → Advanced → Disable Keychain access** turns off OpenBar's own Keychain use. See
+  [Keychain prompts](docs/keychain-prompts.md).
+- **macOS permissions.** Full Disk Access is optional and only needed for Safari cookies. Reading a Chromium
+  browser's cookies, or a provider CLI that OpenBar starts, can cause a Files & Folders prompt. Focusing an agent
+  session's window can ask for Accessibility access, and opening a command in a terminal app can ask for Automation
+  access. OpenBar does not ask for Screen Recording access.
 
-## macOS permissions (why they’re needed)
-- **Full Disk Access (optional)**: only required to read Safari cookies/local storage for web-based providers. If you don’t grant it, use another supported browser, manual cookies/API keys, OAuth, or CLI/local sources where that provider supports them.
-- **Keychain access (prompted by macOS)**:
-  Chromium cookie import needs the browser’s Safe Storage item, and an explicitly enabled Claude OAuth repair may
-  read Claude Code’s own Keychain item. Background OpenBar paths fail or skip instead of requesting authorization;
-  a user-initiated import or repair can still show the macOS prompt. **Settings → Advanced → Disable Keychain
-  access** blocks OpenBar-owned Keychain operations and browser decryption, but cannot constrain provider-owned CLIs
-  that OpenBar launches. Manual cookie headers, API keys, and file-backed sources remain alternatives where
-  supported. See [Keychain prompts](docs/keychain-prompts.md) for Allow Once vs. Always Allow, recurring grants, and
-  safe troubleshooting.
-- **Files & Folders prompts (folder/volume access)**: OpenBar launches provider CLIs and local probes for some providers. If those helpers read a project directory or external drive, macOS may ask OpenBar for that folder/volume (e.g., Desktop or an external volume). This is driven by the helper’s working directory, not background disk scanning.
-- **What we do not request in the background**: no Screen Recording or Accessibility permissions; user-triggered helper actions may ask macOS for Automation permission to open Terminal. No passwords are stored (browser cookies are reused when you opt in).
+Found a vulnerability? Please report it privately; see [SECURITY.md](SECURITY.md).
 
-## Docs
-- Providers overview: [docs/providers.md](docs/providers.md)
-- Provider authoring: [docs/provider.md](docs/provider.md)
-- Issue labeling guide: [docs/ISSUE_LABELING.md](docs/ISSUE_LABELING.md)
-- UI & icon notes: [docs/ui.md](docs/ui.md)
-- CLI reference: [docs/cli.md](docs/cli.md)
-- Configuration: [docs/configuration.md](docs/configuration.md)
-- Keychain prompts: [docs/keychain-prompts.md](docs/keychain-prompts.md)
-- CLI configuration: [docs/cli-configuration.md](docs/cli-configuration.md)
-- Widgets: [docs/widgets.md](docs/widgets.md)
-- Architecture: [docs/architecture.md](docs/architecture.md)
-- Refresh loop: [docs/refresh-loop.md](docs/refresh-loop.md)
-- Status polling: [docs/status.md](docs/status.md)
-- Sparkle updates: [docs/sparkle.md](docs/sparkle.md)
-- Packaging: [docs/packaging.md](docs/packaging.md)
-- Development: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-- Release checklist: [docs/RELEASING.md](docs/RELEASING.md)
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
+## Performance
 
-## Getting started (dev)
-- Clone the repo and open it in Xcode or run the scripts directly.
-- Launch once, then toggle providers in Settings → Providers.
-- Install/sign in to provider sources you rely on (CLIs, browser cookies, OAuth/device flow, API keys, or local app/config files).
-- Optional: set OpenAI cookies (Automatic or Manual) for Codex dashboard extras.
+We ran the same scripted scenario against CodexBar's code and OpenBar on one Mac:
+
+<!-- PERF-NUMBERS: lead updates from final trials -->
+| Same scripted scenario | CodexBar 0.80.1 code | OpenBar |
+|---|---:|---:|
+| Idle after startup | 165 MB | 65 MB |
+| Settled after use | 190 MB | 104 MB |
+| Peak | 383 MB | 156 MB |
+| Graphics memory after a chart or menu draws | ~97 MB | under 1 MB |
+| App bundle | 108 MB | 98 MB |
+
+Memory is the Activity Monitor footprint, median of 3 runs. In the scenario the menu is opened and its tabs cycled,
+Settings is opened and closed, a refresh is forced, and the app idles.
+
+Cost scans run in the helper process, so their memory is not in the app's footprint and returns to macOS when each
+scan ends. The [idle footprint notes](docs/research/idle-footprint-2026-10-24.md) describe the method and the raw
+runs.
+
+To run the scenario yourself, launch a build with `OPENBAR_MEMORY_PROBE_DIR=/some/dir`. OpenBar then runs the
+scripted steps and writes the footprint at each step to `events.csv` in that folder. The probe does nothing unless
+that variable is set.
 
 ## Build from source
-Requires macOS 14+ and Swift 6.2+.
+
+Building needs Xcode 26 or later (Swift 6.2; CI uses Xcode 27). The app you build runs on macOS 14 or later.
 
 ```bash
-./Scripts/package_app.sh        # builds OpenBar.app in-place with ad-hoc signing
+git clone https://github.com/SergeSerb2/OpenBar.git
+cd OpenBar
+./Scripts/package_app.sh        # build OpenBar.app (ad-hoc signed)
 open OpenBar.app
 ```
 
-Dev loop:
-```bash
-./Scripts/compile_and_run.sh
-./Scripts/compile_and_run.sh --test  # also run the sharded test suite before packaging/relaunching
-make check                           # SwiftFormat + SwiftLint
-make docs-list                       # list docs with frontmatter summaries
-```
+For day-to-day work, `./Scripts/compile_and_run.sh` builds, packages, relaunches the app, and checks that it keeps
+running. `make check` runs the format, lint, and docs checks. See the [development guide](docs/DEVELOPMENT.md)
+for logging, signing, and troubleshooting.
 
-CLI install:
-```bash
-# after installing OpenBar.app in /Applications
-./bin/install-openbar-cli.sh
-```
+## Contributing
 
-## Ecosystem
+Bug fixes, provider fixes, new providers, and docs improvements are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md)
+for setup, tests, and conventions, and [VISION.md](VISION.md) for what fits the project. Please follow the
+[Code of Conduct](CODE_OF_CONDUCT.md). To report a bug or ask for a provider, use the
+[issue forms](https://github.com/SergeSerb2/OpenBar/issues/new/choose).
 
-CodexBar has a large set of community integrations (Linux desktop apps, panel widgets, desk displays, phone apps).
-They target CodexBar's `codexbar` CLI and JSON output; OpenBar's CLI is named `openbar` and keeps the same JSON
-shape. See [CodexBar's README](https://github.com/steipete/CodexBar#related) for the current list.
+More documentation: [configuration](docs/configuration.md) · [widgets](docs/widgets.md) ·
+[architecture](docs/architecture.md) · [refresh loop](docs/refresh-loop.md) · [status polling](docs/status.md) ·
+[Sparkle updates](docs/sparkle.md) · [releasing](docs/RELEASING.md) · [changelog](CHANGELOG.md).
 
-## Credits
+## License and credits
 
-OpenBar is a fork of [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger
-([@steipete](https://github.com/steipete)), and keeps its features, providers, and docs.
-Cost tracking was inspired by [ccusage](https://github.com/ryoppippi/ccusage) (MIT).
+OpenBar is released under the [MIT License](LICENSE). Copyright Peter Steinberger (CodexBar) and Serge Serbinenko
+(OpenBar).
 
-## License
+OpenBar is based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger. It keeps CodexBar's
+provider integrations, CLI, and docs, and CodexBar's release history stays in the [changelog](CHANGELOG.md). The
+[community integrations](https://github.com/steipete/CodexBar#related) built for CodexBar's `codexbar` CLI can
+usually switch to `openbar`, which keeps the same JSON output.
 
-MIT. Copyright Peter Steinberger (CodexBar) and Serge Serbinenko (OpenBar). See [LICENSE](LICENSE).
+Cost tracking was inspired by [ccusage](https://github.com/ryoppippi/ccusage). Third-party licenses are listed in
+[THIRD_PARTY_LICENSES.md](docs/THIRD_PARTY_LICENSES.md).

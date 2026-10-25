@@ -1,0 +1,110 @@
+name: Bug report
+description: Something in OpenBar is broken, wrong, or slow.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Before you submit, remove every token, cookie, API key, email address, and account
+        or organization ID from logs and screenshots. For a security problem, do not file an issue: use
+        [private vulnerability reporting](https://github.com/SergeSerb2/OpenBar/security/advisories/new).
+  - type: input
+    id: openbar-version
+    attributes:
+      label: OpenBar version
+      description: Settings → About, or `openbar --version`.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      description: Apple menu → About This Mac. Include the chip (Apple silicon or Intel).
+      placeholder: "macOS 26.1, Apple silicon"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: How did you install OpenBar?
+      options:
+        - GitHub Releases (notarized app)
+        - Built from source
+        - Standalone CLI only
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      description: The provider involved, as shown in Settings → Providers. Write "none" for app-wide problems.
+      placeholder: "Claude"
+    validations:
+      required: true
+  - type: dropdown
+    id: source-mode
+    attributes:
+      label: Source mode
+      description: The source picker for the provider in Settings → Providers, or `source` in the config file.
+      options:
+        - Auto
+        - OAuth
+        - Web (browser cookies)
+        - CLI
+        - API key
+        - Local files
+        - Not applicable
+        - I don't know
+    validations:
+      required: true
+  - type: dropdown
+    id: cookie-source
+    attributes:
+      label: Cookie source (web providers only)
+      options:
+        - Not applicable
+        - Automatic (browser import)
+        - Manual (pasted cookie header)
+        - Off
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected, what you saw instead, and any error text shown in the menu or Settings.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Enable …
+        2. Open the menu …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs (secrets removed)
+      description: |
+        To write a log file: Settings → Advanced → Show debug settings, then Debug → Logging → Enable file logging.
+        Reproduce the problem, then copy the relevant lines from `~/Library/Logs/OpenBar/OpenBar.log`.
+        For the CLI, add `--verbose`. Check the text for secrets before you paste it.
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Optional. Redact names, emails, and account details.
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Checks
+      options:
+        - label: I removed tokens, cookies, API keys, emails, and account IDs from everything above.
+          required: true
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
