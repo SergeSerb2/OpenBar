@@ -69,7 +69,10 @@ struct DashboardAccountPrivacyTests {
             config: self.config, refreshInterval: 60, openBarVersion: nil, identityMode: mode)
         let row = try #require(result.payload.providers.first)
         #expect(row.accounts == nil)
-        #expect(row.accountsError == (expanded && mode != .full ? "Account list unavailable" : diagnostic))
+        let redacted = "Private Team at /home/private: redacted@example.test"
+        #expect(row.accountsError == (expanded && mode != .full || mode == .none
+                ? "Account list unavailable"
+                : mode == .redacted ? redacted : diagnostic))
         #expect(row.windows.first?.usedPercent == 25)
         let data = try JSONEncoder().encode(result.payload)
         let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
