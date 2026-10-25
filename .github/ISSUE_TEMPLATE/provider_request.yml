@@ -1,0 +1,47 @@
+name: Provider request
+description: Ask OpenBar to track usage or credits for a new AI provider.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        OpenBar already supports 100+ providers; check the [provider list](https://github.com/SergeSerb2/OpenBar/blob/main/docs/providers.md)
+        first. Hosted relays and resellers must meet the
+        [relay eligibility rules](https://github.com/SergeSerb2/OpenBar/blob/main/docs/provider.md#hosted-relay-eligibility).
+        You can also add a provider yourself as a [plugin](https://github.com/SergeSerb2/OpenBar/blob/main/docs/plugins.md).
+  - type: input
+    id: provider-name
+    attributes:
+      label: Provider name and website
+      placeholder: "Example AI — https://example.ai"
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: What should OpenBar show?
+      description: For example session or weekly limits, credit balance, monthly spend, or reset times.
+    validations:
+      required: true
+  - type: textarea
+    id: access
+    attributes:
+      label: How can the data be read?
+      description: |
+        Link the provider's documentation if you can. Examples: a documented usage or billing API with an API key,
+        OAuth, a local CLI command or file, or the provider's web dashboard (browser session).
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample response (secrets removed)
+      description: Optional. A redacted API response or a screenshot of the usage page helps a lot.
+      render: text
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I have an account and can test a development build.
+        - label: I am willing to open a pull request or write a plugin.
