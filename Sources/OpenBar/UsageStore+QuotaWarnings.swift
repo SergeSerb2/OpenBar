@@ -178,7 +178,8 @@ extension UsageStore {
             }
         }
         let previousState = self.quotaWarningState[key]
-        if let previousState, accountContext.observedAt <= previousState.observedAt { return }
+        // Only older samples are stale; a same-instant sample cannot pass the trusted-reset re-arm checks below.
+        if let previousState, accountContext.observedAt < previousState.observedAt { return }
         if let previousState, previousState.source != source {
             self.quotaWarningState[key] = QuotaWarningState(
                 lastRemaining: currentRemaining,
