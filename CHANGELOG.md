@@ -63,12 +63,11 @@ memory use, and the fixes from a full bug and security audit (96 findings, 92 fi
 - Provider responses stay out of the shared cookie jar and disk cache.
 - `openbar serve` no longer passes its dashboard token to provider CLIs and helpers. Redacted dashboards also redact
   emails in error messages, and dashboard exports are written with owner-only permissions.
-- Hide Personal Info now also hides token-account switcher labels and custom provider card identities. Codex account
-  identity no longer appears in other providers.
+- **Hide personal information** now also hides token-account switcher labels and custom provider card identities.
+  Codex account identity no longer appears in other providers.
 - Legacy credential migration never shows a Keychain prompt, and a saved Keychain-consent choice applies before
   startup migration.
 - StepFun session tokens move into secret storage.
-- Queued sync snapshots are withdrawn when you turn off sync consent.
 
 **Hardening**
 
@@ -98,8 +97,8 @@ memory use, and the fixes from a full bug and security audit (96 findings, 92 fi
   OAuth credentials. Aliyun cleans up cookie copies when copying fails.
 - Augment, AWS Bedrock, Claude Platform, Doubao, Fireworks, IBM Bob, Kilo, Kimi, MiniMax, Mistral, Manus, Notion,
   Poe, StepFun, Synthetic, T3 Chat, Vertex AI, Wayfinder, xAI, Zed, and ZoomMate: fixes to timestamps, reset times,
-  units, partial history, and unknown values. Overflowing counters and invalid
-  quota counts are rejected instead of shown.
+  units, partial history, and unknown values. Overflowing counters and invalid quota counts are rejected instead
+  of shown.
 - Quota warnings keep their state across partial responses and start a new episode only after a confirmed reset.
 - Provider autodetection respects a forced re-run and the choices you make while it runs. Shared spend stats keep
   the selected period. Widget snapshot migrations retry after a failure. Suspended history writes stay with the
@@ -114,8 +113,8 @@ memory use, and the fixes from a full bug and security audit (96 findings, 92 fi
   `OPENBAR_PLUGIN_<PLUGIN_ID>__<SETTING_KEY>`, for example `OPENBAR_PLUGIN_ACME_USAGE__API_KEY`. The old
   single-underscore form still works only when the plugin ID has no hyphen and the key has no underscore; rename
   any other variable. If both are set, the double-underscore form wins.
-- Updates come from OpenBar's own Sparkle feed, signed with OpenBar's own key, and release tags are signed with
-  OpenBar's own key.
+- Updates come from OpenBar's own Sparkle feed and are verified with OpenBar's own update key. Release tags are
+  signed with OpenBar's own key.
 
 ### Known issues
 
