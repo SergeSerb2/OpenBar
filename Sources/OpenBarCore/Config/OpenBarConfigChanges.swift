@@ -14,11 +14,17 @@ extension OpenBarConfig {
         let editedIDs = Set(edited.providers.map(\.id))
         result.providers.removeAll { originalIDs.contains($0.id) && !editedIDs.contains($0.id) }
         for provider in edited.providers {
-            let entry = try ConfigValueChanges.apply(
-                from: original.providerConfig(for: provider.id),
-                to: provider,
-                current: result.providerConfig(for: provider.id))
-            if let entry { result.setProviderConfig(entry) }
+            let before = original.providerConfig(for: provider.id)
+            let latest = result.providerConfig(for: provider.id)
+            let entry = try ConfigValueChanges.apply(from: before, to: provider, current: latest)
+            if var entry {
+                entry.tokenAccounts = Self.rebasingActiveAccount(
+                    entry.tokenAccounts,
+                    original: before?.tokenAccounts,
+                    edited: provider.tokenAccounts,
+                    current: latest?.tokenAccounts)
+                result.setProviderConfig(entry)
+            }
         }
         if original.providers.map(\.id) != edited.providers.map(\.id) {
             let entries = Dictionary(uniqueKeysWithValues: result.providers.map { ($0.id, $0) })
@@ -26,6 +32,24 @@ extension OpenBarConfig {
                 + result.providers.filter { !editedIDs.contains($0.id) }
         }
         return result.normalized()
+    }
+
+    /// Accounts merge by ID, so the active index must follow the selected account rather than its old slot.
+    private static func rebasingActiveAccount(
+        _ merged: ProviderTokenAccountData?,
+        original: ProviderTokenAccountData?,
+        edited: ProviderTokenAccountData?,
+        current: ProviderTokenAccountData?) -> ProviderTokenAccountData?
+    {
+        guard let merged, !merged.accounts.isEmpty else { return merged }
+        func activeID(_ data: ProviderTokenAccountData?) -> UUID? {
+            guard let data, !data.accounts.isEmpty else { return nil }
+            return data.accounts[data.clampedActiveIndex()].id
+        }
+        let editedID = activeID(edited)
+        let selected = editedID != activeID(original) ? editedID : activeID(current)
+        guard let selected, let index = merged.accounts.firstIndex(where: { $0.id == selected }) else { return merged }
+        return ProviderTokenAccountData(version: merged.version, accounts: merged.accounts, activeIndex: index)
     }
 }
 
