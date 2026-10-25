@@ -430,7 +430,13 @@ final class SettingsConfigPersistenceCoordinator: @unchecked Sendable {
 
     func load(_ store: OpenBarConfigStore, reload: Bool = false) throws -> OpenBarConfig? {
         // Writers hold the file lock before this lock, so publish any legacy migration before taking it.
-        _ = try store.load()
+        do {
+            _ = try store.load()
+        } catch {
+            // A failed read still supersedes every queued writer, as a successful load does.
+            self.lock.withLock { self.generation &+= 1 }
+            throw error
+        }
         return try self.lock.withLock {
             self.generation &+= 1
             let config = try store.loadWithoutMigrating()
