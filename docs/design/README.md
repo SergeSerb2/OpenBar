@@ -820,6 +820,7 @@ refresh/scheduling code (including `StatusItemController+CountdownRefresh.swift`
 1. **Default menu bar style.** The default is still *Critters* (CodexBar's signature). Flip the default to
    *Meter bars* (the new OpenBar glyph) for users who never chose a style? This changes the default of an
    existing setting (`menuBarHidesCritters` default `false` → `true`), not its meaning. Recommended: yes.
+   **Decided: yes.** New installs that never chose a style get Meter bars.
 2. **Meter colors.** Meters keep the provider color because the existing per-provider accent setting says
    it colors "usage bars, charts, and switcher tab". Iris on every meter would be calmer but would change
    that setting's meaning and its string in 23 locales. Recommended: keep provider colors.
@@ -829,9 +830,12 @@ refresh/scheduling code (including `StatusItemController+CountdownRefresh.swift`
    rows (today amber < 50 %, red < 10 %), and widgets (today red ≤ 10 %)? Recommended: yes.
 5. **Settings sidebar look.** The lighter HStack shell has an edge-to-edge sidebar instead of macOS 26's
    floating glass sidebar. Accept it for ≈ 11–16 MB, or use `NSSplitViewController` (floating sidebar,
-   ≈ 8–13 MB saved)?
+   ≈ 8–13 MB saved)? **Decided: the HStack shell shipped.**
 6. **Attribution.** Keep "Based on CodexBar by Peter Steinberger" as a plain About link and the README
    "Fork of CodexBar" badge (restyled), or move the credit to Acknowledgements only? The MIT license only
    requires the notice in `LICENSE`. Recommended: keep a plain About link, drop the colored README badge.
+   **Decided:** the About link stays, the badge is gone, and the README and site footer say "Based on CodexBar
+   by Peter Steinberger" in plain text.
 7. **Codex's shipped color.** Codex's provider color `#49A3B0` is CodexBar's teal. It is provider data,
    so this spec keeps it. Change the shipped default to OpenAI's own palette (for example `#10A37F`)?
+   **Decided: `#10A37F`.** Users who set a custom provider accent keep it.
