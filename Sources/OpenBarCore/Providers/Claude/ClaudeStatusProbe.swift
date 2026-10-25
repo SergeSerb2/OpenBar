@@ -849,7 +849,11 @@ extension ClaudeStatusProbe {
         allowFuzzy: Bool = false) -> Bool
     {
         guard let expectedModel = self.weeklyModelName(from: labelSubstring) else {
-            return normalizedLine.contains(normalizedLabel)
+            if normalizedLine.contains(normalizedLabel) { return true }
+            // Opt-in tolerance for a garbled session heading ("Curretsession"). The value scan still stops at
+            // the next quota heading, so a weekly percentage is never borrowed for the session lane.
+            return allowFuzzy && abs(normalizedLine.count - normalizedLabel.count) <= 2
+                && self.editDistance(normalizedLine, normalizedLabel) <= 2
         }
         guard let actualModel = self.weeklyModelName(from: line) else { return false }
         let expectedNormalized = self.normalizedForLabelSearch(expectedModel)
