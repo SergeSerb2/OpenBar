@@ -15,9 +15,15 @@ the Antigravity app or run `agy`, sign in, then refresh. See `docs/gemini.md` fo
 provider migration notes. OpenBar offers the handoff only after an observed Google migration
 signal and never enables or falls back to Antigravity automatically.
 
-To use the `agy` CLI source without keeping the desktop app open, install the CLI first
-(`brew install --cask antigravity-cli`; use `ANTIGRAVITY_CLI_PATH` when it is not on PATH), then
-run `agy` once and sign in. An explicit `ANTIGRAVITY_CLI_PATH` is authoritative: if it is empty,
+To track your subscription with the CLI alone, [install Antigravity CLI](https://antigravity.google/docs/getting-started?tab=cli)
+or run `brew install --cask antigravity-cli` on macOS. Run `agy` in a terminal and sign in with the
+Google account that has the subscription. In OpenBar, open **Settings → Providers → Antigravity**,
+enable the provider, choose **Local API / agy CLI** under **Usage source**, and refresh. This
+source uses the local Antigravity sign-in. **Login with Google** and **Add Account...** start
+OpenBar's separate account-switching setup.
+
+Use `ANTIGRAVITY_CLI_PATH` when `agy` is outside the usual install locations and is not on PATH.
+An explicit `ANTIGRAVITY_CLI_PATH` is authoritative: if it is empty,
 points to a missing file, or is not executable, OpenBar skips the CLI source instead of discovering another `agy`
 through PATH, installation directories, shell lookup, or aliases. Unset the variable to restore
 automatic discovery. Other providers retain their existing override behavior.

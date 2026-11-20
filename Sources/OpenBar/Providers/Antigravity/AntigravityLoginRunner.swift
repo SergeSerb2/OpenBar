@@ -27,7 +27,10 @@ enum AntigravityLoginRunner {
         onCredentialsCreated: (@Sendable () -> Void)? = nil) async -> Result
     {
         guard let oauthClient = AntigravityOAuthConfig.resolvedClient() else {
-            return Result(outcome: .failed(AntigravityOAuthConfig.missingCredentialsMessage))
+            return Result(outcome: .failed(
+                AntigravityOAuthConfig.missingCredentialsMessage + "\n\n"
+                    + "If you use Antigravity CLI, run agy in Terminal and sign in. In OpenBar, choose "
+                    + "Local API / agy CLI as the Antigravity usage source, then refresh."))
         }
 
         let state = UUID().uuidString.replacingOccurrences(of: "-", with: "")

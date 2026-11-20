@@ -779,7 +779,8 @@ public enum AntigravityStatusProbeError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notRunning:
-            "Antigravity language server not detected. Launch Antigravity and retry."
+            "No local Antigravity session found. Open Antigravity and sign in, or install Antigravity CLI "
+                + "and run agy in Terminal to sign in. Then refresh OpenBar."
         case .missingCSRFToken:
             "Antigravity CSRF token not found. Restart Antigravity and retry."
         case let .portDetectionFailed(message):

@@ -4,6 +4,11 @@ OpenBar is based on [CodexBar](https://github.com/steipete/CodexBar) by Peter St
 Entries from 0.80.1 down are CodexBar's release history and keep their original names; OpenBar 1.0.0 includes
 all of them.
 
+## Unreleased
+
+- Antigravity shows how to install and sign in to `agy` when local usage is unavailable. The Google account
+  setup error also explains how to use a CLI sign-in.
+
 ## 1.0.0 — 2026-10-25
 
 OpenBar's first public release. It includes everything in CodexBar 0.80.1 below, with a new design, much lower
